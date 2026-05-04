@@ -61,9 +61,6 @@ const AdminDashboardScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.actionTile} onPress={() => navigation.navigate('FoodReports')}>
           <Text style={styles.actionTitle}>Food Records</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionTile} onPress={() => navigation.navigate('FoodReports')}>
-          <Text style={styles.actionTitle}>Food Reports</Text>
-        </TouchableOpacity>
       </View>
       <Text style={styles.sectionTitle}>Recent Centers</Text>
       {centers.slice(0, 3).map((center) => (

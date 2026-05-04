@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView } from 'react
 import { useDispatch, useSelector } from 'react-redux';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
+import Toast from 'react-native-toast-message';
 import { fetchFoodRecords, fetchMonthlyReports, deleteFoodRecord } from '../../redux/slices/foodSlice';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import { fetchFarmers } from '../../redux/slices/farmerSlice';
@@ -66,9 +67,21 @@ const FoodReportsScreen = ({ navigation }) => {
           onPress: async () => {
             try {
               await dispatch(deleteFoodRecord({ id, token })).unwrap();
-              Alert.alert('Success', 'Record deleted successfully');
+              Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Record deleted successfully',
+                position: 'top',
+                visibilityTime: 3000,
+              });
             } catch (error) {
-              Alert.alert('Error', error);
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: error,
+                position: 'top',
+                visibilityTime: 4000,
+              });
             }
           }
         }

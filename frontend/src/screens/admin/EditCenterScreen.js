@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Formik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
+import Toast from 'react-native-toast-message';
 import { centerSchema } from '../../validation/schemas';
 import { updateCenter } from '../../redux/slices/centerSlice';
 
@@ -31,14 +32,44 @@ const EditCenterScreen = ({ route, navigation }) => {
           gpsLocation: center.gpsLocation || '',
           latitude: String(center.latitude || ''),
           longitude: String(center.longitude || ''),
-          status: center.status || 'Active'
+          status: center.status || 'Active',
+          collectionHead: {
+            fullName: center.collectionHead?.fullName || '',
+            mobileNumber: center.collectionHead?.mobileNumber || '',
+            alternativeMobileNumber: center.collectionHead?.alternativeMobileNumber || '',
+            username: center.collectionHead?.username || '',
+            password: ''
+          }
         }}
         onSubmit={async (values) => {
           try {
-            await dispatch(updateCenter({ id: center._id, data: values, token })).unwrap();
+            const payload = { ...values };
+            if (payload.collectionHead) {
+              if (payload.collectionHead.password === '') {
+                delete payload.collectionHead.password;
+              }
+              const hasHeadData = payload.collectionHead.username || payload.collectionHead.fullName || payload.collectionHead.mobileNumber || payload.collectionHead.alternativeMobileNumber;
+              if (!hasHeadData) {
+                delete payload.collectionHead;
+              }
+            }
+            await dispatch(updateCenter({ id: center._id, data: payload, token })).unwrap();
+            Toast.show({
+              type: 'success',
+              text1: 'Success',
+              text2: 'Collection center updated successfully',
+              position: 'top',
+              visibilityTime: 3000,
+            });
             navigation.goBack();
           } catch (error) {
-            Alert.alert('Error', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: error,
+              position: 'top',
+              visibilityTime: 4000,
+            });
           }
         }}
       >
@@ -55,6 +86,29 @@ const EditCenterScreen = ({ route, navigation }) => {
                   placeholderTextColor="#94a3b8"
                 />
                 {touched[field] && errors[field] ? <Text style={styles.error}>{errors[field]}</Text> : null}
+              </View>
+            ))}
+            <Text style={styles.sectionTitle}>Collection Head Details</Text>
+            {[
+              { name: 'collectionHead.fullName', label: 'Head Name' },
+              { name: 'collectionHead.mobileNumber', label: 'Phone Number' },
+              { name: 'collectionHead.alternativeMobileNumber', label: 'Alternate Phone Number' },
+              { name: 'collectionHead.username', label: 'Username' },
+              { name: 'collectionHead.password', label: 'Password', secure: true }
+            ].map((field) => (
+              <View key={field.name} style={styles.field}>
+                <TextInput
+                  value={field.name === 'collectionHead.password' ? values.collectionHead.password : values.collectionHead[field.name.split('.').pop()]}
+                  onChangeText={handleChange(field.name)}
+                  onBlur={handleBlur(field.name)}
+                  placeholder={field.label}
+                  secureTextEntry={field.secure}
+                  style={styles.input}
+                  placeholderTextColor="#94a3b8"
+                />
+                {field.name.includes('.') && touched.collectionHead?.[field.name.split('.').pop()] && errors.collectionHead?.[field.name.split('.').pop()] ? (
+                  <Text style={styles.error}>{errors.collectionHead[field.name.split('.').pop()]}</Text>
+                ) : null}
               </View>
             ))}
             <View style={styles.statusRow}>
@@ -102,6 +156,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginTop: 16,
+    marginBottom: 10
   },
   label: {
     color: '#475569',

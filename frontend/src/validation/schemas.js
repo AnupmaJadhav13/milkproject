@@ -5,6 +5,26 @@ export const loginSchema = Yup.object().shape({
   password: Yup.string().required('Password is required')
 });
 
+const collectionHeadSchema = Yup.object().shape({
+  fullName: Yup.string().when('username', {
+    is: (val) => !!val,
+    then: Yup.string().required('Collection head name is required'),
+    otherwise: Yup.string()
+  }),
+  mobileNumber: Yup.string().when('username', {
+    is: (val) => !!val,
+    then: Yup.string().required('Collection head phone number is required'),
+    otherwise: Yup.string()
+  }),
+  alternativeMobileNumber: Yup.string(),
+  username: Yup.string(),
+  password: Yup.string().when('username', {
+    is: (val) => !!val,
+    then: Yup.string().required('Collection head password is required'),
+    otherwise: Yup.string()
+  })
+});
+
 export const centerSchema = Yup.object().shape({
   name: Yup.string().required('Center name is required'),
   centerCode: Yup.string().required('Center code is required'),
@@ -13,7 +33,8 @@ export const centerSchema = Yup.object().shape({
   taluka: Yup.string().required('Taluka is required'),
   district: Yup.string().required('District is required'),
   state: Yup.string().required('State is required'),
-  pincode: Yup.string().required('Pincode is required')
+  pincode: Yup.string().required('Pincode is required'),
+  collectionHead: collectionHeadSchema
 });
 
 export const farmerSchema = Yup.object().shape({

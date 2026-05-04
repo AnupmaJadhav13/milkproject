@@ -1,6 +1,5 @@
 const asyncHandler = require('express-async-handler');
 const CollectionCenter = require('../models/CollectionCenter');
-const CollectionHead = require('../models/CollectionHead');
 
 const createCenter = asyncHandler(async (req, res) => {
   const {
@@ -25,6 +24,14 @@ const createCenter = asyncHandler(async (req, res) => {
     throw new Error('Center code already exists');
   }
 
+  if (collectionHead?.username) {
+    const headExists = await CollectionCenter.findOne({ 'collectionHead.username': collectionHead.username });
+    if (headExists) {
+      res.status(400);
+      throw new Error('Collection head username already exists');
+    }
+  }
+
   const center = await CollectionCenter.create({
     name,
     centerCode,
@@ -37,7 +44,8 @@ const createCenter = asyncHandler(async (req, res) => {
     gpsLocation,
     latitude,
     longitude,
-    status: status || 'Active'
+    status: status || 'Active',
+    collectionHead: collectionHead || undefined
   });
 
   res.status(201).json(center);
@@ -71,6 +79,21 @@ const updateCenter = asyncHandler(async (req, res) => {
     }
   });
 
+  if (req.body.collectionHead?.username && req.body.collectionHead.username !== center.collectionHead?.username) {
+    const headExists = await CollectionCenter.findOne({ 'collectionHead.username': req.body.collectionHead.username });
+    if (headExists) {
+      res.status(400);
+      throw new Error('Collection head username already exists');
+    }
+  }
+
+  if (req.body.collectionHead !== undefined) {
+    center.collectionHead = {
+      ...center.collectionHead?.toObject(),
+      ...req.body.collectionHead
+    };
+  }
+
   const updatedCenter = await center.save();
   res.json(updatedCenter);
 });
@@ -80,12 +103,6 @@ const deleteCenter = asyncHandler(async (req, res) => {
   if (!center) {
     res.status(404);
     throw new Error('Center not found');
-  }
-
-  const linkedHead = await CollectionHead.countDocuments({ assignedCenter: center._id });
-  if (linkedHead > 0) {
-    res.status(400);
-    throw new Error('Remove or reassign collection head before deleting center');
   }
 
   await center.deleteOne();

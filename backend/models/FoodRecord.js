@@ -8,8 +8,11 @@ const foodRecordSchema = mongoose.Schema({
   },
   collectionHeadId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'CollectionHead',
+    ref: 'CollectionCenter',
     required: true
+  },
+  collectionHeadName: {
+    type: String
   },
   farmerId: {
     type: mongoose.Schema.Types.ObjectId,

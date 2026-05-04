@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
+import Toast from 'react-native-toast-message';
 import { farmerSchema } from '../../validation/schemas';
 import { createFarmer } from '../../redux/slices/farmerSlice';
 import { fetchCenters } from '../../redux/slices/centerSlice';
@@ -41,9 +42,22 @@ const AddFarmerScreen = ({ navigation }) => {
         onSubmit={async (values) => {
           try {
             await dispatch(createFarmer({ data: values, token })).unwrap();
+            Toast.show({
+              type: 'success',
+              text1: 'Success',
+              text2: 'Farmer added successfully',
+              position: 'top',
+              visibilityTime: 3000,
+            });
             navigation.goBack();
           } catch (error) {
-            Alert.alert('Error', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: error,
+              position: 'top',
+              visibilityTime: 4000,
+            });
           }
         }}
       >

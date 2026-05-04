@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Toast from 'react-native-toast-message';
 import { updateFoodRecord } from '../../redux/slices/foodSlice';
 import { foodSchema } from '../../validation/schemas';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -49,10 +50,22 @@ const EditFoodRecordScreen = ({ route, navigation }) => {
               date: values.date.toISOString()
             };
             await dispatch(updateFoodRecord({ id: record._id, data: payload, token })).unwrap();
-            Alert.alert('Success', 'Food record updated successfully');
+            Toast.show({
+              type: 'success',
+              text1: 'Success',
+              text2: 'Food record updated successfully',
+              position: 'top',
+              visibilityTime: 3000,
+            });
             navigation.goBack();
           } catch (error) {
-            Alert.alert('Error', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: error,
+              position: 'top',
+              visibilityTime: 4000,
+            });
           }
         }}
       >

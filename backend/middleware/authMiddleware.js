@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const Admin = require('../models/Admin');
-const CollectionHead = require('../models/CollectionHead');
+const CollectionCenter = require('../models/CollectionCenter');
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
@@ -16,7 +16,17 @@ const protect = asyncHandler(async (req, res, next) => {
       if (decoded.role === 'admin') {
         req.user = await Admin.findById(decoded.id).select('-password');
       } else if (decoded.role === 'collection_head') {
-        req.user = await CollectionHead.findById(decoded.id).select('-password');
+        const collectionCenter = await CollectionCenter.findById(decoded.id);
+        if (collectionCenter) {
+          req.user = collectionCenter;
+          req.user.role = 'collection_head';
+          req.user.assignedCenter = collectionCenter._id;
+          req.user.name = collectionCenter.collectionHead?.fullName || collectionCenter.name;
+          req.user.username = collectionCenter.collectionHead?.username;
+          if (req.user.collectionHead) {
+            req.user.collectionHead.password = undefined;
+          }
+        }
       }
       if (!req.user) {
         res.status(401);

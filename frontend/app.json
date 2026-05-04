@@ -7,6 +7,9 @@
     "sdkVersion": "49.0.0",
     "platforms": ["ios", "android", "web"],
     "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": true }
+    "ios": { "supportsTablet": true },
+    "extra": {
+      "apiUrl": "http://192.168.0.104:5000/api"
+    }
   }
 }

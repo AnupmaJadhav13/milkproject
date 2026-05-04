@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
+import Toast from 'react-native-toast-message';
 import { loginSchema } from '../../validation/schemas';
 import { loginUser } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -12,7 +13,14 @@ const LoginScreen = () => {
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Login Error', error);
+      const errorMessage = typeof error === 'string' ? error : error.message || 'Login failed';
+      Toast.show({
+        type: 'error',
+        text1: 'Login Failed',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 4000,
+      });
     }
   }, [error]);
 

@@ -1,6 +1,11 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 
-const API_BASE_URL = 'http://192.168.0.114:5000/api';
+const DEV_HOST = '192.168.0.104';
+const APP_CONFIG_URL = Constants.expoConfig?.extra?.apiUrl || Constants.manifest?.extra?.apiUrl;
+const DEFAULT_API_URL = APP_CONFIG_URL || `http://${DEV_HOST}:5000/api`;
+
+const API_BASE_URL = DEFAULT_API_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -8,6 +13,18 @@ const api = axios.create({
     'Content-Type': 'application/json'
   }
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const message = error.response?.data?.message || error.message || 'Network error';
+    error.message = message;
+    return Promise.reject(error);
+  }
+);
+
+export const apiBaseUrl = API_BASE_URL;
+
 
 export const authApi = {
   login: (credentials) => api.post('/auth/login', credentials)

@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Formik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
+import Toast from 'react-native-toast-message';
 import { farmerSchema } from '../../validation/schemas';
 import { updateFarmer } from '../../redux/slices/farmerSlice';
 
@@ -40,9 +41,22 @@ const EditFarmerScreen = ({ route, navigation }) => {
         onSubmit={async (values) => {
           try {
             await dispatch(updateFarmer({ id: farmer._id, data: values, token })).unwrap();
+            Toast.show({
+              type: 'success',
+              text1: 'Success',
+              text2: 'Farmer updated successfully',
+              position: 'top',
+              visibilityTime: 3000,
+            });
             navigation.goBack();
           } catch (error) {
-            Alert.alert('Error', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: error,
+              position: 'top',
+              visibilityTime: 4000,
+            });
           }
         }}
       >

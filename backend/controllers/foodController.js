@@ -2,7 +2,6 @@ const asyncHandler = require('express-async-handler');
 const FoodRecord = require('../models/FoodRecord');
 const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
-const CollectionHead = require('../models/CollectionHead');
 const { sendSMS } = require('../services/smsService');
 
 // @desc    Create a new food record
@@ -22,11 +21,11 @@ const createFoodRecord = asyncHandler(async (req, res) => {
     date
   } = req.body;
 
-  const collectionHeadId = req.user.id;
-  const collectionHead = await CollectionHead.findById(collectionHeadId);
-  if (!collectionHead) {
+  const collectionCenterId = req.user.id;
+  const collectionCenter = await CollectionCenter.findById(collectionCenterId);
+  if (!collectionCenter || !collectionCenter.collectionHead?.username) {
     res.status(404);
-    throw new Error('Collection Head not found');
+    throw new Error('Collection head or center not found');
   }
 
   const farmer = await Farmer.findById(farmerId);
@@ -36,7 +35,7 @@ const createFoodRecord = asyncHandler(async (req, res) => {
   }
 
   // Check if farmer is assigned to the collection head's center
-  if (farmer.assignedCenter.toString() !== collectionHead.assignedCenter.toString()) {
+  if (farmer.assignedCenter.toString() !== collectionCenter._id.toString()) {
     res.status(403);
     throw new Error('Farmer not assigned to your collection center');
   }
@@ -44,8 +43,9 @@ const createFoodRecord = asyncHandler(async (req, res) => {
   const totalAmount = quantity * rate;
 
   const foodRecord = await FoodRecord.create({
-    collectionCenterId: collectionHead.assignedCenter,
-    collectionHeadId,
+    collectionCenterId: collectionCenter._id,
+    collectionHeadId: collectionCenter._id,
+    collectionHeadName: collectionCenter.collectionHead?.fullName || collectionCenter.collectionHead?.username || '',
     farmerId,
     animalType,
     foodType,
@@ -68,7 +68,7 @@ const createFoodRecord = asyncHandler(async (req, res) => {
       foodType,
       rate,
       totalAmount,
-      centerName: collectionHead.centerName || 'Your Collection Center'
+      centerName: collectionCenter.name || 'Your Collection Center'
     });
   } catch (smsError) {
     console.error('SMS sending failed:', smsError);
@@ -140,7 +140,7 @@ const getAllFoodRecords = asyncHandler(async (req, res) => {
 
   const foodRecords = await FoodRecord.find(filter)
     .populate('collectionCenterId', 'name')
-    .populate('collectionHeadId', 'name')
+    .populate('collectionHeadId', 'name collectionHead.fullName')
     .populate('farmerId', 'fullName mobileNumber')
     .sort({ createdAt: -1 })
     .limit(limit * 1)
@@ -166,12 +166,9 @@ const getFoodRecordsByCenter = asyncHandler(async (req, res) => {
   const userRole = req.user.role;
   const userId = req.user.id;
 
-  if (userRole === 'collection_head') {
-    const collectionHead = await CollectionHead.findById(userId);
-    if (collectionHead.assignedCenter.toString() !== centerId) {
-      res.status(403);
-      throw new Error('Not authorized to view this center\'s records');
-    }
+  if (userRole === 'collection_head' && userId !== centerId) {
+    res.status(403);
+    throw new Error('Not authorized to view this center\'s records');
   }
 
   const foodRecords = await FoodRecord.find({ collectionCenterId: centerId })
@@ -198,7 +195,7 @@ const getFoodRecordsByFarmer = asyncHandler(async (req, res) => {
 
   const foodRecords = await FoodRecord.find({ farmerId })
     .populate('collectionCenterId', 'name')
-    .populate('collectionHeadId', 'name')
+    .populate('collectionHeadId', 'name collectionHead.fullName')
     .sort({ createdAt: -1 });
 
   res.json(foodRecords);
