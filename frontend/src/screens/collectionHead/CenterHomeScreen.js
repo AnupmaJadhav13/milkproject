@@ -30,6 +30,12 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
         <Text style={styles.cardValue}>{centerName}</Text>
         <Text style={styles.cardDetail}>{farmers.length} active farmers</Text>
       </View>
+      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('FoodEntry')}>
+        <Text style={styles.buttonText}>Add Food Record</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.navigate('FoodHistory')}>
+        <Text style={styles.buttonText}>Center Food History</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('CollectionHeadFarmers') }>
         <Text style={styles.buttonText}>View Farmers</Text>
       </TouchableOpacity>
@@ -80,7 +86,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     backgroundColor: '#2563eb',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  buttonSecondary: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    marginBottom: 12
   },
   buttonText: {
     color: '#fff',

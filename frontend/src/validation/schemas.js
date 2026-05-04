@@ -30,3 +30,14 @@ export const farmerSchema = Yup.object().shape({
   assignedCenter: Yup.string().required('Assigned center is required'),
   animalType: Yup.string().required('Animal type is required')
 });
+
+export const foodSchema = Yup.object().shape({
+  farmerId: Yup.string().required('Farmer is required'),
+  animalType: Yup.string().required('Animal type is required').oneOf(['Cow', 'Buffalo']),
+  foodType: Yup.string().required('Food type is required').oneOf(['Cattle Feed', 'Buffalo Feed', 'Mineral Mix', 'Dry Fodder', 'Green Fodder', 'Protein Mix', 'Other']),
+  quantity: Yup.number().required('Quantity is required').positive('Quantity must be positive'),
+  unit: Yup.string().required('Unit is required').oneOf(['Bag', 'KG', 'Packet', 'Liter']),
+  rate: Yup.number().required('Rate is required').positive('Rate must be positive'),
+  paymentStatus: Yup.string().required('Payment status is required').oneOf(['Pending', 'Paid']),
+  notes: Yup.string()
+});

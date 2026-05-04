@@ -28,4 +28,14 @@ export const farmerApi = {
   getByCenter: (centerId, token) => api.get(`/farmers/center/${centerId}`, { headers: { Authorization: `Bearer ${token}` } })
 };
 
+export const foodApi = {
+  getAll: (token, params) => api.get('/food', { headers: { Authorization: `Bearer ${token}` }, params }),
+  add: (data, token) => api.post('/food', data, { headers: { Authorization: `Bearer ${token}` } }),
+  update: (id, data, token) => api.put(`/food/${id}`, data, { headers: { Authorization: `Bearer ${token}` } }),
+  remove: (id, token) => api.delete(`/food/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  getByCenter: (centerId, token, params) => api.get(`/food/center/${centerId}`, { headers: { Authorization: `Bearer ${token}` }, params }),
+  getByFarmer: (farmerId, token) => api.get(`/food/farmer/${farmerId}`, { headers: { Authorization: `Bearer ${token}` } }),
+  getMonthlyReports: (token, params) => api.get('/food/reports/monthly', { headers: { Authorization: `Bearer ${token}` }, params })
+};
+
 export default api;

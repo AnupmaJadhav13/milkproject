@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const centerRoutes = require('./routes/centerRoutes');
 const farmerRoutes = require('./routes/farmerRoutes');
+const foodRoutes = require('./routes/foodRoutes');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/centers', centerRoutes);
 app.use('/api/farmers', farmerRoutes);
+app.use('/api/food', foodRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
