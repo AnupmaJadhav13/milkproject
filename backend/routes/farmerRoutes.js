@@ -19,13 +19,13 @@ const farmerValidationRules = [
   check('mobileNumber', 'Mobile number is required').notEmpty(),
   check('address', 'Address is required').notEmpty(),
   check('village', 'Village is required').notEmpty(),
-  check('gender', 'Gender is required').notEmpty(),
   check('bankName', 'Bank name is required').notEmpty(),
   check('ifscCode', 'IFSC code is required').notEmpty(),
   check('accountNumber', 'Account number is required').notEmpty(),
   check('accountHolderName', 'Account holder name is required').notEmpty(),
-  check('branchName', 'Branch name is required').notEmpty(),
-  check('assignedCenter', 'Assigned center is required').notEmpty(),
+  check('assignedCenterCode', 'Assigned center or center code is required').custom((value, { req }) => {
+    return Boolean(req.body.assignedCenter || value);
+  }),
   check('animalType', 'Animal type is required').notEmpty()
 ];
 

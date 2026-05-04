@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
@@ -7,6 +8,7 @@ import { centerSchema } from '../../validation/schemas';
 import { updateCenter } from '../../redux/slices/centerSlice';
 
 const EditCenterScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   const center = route.params?.center;
@@ -16,7 +18,7 @@ const EditCenterScreen = ({ route, navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Edit Collection Center</Text>
       <Formik
         validationSchema={centerSchema}
@@ -25,13 +27,9 @@ const EditCenterScreen = ({ route, navigation }) => {
           centerCode: center.centerCode || '',
           fullAddress: center.fullAddress || '',
           village: center.village || '',
-          taluka: center.taluka || '',
           district: center.district || '',
           state: center.state || '',
           pincode: center.pincode || '',
-          gpsLocation: center.gpsLocation || '',
-          latitude: String(center.latitude || ''),
-          longitude: String(center.longitude || ''),
           status: center.status || 'Active',
           collectionHead: {
             fullName: center.collectionHead?.fullName || '',
@@ -75,7 +73,11 @@ const EditCenterScreen = ({ route, navigation }) => {
       >
         {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
           <>
-            {['name', 'centerCode', 'fullAddress', 'village', 'taluka', 'district', 'state', 'pincode', 'gpsLocation', 'latitude', 'longitude'].map((field) => (
+            <View style={styles.field}>
+              <Text style={styles.label}>Center Code</Text>
+              <TextInput value={values.centerCode} style={[styles.input, styles.readOnlyInput]} editable={false} />
+            </View>
+            {['name', 'fullAddress', 'village', 'district', 'state', 'pincode'].map((field) => (
               <View key={field} style={styles.field}>
                 <TextInput
                   value={values[field]}
@@ -150,6 +152,10 @@ const styles = StyleSheet.create({
     borderColor: '#cbd5e1',
     paddingHorizontal: 16,
     color: '#0f172a'
+  },
+  readOnlyInput: {
+    backgroundColor: '#e2e8f0',
+    color: '#334155'
   },
   statusRow: {
     flexDirection: 'row',

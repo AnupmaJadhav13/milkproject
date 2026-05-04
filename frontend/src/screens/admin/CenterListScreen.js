@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCenters, deleteCenter } from '../../redux/slices/centerSlice';
 import CenterCard from '../../components/CenterCard';
@@ -8,6 +9,7 @@ import SearchBar from '../../components/SearchBar';
 import ConfirmDialog from '../../components/ConfirmDialog';
 
 const CenterListScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const { list, status, error } = useSelector((state) => state.centers);
   const token = useSelector((state) => state.auth.token);
@@ -19,7 +21,12 @@ const CenterListScreen = ({ navigation }) => {
     if (token) dispatch(fetchCenters(token));
   }, [dispatch, token]);
 
-  const filteredCenters = list.filter((center) => center.name.toLowerCase().includes(search.toLowerCase()) || center.centerCode.toLowerCase().includes(search.toLowerCase()));
+  const filteredCenters = list.filter((center) => {
+    const centerName = center?.name?.toLowerCase() || '';
+    const centerCode = center?.centerCode?.toLowerCase() || '';
+    const query = search.toLowerCase();
+    return centerName.includes(query) || centerCode.includes(query);
+  });
 
   const onDelete = (center) => {
     setSelectedCenter(center);
@@ -34,7 +41,7 @@ const CenterListScreen = ({ navigation }) => {
   if (status === 'loading') return <LoadingIndicator />;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>Collection Centers</Text>
         <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddCenter')}>

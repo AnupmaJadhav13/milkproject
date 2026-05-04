@@ -7,6 +7,7 @@ const FarmerCard = ({ farmer, onPress, actions }) => (
       <Text style={styles.name}>{farmer.fullName}</Text>
       <Text style={[styles.status, farmer.status === 'Active' ? styles.active : styles.inactive]}>{farmer.status}</Text>
     </View>
+    <Text style={styles.code}>{farmer.farmerCode || 'FARM-NA'}</Text>
     <Text style={styles.subtitle}>{farmer.mobileNumber}</Text>
     <Text style={styles.meta}>{farmer.address}</Text>
     <View style={styles.row}>
@@ -57,6 +58,11 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 8
   },
+  code: {
+    color: '#2563eb',
+    fontWeight: '700',
+    marginBottom: 4
+  },
   meta: {
     color: '#475569',
     marginBottom: 12
@@ -77,6 +83,7 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 12,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end'
   }
 });

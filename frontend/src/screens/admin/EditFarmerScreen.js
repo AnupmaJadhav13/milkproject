@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
+import { Picker } from '@react-native-picker/picker';
 import Toast from 'react-native-toast-message';
 import { farmerSchema } from '../../validation/schemas';
 import { updateFarmer } from '../../redux/slices/farmerSlice';
 
 const EditFarmerScreen = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   const farmer = route.params?.farmer;
@@ -21,26 +24,25 @@ const EditFarmerScreen = ({ route, navigation }) => {
       <Formik
         validationSchema={farmerSchema}
         initialValues={{
+          farmerCode: farmer.farmerCode || '',
           fullName: farmer.fullName || '',
           mobileNumber: farmer.mobileNumber || '',
           alternativeNumber: farmer.alternativeNumber || '',
           address: farmer.address || '',
           village: farmer.village || '',
-          aadhaarNumber: farmer.aadhaarNumber || '',
-          gender: farmer.gender || '',
           bankName: farmer.bankName || '',
           ifscCode: farmer.ifscCode || '',
           accountNumber: farmer.accountNumber || '',
           accountHolderName: farmer.accountHolderName || '',
-          branchName: farmer.branchName || '',
+          assignedCenterCode: farmer.assignedCenterCode || farmer.assignedCenter?.centerCode || '',
           assignedCenter: farmer.assignedCenter?._id || '',
           animalType: farmer.animalType || '',
-          status: farmer.status || 'Active',
-          notes: farmer.notes || ''
+          status: farmer.status || 'Active'
         }}
         onSubmit={async (values) => {
           try {
-            await dispatch(updateFarmer({ id: farmer._id, data: values, token })).unwrap();
+            const { farmerCode: _fc, ...payload } = values;
+            await dispatch(updateFarmer({ id: farmer._id, data: payload, token })).unwrap();
             Toast.show({
               type: 'success',
               text1: 'Success',
@@ -62,29 +64,55 @@ const EditFarmerScreen = ({ route, navigation }) => {
       >
         {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
           <>
-            {['fullName', 'mobileNumber', 'alternativeNumber', 'address', 'village', 'aadhaarNumber', 'gender', 'bankName', 'ifscCode', 'accountNumber', 'accountHolderName', 'branchName', 'assignedCenter', 'animalType', 'status'].map((field) => (
-              <View key={field} style={styles.field}>
+            <View style={styles.field}>
+              <Text style={styles.label}>Farmer Code</Text>
+              <TextInput value={values.farmerCode} style={[styles.input, styles.readOnlyInput]} editable={false} />
+            </View>
+            {[
+              { key: 'fullName', label: 'Full Name' },
+              { key: 'mobileNumber', label: 'Mobile Number' },
+              { key: 'alternativeNumber', label: 'Alternative Number' },
+              { key: 'address', label: 'Address' },
+              { key: 'village', label: 'Village' },
+              { key: 'bankName', label: 'Bank Name' },
+              { key: 'ifscCode', label: 'IFSC Code' },
+              { key: 'accountNumber', label: 'Account Number' },
+              { key: 'accountHolderName', label: 'Account Holder Name' }
+            ].map(({ key, label }) => (
+              <View key={key} style={styles.field}>
+                <Text style={styles.label}>{label}</Text>
                 <TextInput
-                  value={values[field]}
-                  onChangeText={handleChange(field)}
-                  onBlur={handleBlur(field)}
-                  placeholder={field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')}
+                  value={values[key]}
+                  onChangeText={handleChange(key)}
+                  onBlur={handleBlur(key)}
+                  placeholder={label}
                   style={styles.input}
                   placeholderTextColor="#94a3b8"
                 />
-                {touched[field] && errors[field] ? <Text style={styles.error}>{errors[field]}</Text> : null}
+                {touched[key] && errors[key] ? <Text style={styles.fieldError}>{errors[key]}</Text> : null}
               </View>
             ))}
-            <TextInput
-              value={values.notes}
-              onChangeText={handleChange('notes')}
-              onBlur={handleBlur('notes')}
-              placeholder="Notes"
-              style={[styles.input, styles.multiline]}
-              placeholderTextColor="#94a3b8"
-              multiline
-              numberOfLines={3}
-            />
+            <View style={styles.field}>
+              <Text style={styles.label}>Animal Type</Text>
+              <View style={styles.pickerWrap}>
+                <Picker selectedValue={values.animalType} onValueChange={handleChange('animalType')}>
+                  <Picker.Item label="Cow" value="Cow" />
+                  <Picker.Item label="Buffalo" value="Buffalo" />
+                  <Picker.Item label="Both" value="Both" />
+                </Picker>
+              </View>
+              {touched.animalType && errors.animalType ? <Text style={styles.error}>{errors.animalType}</Text> : null}
+            </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.pickerWrap}>
+                <Picker selectedValue={values.status} onValueChange={handleChange('status')}>
+                  <Picker.Item label="Active" value="Active" />
+                  <Picker.Item label="Inactive" value="Inactive" />
+                </Picker>
+              </View>
+              {touched.status && errors.status ? <Text style={styles.error}>{errors.status}</Text> : null}
+            </View>
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
               <Text style={styles.buttonText}>Update Farmer</Text>
             </TouchableOpacity>
@@ -121,9 +149,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#0f172a'
   },
-  multiline: {
-    minHeight: 90,
-    textAlignVertical: 'top'
+  label: {
+    marginBottom: 8,
+    color: '#334155',
+    fontWeight: '600'
+  },
+  pickerWrap: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    overflow: 'hidden'
+  },
+  readOnlyInput: {
+    backgroundColor: '#e2e8f0',
+    color: '#334155'
   },
   button: {
     backgroundColor: '#2563eb',
@@ -136,6 +176,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '700'
+  },
+  fieldError: {
+    color: '#dc2626',
+    marginTop: 4,
+    fontSize: 12
   },
   error: {
     color: '#dc2626',

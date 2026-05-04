@@ -74,6 +74,25 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     marginBottom: 10,
   },
+  selectedCenterBanner: {
+    marginHorizontal: 10,
+    marginBottom: 10,
+    backgroundColor: '#e0f2fe',
+    borderColor: '#7dd3fc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+  },
+  selectedCenterLabel: {
+    color: '#0369a1',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  selectedCenterValue: {
+    color: '#0c4a6e',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   summaryCard: {
     flex: 1,
     backgroundColor: '#fff',

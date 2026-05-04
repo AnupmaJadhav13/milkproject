@@ -1,58 +1,101 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import Toast from 'react-native-toast-message';
-import { fetchFoodRecords, fetchMonthlyReports, deleteFoodRecord } from '../../redux/slices/foodSlice';
-import { fetchCenters } from '../../redux/slices/centerSlice';
-import { fetchFarmers } from '../../redux/slices/farmerSlice';
+import { fetchFoodRecords, deleteFoodRecord } from '../../redux/slices/foodSlice';
 import { LoadingIndicator, EmptyState, SearchBar } from '../../components';
 import styles from './adminStyles';
 
-const FoodReportsScreen = ({ navigation }) => {
+const isWithinDateRange = (dateValue, range) => {
+  if (!range) return true;
+  if (!dateValue) return false;
+
+  const now = new Date();
+  const recordDate = new Date(dateValue);
+
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(todayStart.getDate() + 1);
+
+  if (range === 'today') {
+    return recordDate >= todayStart && recordDate < tomorrowStart;
+  }
+
+  if (range === 'yesterday') {
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(todayStart.getDate() - 1);
+    return recordDate >= yesterdayStart && recordDate < todayStart;
+  }
+
+  if (range === 'lastWeek') {
+    const lastWeekStart = new Date(todayStart);
+    lastWeekStart.setDate(todayStart.getDate() - 7);
+    return recordDate >= lastWeekStart && recordDate < tomorrowStart;
+  }
+
+  if (range === 'lastMonth') {
+    const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return recordDate >= firstDayLastMonth && recordDate < firstDayCurrentMonth;
+  }
+
+  return true;
+};
+
+const isMatchingPayment = (paymentStatus, filterValue) => {
+  if (!filterValue) return true;
+  const normalized = (paymentStatus || '').toLowerCase();
+
+  if (filterValue === 'Paid') {
+    return normalized === 'paid';
+  }
+
+  if (filterValue === 'Unpaid') {
+    return normalized !== 'paid';
+  }
+
+  return true;
+};
+
+const FoodReportsScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   const foodRecords = useSelector((state) => state.food.records);
-  const reports = useSelector((state) => state.food.reports);
   const status = useSelector((state) => state.food.status);
-  const centers = useSelector((state) => state.centers.list);
-  const farmers = useSelector((state) => state.farmers.list);
+
+  const selectedCenterId = route?.params?.centerId || '';
+  const selectedCenterName = route?.params?.centerName || '';
 
   const [filters, setFilters] = useState({
-    center: '',
-    farmer: '',
-    date: null,
+    center: selectedCenterId,
+    dateRange: '',
+    paymentStatus: '',
     animalType: '',
     foodType: ''
   });
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('records'); // 'records' or 'reports'
 
   useEffect(() => {
     if (token) {
-      dispatch(fetchCenters(token));
-      dispatch(fetchFarmers({ token }));
       loadData();
     }
-  }, [dispatch, token, filters, viewMode]);
+  }, [dispatch, token, filters.center, filters.animalType, filters.foodType]);
+
+  useEffect(() => {
+    if (selectedCenterId) {
+      setFilters((prev) => ({ ...prev, center: selectedCenterId }));
+    }
+  }, [selectedCenterId]);
 
   const loadData = () => {
-    if (viewMode === 'records') {
-      const params = {};
-      if (filters.center) params.center = filters.center;
-      if (filters.farmer) params.farmer = filters.farmer;
-      if (filters.date) params.date = filters.date.toISOString().split('T')[0];
-      if (filters.animalType) params.animalType = filters.animalType;
-      if (filters.foodType) params.foodType = filters.foodType;
-      dispatch(fetchFoodRecords({ token, params }));
-    } else {
-      // Monthly reports - for current month
-      const now = new Date();
-      const params = { month: now.getMonth() + 1, year: now.getFullYear() };
-      dispatch(fetchMonthlyReports({ token, params }));
-    }
+    const params = {};
+    if (filters.center) params.center = filters.center;
+    if (filters.animalType) params.animalType = filters.animalType;
+    if (filters.foodType) params.foodType = filters.foodType;
+    dispatch(fetchFoodRecords({ token, params }));
   };
 
   const handleDelete = (id) => {
@@ -89,10 +132,18 @@ const FoodReportsScreen = ({ navigation }) => {
     );
   };
 
-  const filteredRecords = foodRecords.filter(record =>
-    record.farmerId?.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.collectionCenterId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredRecords = useMemo(() => {
+    const search = searchQuery.trim().toLowerCase();
+
+    return foodRecords.filter((record) => {
+      const farmerName = record.farmerId?.fullName?.toLowerCase() || '';
+      const centerName = record.collectionCenterId?.name?.toLowerCase() || '';
+      const searchMatched = !search || farmerName.includes(search) || centerName.includes(search);
+      const dateMatched = isWithinDateRange(record.date, filters.dateRange);
+      const paymentMatched = isMatchingPayment(record.paymentStatus, filters.paymentStatus);
+      return searchMatched && dateMatched && paymentMatched;
+    });
+  }, [foodRecords, searchQuery, filters.dateRange, filters.paymentStatus]);
 
   const totalAmount = filteredRecords.reduce((sum, record) => sum + (record.totalAmount || 0), 0);
   const totalQuantity = filteredRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
@@ -130,175 +181,119 @@ const FoodReportsScreen = ({ navigation }) => {
     </View>
   );
 
-  const renderReportItem = ({ item }) => (
-    <View style={styles.reportCard}>
-      <Text style={styles.centerName}>{item.centerName}</Text>
-      <Text>Total Amount: ₹{item.totalAmount}</Text>
-      <Text>Total Quantity: {item.totalQuantity}</Text>
-      <Text>Records: {item.recordCount}</Text>
-    </View>
-  );
-
   if (status === 'loading') {
     return <LoadingIndicator />;
   }
 
   return (
-    <View style={styles.container}>
-      {/* View Mode Toggle */}
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[styles.toggleButton, viewMode === 'records' && styles.activeToggle]}
-          onPress={() => setViewMode('records')}
-        >
-          <Text style={styles.toggleText}>Records</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleButton, viewMode === 'reports' && styles.activeToggle]}
-          onPress={() => setViewMode('reports')}
-        >
-          <Text style={styles.toggleText}>Monthly Reports</Text>
-        </TouchableOpacity>
+    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Records</Text>
+          <Text style={styles.summaryValue}>{totalRecords}</Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Total Amount</Text>
+          <Text style={styles.summaryValue}>₹{totalAmount.toFixed(2)}</Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Total Quantity</Text>
+          <Text style={styles.summaryValue}>{totalQuantity}</Text>
+        </View>
       </View>
-      {viewMode === 'records' && (
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Records</Text>
-            <Text style={styles.summaryValue}>{totalRecords}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total Amount</Text>
-            <Text style={styles.summaryValue}>₹{totalAmount.toFixed(2)}</Text>
-          </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total Quantity</Text>
-            <Text style={styles.summaryValue}>{totalQuantity}</Text>
+
+      {selectedCenterId ? (
+        <View style={styles.selectedCenterBanner}>
+          <Text style={styles.selectedCenterLabel}>Viewing food records for center:</Text>
+          <Text style={styles.selectedCenterValue}>{selectedCenterName || 'Selected Center'}</Text>
+        </View>
+      ) : null}
+
+      {/* Filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Date</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={filters.dateRange}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, dateRange: value }))}
+              style={styles.picker}
+            >
+              <Picker.Item label="All Dates" value="" />
+              <Picker.Item label="Today" value="today" />
+              <Picker.Item label="Yesterday" value="yesterday" />
+              <Picker.Item label="Last Week" value="lastWeek" />
+              <Picker.Item label="Last Month" value="lastMonth" />
+            </Picker>
           </View>
         </View>
-      )}
 
-      {viewMode === 'records' && (
-        <>
-          {/* Filters */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
-            <View style={styles.filterItem}>
-              <Text style={styles.filterLabel}>Center</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={filters.center}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, center: value }))}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="All Centers" value="" />
-                  {centers.map(center => (
-                    <Picker.Item key={center._id} label={center.name} value={center._id} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Payment</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={filters.paymentStatus}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, paymentStatus: value }))}
+              style={styles.picker}
+            >
+              <Picker.Item label="All" value="" />
+              <Picker.Item label="Paid" value="Paid" />
+              <Picker.Item label="Unpaid" value="Unpaid" />
+            </Picker>
+          </View>
+        </View>
 
-            <View style={styles.filterItem}>
-              <Text style={styles.filterLabel}>Farmer</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={filters.farmer}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, farmer: value }))}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="All Farmers" value="" />
-                  {farmers.map(farmer => (
-                    <Picker.Item key={farmer._id} label={farmer.fullName} value={farmer._id} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Animal Type</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={filters.animalType}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, animalType: value }))}
+              style={styles.picker}
+            >
+              <Picker.Item label="All" value="" />
+              <Picker.Item label="Cow" value="Cow" />
+              <Picker.Item label="Buffalo" value="Buffalo" />
+            </Picker>
+          </View>
+        </View>
 
-            <View style={styles.filterItem}>
-              <Text style={styles.filterLabel}>Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={styles.dateText}>
-                  {filters.date ? filters.date.toDateString() : 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={filters.date || new Date()}
-                  mode="date"
-                  display="default"
-                  onChange={(event, date) => {
-                    setShowDatePicker(false);
-                    setFilters(prev => ({ ...prev, date: date }));
-                  }}
-                />
-              )}
-            </View>
+        <View style={styles.filterItem}>
+          <Text style={styles.filterLabel}>Food Type</Text>
+          <View style={styles.pickerContainer}>
+            <Picker
+              selectedValue={filters.foodType}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, foodType: value }))}
+              style={styles.picker}
+            >
+              <Picker.Item label="All" value="" />
+              <Picker.Item label="Cattle Feed" value="Cattle Feed" />
+              <Picker.Item label="Buffalo Feed" value="Buffalo Feed" />
+              <Picker.Item label="Mineral Mix" value="Mineral Mix" />
+              <Picker.Item label="Dry Fodder" value="Dry Fodder" />
+              <Picker.Item label="Green Fodder" value="Green Fodder" />
+              <Picker.Item label="Protein Mix" value="Protein Mix" />
+              <Picker.Item label="Other" value="Other" />
+            </Picker>
+          </View>
+        </View>
+      </ScrollView>
 
-            <View style={styles.filterItem}>
-              <Text style={styles.filterLabel}>Animal Type</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={filters.animalType}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, animalType: value }))}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="All" value="" />
-                  <Picker.Item label="Cow" value="Cow" />
-                  <Picker.Item label="Buffalo" value="Buffalo" />
-                </Picker>
-              </View>
-            </View>
+      {/* Search */}
+      <SearchBar
+        placeholder="Search records..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
-            <View style={styles.filterItem}>
-              <Text style={styles.filterLabel}>Food Type</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={filters.foodType}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, foodType: value }))}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="All" value="" />
-                  <Picker.Item label="Cattle Feed" value="Cattle Feed" />
-                  <Picker.Item label="Buffalo Feed" value="Buffalo Feed" />
-                  <Picker.Item label="Mineral Mix" value="Mineral Mix" />
-                  <Picker.Item label="Dry Fodder" value="Dry Fodder" />
-                  <Picker.Item label="Green Fodder" value="Green Fodder" />
-                  <Picker.Item label="Protein Mix" value="Protein Mix" />
-                  <Picker.Item label="Other" value="Other" />
-                </Picker>
-              </View>
-            </View>
-          </ScrollView>
-
-          {/* Search */}
-          <SearchBar
-            placeholder="Search records..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-
-          {/* Records List */}
-          <FlatList
-            data={filteredRecords}
-            keyExtractor={(item) => item._id}
-            renderItem={renderRecordItem}
-            ListEmptyComponent={<EmptyState message="No food records found" />}
-            contentContainerStyle={styles.listContainer}
-          />
-        </>
-      )}
-
-      {viewMode === 'reports' && (
-        <FlatList
-          data={reports}
-          keyExtractor={(item) => item._id}
-          renderItem={renderReportItem}
-          ListEmptyComponent={<EmptyState message="No reports available" />}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
+      {/* Records List */}
+      <FlatList
+        data={filteredRecords}
+        keyExtractor={(item) => item._id}
+        renderItem={renderRecordItem}
+        ListEmptyComponent={<EmptyState message="No food records found" />}
+        contentContainerStyle={styles.listContainer}
+      />
     </View>
   );
 };

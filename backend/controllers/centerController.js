@@ -1,28 +1,27 @@
 const asyncHandler = require('express-async-handler');
 const CollectionCenter = require('../models/CollectionCenter');
 
+const getNextCenterCode = async () => {
+  const latestCenter = await CollectionCenter.findOne({ centerCode: { $exists: true, $ne: null } })
+    .sort({ createdAt: -1 })
+    .select('centerCode');
+  const lastNumber = Number((latestCenter?.centerCode || '').replace('CTR-', '')) || 0;
+  return `CTR-${String(lastNumber + 1).padStart(4, '0')}`;
+};
+
 const createCenter = asyncHandler(async (req, res) => {
   const {
     name,
-    centerCode,
     fullAddress,
     village,
-    taluka,
     district,
     state,
     pincode,
-    gpsLocation,
-    latitude,
-    longitude,
     status,
     collectionHead
   } = req.body;
 
-  const existing = await CollectionCenter.findOne({ centerCode });
-  if (existing) {
-    res.status(400);
-    throw new Error('Center code already exists');
-  }
+  const centerCode = await getNextCenterCode();
 
   if (collectionHead?.username) {
     const headExists = await CollectionCenter.findOne({ 'collectionHead.username': collectionHead.username });
@@ -37,13 +36,9 @@ const createCenter = asyncHandler(async (req, res) => {
     centerCode,
     fullAddress,
     village,
-    taluka,
     district,
     state,
     pincode,
-    gpsLocation,
-    latitude,
-    longitude,
     status: status || 'Active',
     collectionHead: collectionHead || undefined
   });
@@ -60,16 +55,11 @@ const updateCenter = asyncHandler(async (req, res) => {
 
   const updateFields = [
     'name',
-    'centerCode',
     'fullAddress',
     'village',
-    'taluka',
     'district',
     'state',
     'pincode',
-    'gpsLocation',
-    'latitude',
-    'longitude',
     'status'
   ];
 

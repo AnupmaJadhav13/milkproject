@@ -11,6 +11,10 @@ import AddFarmerScreen from '../screens/admin/AddFarmerScreen';
 import EditFarmerScreen from '../screens/admin/EditFarmerScreen';
 import FoodReportsScreen from '../screens/admin/FoodReportsScreen';
 import EditFoodRecordScreen from '../screens/admin/EditFoodRecordScreen';
+import CenterDetailScreen from '../screens/admin/CenterDetailScreen';
+import RateChartScreen from '../screens/admin/RateChartScreen';
+import AnnualBonusScreen from '../screens/admin/AnnualBonusScreen';
+import SendSmsScreen from '../screens/admin/SendSmsScreen';
 import CollectionHeadHomeScreen from '../screens/collectionHead/CenterHomeScreen';
 import CollectionHeadFarmerListScreen from '../screens/collectionHead/FarmerListScreen';
 import FoodEntryScreen from '../screens/collectionHead/FoodEntryScreen';
@@ -37,7 +41,11 @@ const AppNavigator = () => {
           <Stack.Screen name="AddFarmer" component={AddFarmerScreen} />
           <Stack.Screen name="EditFarmer" component={EditFarmerScreen} />
           <Stack.Screen name="FoodReports" component={FoodReportsScreen} />
+          <Stack.Screen name="CenterDetail" component={CenterDetailScreen} />
           <Stack.Screen name="EditFoodRecord" component={EditFoodRecordScreen} />
+          <Stack.Screen name="RateChart" component={RateChartScreen} />
+          <Stack.Screen name="AnnualBonus" component={AnnualBonusScreen} />
+          <Stack.Screen name="SendSms" component={SendSmsScreen} />
         </>
       ) : (
         <>

@@ -45,6 +45,29 @@ export const farmerApi = {
   getByCenter: (centerId, token) => api.get(`/farmers/center/${centerId}`, { headers: { Authorization: `Bearer ${token}` } })
 };
 
+export const rateChartApi = {
+  get: (token) => api.get('/admin/rate-chart', { headers: { Authorization: `Bearer ${token}` } }),
+  update: (data, token) => api.put('/admin/rate-chart', data, { headers: { Authorization: `Bearer ${token}` } })
+};
+
+export const annualBonusApi = {
+  getEligible: (token) => api.get('/admin/annual-bonus', { headers: { Authorization: `Bearer ${token}` } }),
+  notify: (token) => api.post('/admin/annual-bonus/notify', {}, { headers: { Authorization: `Bearer ${token}` } })
+};
+
+export const milkApi = {
+  add: (data, token) => api.post('/milk', data, { headers: { Authorization: `Bearer ${token}` } })
+};
+
+export const smsApi = {
+  getRecipients: (token, params) =>
+    api.get('/admin/sms/recipients', {
+      headers: { Authorization: `Bearer ${token}` },
+      params
+    }),
+  send: (data, token) => api.post('/admin/sms/send', data, { headers: { Authorization: `Bearer ${token}` } })
+};
+
 export const foodApi = {
   getAll: (token, params) => api.get('/food', { headers: { Authorization: `Bearer ${token}` }, params }),
   add: (data, token) => api.post('/food', data, { headers: { Authorization: `Bearer ${token}` } }),

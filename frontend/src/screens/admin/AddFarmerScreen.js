@@ -1,47 +1,54 @@
 import React, { useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
+import { Picker } from '@react-native-picker/picker';
 import Toast from 'react-native-toast-message';
 import { farmerSchema } from '../../validation/schemas';
+import { fetchFarmers } from '../../redux/slices/farmerSlice';
 import { createFarmer } from '../../redux/slices/farmerSlice';
-import { fetchCenters } from '../../redux/slices/centerSlice';
-
-const AddFarmerScreen = ({ navigation }) => {
+const AddFarmerScreen = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
-  const centers = useSelector((state) => state.centers.list);
+  const farmerList = useSelector((state) => state.farmers.list);
+  const selectedCenterId = route?.params?.centerId || '';
+  const selectedCenterName = route?.params?.centerName || '';
+  const selectedCenterCode = route?.params?.centerCode || '';
+  const nextCode = `FARM-${String((farmerList?.length || 0) + 1).padStart(4, '0')}`;
 
   useEffect(() => {
-    if (token) dispatch(fetchCenters(token));
+    if (token) {
+      dispatch(fetchFarmers({ token, params: {} }));
+    }
   }, [dispatch, token]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Add Farmer</Text>
       <Formik
         initialValues={{
+          farmerCode: nextCode,
           fullName: '',
           mobileNumber: '',
           alternativeNumber: '',
           address: '',
           village: '',
-          aadhaarNumber: '',
-          gender: '',
           bankName: '',
           ifscCode: '',
           accountNumber: '',
           accountHolderName: '',
-          branchName: '',
-          assignedCenter: '',
-          animalType: '',
-          status: 'Active',
-          notes: ''
+          assignedCenter: selectedCenterId,
+          assignedCenterCode: selectedCenterCode,
+          animalType: 'Cow',
+          status: 'Active'
         }}
         validationSchema={farmerSchema}
         onSubmit={async (values) => {
           try {
-            await dispatch(createFarmer({ data: values, token })).unwrap();
+            const { farmerCode: _fc, ...payload } = values;
+            await dispatch(createFarmer({ data: payload, token })).unwrap();
             Toast.show({
               type: 'success',
               text1: 'Success',
@@ -63,14 +70,16 @@ const AddFarmerScreen = ({ navigation }) => {
       >
         {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
           <>
+            <View style={styles.field}>
+              <Text style={styles.label}>Farmer Code (Auto Generated)</Text>
+              <TextInput value={nextCode} style={[styles.input, styles.readOnlyInput]} editable={false} />
+            </View>
             {[
               { name: 'fullName', label: 'Full Name' },
               { name: 'mobileNumber', label: 'Mobile Number' },
               { name: 'alternativeNumber', label: 'Alternative Number' },
               { name: 'address', label: 'Address' },
-              { name: 'village', label: 'Village' },
-              { name: 'aadhaarNumber', label: 'Aadhaar Number' },
-              { name: 'gender', label: 'Gender' }
+              { name: 'village', label: 'Village' }
             ].map((field) => (
               <View key={field.name} style={styles.field}>
                 <TextInput
@@ -89,8 +98,7 @@ const AddFarmerScreen = ({ navigation }) => {
               { name: 'bankName', label: 'Bank Name' },
               { name: 'ifscCode', label: 'IFSC Code' },
               { name: 'accountNumber', label: 'Account Number' },
-              { name: 'accountHolderName', label: 'Account Holder Name' },
-              { name: 'branchName', label: 'Branch Name' }
+              { name: 'accountHolderName', label: 'Account Holder Name' }
             ].map((field) => (
               <View key={field.name} style={styles.field}>
                 <TextInput
@@ -106,43 +114,26 @@ const AddFarmerScreen = ({ navigation }) => {
             ))}
             <Text style={styles.sectionLabel}>Dairy Details</Text>
             <View style={styles.field}>
-              <TextInput
-                value={values.assignedCenter}
-                onChangeText={handleChange('assignedCenter')}
-                onBlur={handleBlur('assignedCenter')}
-                placeholder="Assigned Center ID"
-                style={styles.input}
-                placeholderTextColor="#94a3b8"
-              />
-              {touched.assignedCenter && errors.assignedCenter ? <Text style={styles.error}>{errors.assignedCenter}</Text> : null}
+              <Text style={styles.label}>Animal Type</Text>
+              <View style={styles.pickerWrap}>
+                <Picker selectedValue={values.animalType} onValueChange={handleChange('animalType')}>
+                  <Picker.Item label="Cow" value="Cow" />
+                  <Picker.Item label="Buffalo" value="Buffalo" />
+                  <Picker.Item label="Both" value="Both" />
+                </Picker>
+              </View>
+              {touched.animalType && errors.animalType ? <Text style={styles.error}>{errors.animalType}</Text> : null}
             </View>
-            <TextInput
-              value={values.animalType}
-              onChangeText={handleChange('animalType')}
-              onBlur={handleBlur('animalType')}
-              placeholder="Animal Type (Cow, Buffalo, Both)"
-              style={styles.input}
-              placeholderTextColor="#94a3b8"
-            />
-            {touched.animalType && errors.animalType ? <Text style={styles.error}>{errors.animalType}</Text> : null}
-            <TextInput
-              value={values.status}
-              onChangeText={handleChange('status')}
-              onBlur={handleBlur('status')}
-              placeholder="Status (Active/Inactive)"
-              style={styles.input}
-              placeholderTextColor="#94a3b8"
-            />
-            <TextInput
-              value={values.notes}
-              onChangeText={handleChange('notes')}
-              onBlur={handleBlur('notes')}
-              placeholder="Notes"
-              style={[styles.input, styles.multiline]}
-              placeholderTextColor="#94a3b8"
-              multiline
-              numberOfLines={3}
-            />
+            <View style={styles.field}>
+              <Text style={styles.label}>Status</Text>
+              <View style={styles.pickerWrap}>
+                <Picker selectedValue={values.status} onValueChange={handleChange('status')}>
+                  <Picker.Item label="Active" value="Active" />
+                  <Picker.Item label="Inactive" value="Inactive" />
+                </Picker>
+              </View>
+              {touched.status && errors.status ? <Text style={styles.error}>{errors.status}</Text> : null}
+            </View>
             <TouchableOpacity style={styles.button} onPress={handleSubmit}>
               <Text style={styles.buttonText}>Create Farmer</Text>
             </TouchableOpacity>
@@ -185,6 +176,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#0f172a',
     marginBottom: 6
+  },
+  label: {
+    marginBottom: 8,
+    color: '#334155',
+    fontWeight: '600'
+  },
+  pickerWrap: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    overflow: 'hidden',
+    marginBottom: 6
+  },
+  readOnlyInput: {
+    backgroundColor: '#e2e8f0',
+    color: '#334155'
   },
   multiline: {
     minHeight: 90,

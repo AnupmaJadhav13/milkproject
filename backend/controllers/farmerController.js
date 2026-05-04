@@ -2,6 +2,15 @@ const asyncHandler = require('express-async-handler');
 const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
 
+const getNextFarmerCode = async () => {
+  const latestFarmer = await Farmer.findOne({ farmerCode: { $exists: true, $ne: null } })
+    .sort({ createdAt: -1 })
+    .select('farmerCode');
+
+  const lastNumber = Number((latestFarmer?.farmerCode || '').replace('FARM-', '')) || 0;
+  return `FARM-${String(lastNumber + 1).padStart(4, '0')}`;
+};
+
 const createFarmer = asyncHandler(async (req, res) => {
   const {
     fullName,
@@ -9,44 +18,47 @@ const createFarmer = asyncHandler(async (req, res) => {
     alternativeNumber,
     address,
     village,
-    aadhaarNumber,
-    gender,
     bankName,
     ifscCode,
     accountNumber,
     accountHolderName,
-    branchName,
+    assignedCenterCode,
     assignedCenter,
     animalType,
     status,
-    photo,
-    notes
+    photo
   } = req.body;
 
-  const center = await CollectionCenter.findById(assignedCenter);
+  let center = null;
+  if (assignedCenterCode) {
+    center = await CollectionCenter.findOne({ centerCode: assignedCenterCode });
+  }
+  if (!center && assignedCenter) {
+    center = await CollectionCenter.findById(assignedCenter);
+  }
   if (!center) {
     res.status(400);
     throw new Error('Assigned center is invalid');
   }
 
+  const farmerCode = await getNextFarmerCode();
+
   const farmer = await Farmer.create({
+    farmerCode,
     fullName,
     mobileNumber,
     alternativeNumber,
     address,
     village,
-    aadhaarNumber,
-    gender,
     bankName,
     ifscCode,
     accountNumber,
     accountHolderName,
-    branchName,
-    assignedCenter,
+    assignedCenterCode: center.centerCode,
+    assignedCenter: center._id,
     animalType,
     status: status || 'Active',
-    photo,
-    notes
+    photo
   });
 
   res.status(201).json(farmer);
@@ -60,23 +72,21 @@ const updateFarmer = asyncHandler(async (req, res) => {
   }
 
   const fields = [
+    'farmerCode',
     'fullName',
     'mobileNumber',
     'alternativeNumber',
     'address',
     'village',
-    'aadhaarNumber',
-    'gender',
     'bankName',
     'ifscCode',
     'accountNumber',
     'accountHolderName',
-    'branchName',
+    'assignedCenterCode',
     'assignedCenter',
     'animalType',
     'status',
-    'photo',
-    'notes'
+    'photo'
   ];
 
   fields.forEach((field) => {
@@ -84,6 +94,27 @@ const updateFarmer = asyncHandler(async (req, res) => {
       farmer[field] = req.body[field];
     }
   });
+
+  if (req.body.assignedCenterCode && !req.body.assignedCenter) {
+    const center = await CollectionCenter.findOne({ centerCode: req.body.assignedCenterCode });
+    if (!center) {
+      res.status(400);
+      throw new Error('Assigned center code is invalid');
+    }
+    farmer.assignedCenter = center._id;
+    farmer.assignedCenterCode = center.centerCode;
+  } else if (req.body.assignedCenter) {
+    const center = await CollectionCenter.findById(req.body.assignedCenter);
+    if (!center) {
+      res.status(400);
+      throw new Error('Assigned center is invalid');
+    }
+    farmer.assignedCenterCode = center.centerCode;
+  }
+
+  if (!farmer.farmerCode) {
+    farmer.farmerCode = await getNextFarmerCode();
+  }
 
   const updatedFarmer = await farmer.save();
   res.json(updatedFarmer);
@@ -110,10 +141,10 @@ const getAllFarmers = asyncHandler(async (req, res) => {
   if (search) {
     const searchRegex = new RegExp(search, 'i');
     filters.$or = [
+      { farmerCode: searchRegex },
       { fullName: searchRegex },
       { mobileNumber: searchRegex },
-      { village: searchRegex },
-      { aadhaarNumber: searchRegex }
+      { village: searchRegex }
     ];
   }
 

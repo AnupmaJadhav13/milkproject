@@ -6,31 +6,17 @@ export const loginSchema = Yup.object().shape({
 });
 
 const collectionHeadSchema = Yup.object().shape({
-  fullName: Yup.string().when('username', {
-    is: (val) => !!val,
-    then: Yup.string().required('Collection head name is required'),
-    otherwise: Yup.string()
-  }),
-  mobileNumber: Yup.string().when('username', {
-    is: (val) => !!val,
-    then: Yup.string().required('Collection head phone number is required'),
-    otherwise: Yup.string()
-  }),
+  fullName: Yup.string(),
+  mobileNumber: Yup.string(),
   alternativeMobileNumber: Yup.string(),
   username: Yup.string(),
-  password: Yup.string().when('username', {
-    is: (val) => !!val,
-    then: Yup.string().required('Collection head password is required'),
-    otherwise: Yup.string()
-  })
+  password: Yup.string()
 });
 
 export const centerSchema = Yup.object().shape({
   name: Yup.string().required('Center name is required'),
-  centerCode: Yup.string().required('Center code is required'),
   fullAddress: Yup.string().required('Full address is required'),
   village: Yup.string().required('Village is required'),
-  taluka: Yup.string().required('Taluka is required'),
   district: Yup.string().required('District is required'),
   state: Yup.string().required('State is required'),
   pincode: Yup.string().required('Pincode is required'),
@@ -42,14 +28,13 @@ export const farmerSchema = Yup.object().shape({
   mobileNumber: Yup.string().required('Mobile number is required'),
   address: Yup.string().required('Address is required'),
   village: Yup.string().required('Village is required'),
-  gender: Yup.string().required('Gender is required'),
   bankName: Yup.string().required('Bank name is required'),
   ifscCode: Yup.string().required('IFSC code is required'),
   accountNumber: Yup.string().required('Account number is required'),
   accountHolderName: Yup.string().required('Account holder name is required'),
-  branchName: Yup.string().required('Branch name is required'),
   assignedCenter: Yup.string().required('Assigned center is required'),
-  animalType: Yup.string().required('Animal type is required')
+  animalType: Yup.string().oneOf(['Cow', 'Buffalo', 'Both']).required('Animal type is required'),
+  status: Yup.string().oneOf(['Active', 'Inactive']).required('Status is required')
 });
 
 export const foodSchema = Yup.object().shape({

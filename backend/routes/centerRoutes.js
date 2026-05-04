@@ -16,10 +16,8 @@ router.use(protect);
 
 const centerValidationRules = [
   check('name', 'Collection center name is required').notEmpty(),
-  check('centerCode', 'Center code is required').notEmpty(),
   check('fullAddress', 'Full address is required').notEmpty(),
   check('village', 'Village is required').notEmpty(),
-  check('taluka', 'Taluka is required').notEmpty(),
   check('district', 'District is required').notEmpty(),
   check('state', 'State is required').notEmpty(),
   check('pincode', 'Pincode is required').notEmpty()

@@ -1,32 +1,36 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Formik } from 'formik';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import { centerSchema } from '../../validation/schemas';
-import { createCenter } from '../../redux/slices/centerSlice';
+import { createCenter, fetchCenters } from '../../redux/slices/centerSlice';
 
 const AddCenterScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
+  const centerList = useSelector((state) => state.centers.list);
+  const nextCenterCode = `CTR-${String((centerList?.length || 0) + 1).padStart(4, '0')}`;
+
+  useEffect(() => {
+    if (token) dispatch(fetchCenters(token));
+  }, [dispatch, token]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]} keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Add Collection Center</Text>
       <Formik
         validationSchema={centerSchema}
         initialValues={{
           name: '',
-          centerCode: '',
+          centerCode: nextCenterCode,
           fullAddress: '',
           village: '',
-          taluka: '',
           district: '',
           state: '',
           pincode: '',
-          gpsLocation: '',
-          latitude: '',
-          longitude: '',
           status: 'Active',
           collectionHead: {
             fullName: '',
@@ -60,7 +64,15 @@ const AddCenterScreen = ({ navigation }) => {
       >
         {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
           <>
-            {['name', 'centerCode', 'fullAddress', 'village', 'taluka', 'district', 'state', 'pincode', 'gpsLocation', 'latitude', 'longitude'].map((field) => (
+            <View style={styles.field}>
+              <Text style={styles.label}>Center Code (Auto Generated)</Text>
+              <TextInput
+                value={nextCenterCode}
+                style={[styles.input, styles.readOnlyInput]}
+                editable={false}
+              />
+            </View>
+            {['name', 'fullAddress', 'village', 'district', 'state', 'pincode'].map((field) => (
               <View key={field} style={styles.field}> 
                 <TextInput
                   value={values[field]}
@@ -139,6 +151,10 @@ const styles = StyleSheet.create({
     borderColor: '#cbd5e1',
     paddingHorizontal: 16,
     color: '#0f172a'
+  },
+  readOnlyInput: {
+    backgroundColor: '#e2e8f0',
+    color: '#334155'
   },
   statusRow: {
     flexDirection: 'row',

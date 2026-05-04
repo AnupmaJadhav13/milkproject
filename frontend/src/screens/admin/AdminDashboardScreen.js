@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import { fetchFarmers } from '../../redux/slices/farmerSlice';
@@ -7,6 +8,7 @@ import LoadingIndicator from '../../components/LoadingIndicator';
 import { logout } from '../../redux/slices/authSlice';
 
 const AdminDashboardScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const { list: centers, status: centerStatus } = useSelector((state) => state.centers);
   const { list: farmers, status: farmerStatus } = useSelector((state) => state.farmers);
@@ -28,7 +30,7 @@ const AdminDashboardScreen = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Admin Dashboard</Text>
@@ -48,26 +50,41 @@ const AdminDashboardScreen = ({ navigation }) => {
           <Text style={styles.cardValue}>{farmers.length}</Text>
         </View>
       </View>
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
-      <View style={styles.grid}>
-        <TouchableOpacity style={styles.actionTile} onPress={() => navigation.navigate('CenterList')}>
-          <Text style={styles.actionTitle}>Manage Centers</Text>
+      <TouchableOpacity style={styles.manageCenterButton} onPress={() => navigation.navigate('CenterList')}>
+        <Text style={styles.manageCenterButtonText}>Manage Centers</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('RateChart')}>
+        <Text style={styles.secondaryButtonText}>Rate chart</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.secondaryButtonOutline} onPress={() => navigation.navigate('AnnualBonus')}>
+        <Text style={styles.secondaryButtonOutlineText}>Annual bonus</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.smsButton} onPress={() => navigation.navigate('SendSms')}>
+        <Text style={styles.smsButtonText}>Send SMS</Text>
+      </TouchableOpacity>
+      <Text style={styles.sectionTitle}>Center List</Text>
+      <Text style={styles.sectionSubtitle}>Select one center to view actions</Text>
+      {centers.slice(0, 3).map((center, index) => (
+        <TouchableOpacity
+          style={styles.tile}
+          key={center._id}
+          onPress={() =>
+            navigation.navigate('CenterDetail', {
+              centerId: center._id,
+              centerCode: center.centerCode,
+              centerName: center.name,
+              centerAddress: center.fullAddress
+            })
+          }
+        >
+          <View style={styles.tileIndex}>
+            <Text style={styles.tileIndexText}>{index + 1}</Text>
+          </View>
+          <View style={styles.tileContent}>
+            <Text style={styles.tileHeading}>{center.name}</Text>
+            <Text style={styles.tileText}>{center.fullAddress}</Text>
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionTile} onPress={() => navigation.navigate('FarmerList')}>
-          <Text style={styles.actionTitle}>Manage Farmers</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.grid}>
-        <TouchableOpacity style={styles.actionTile} onPress={() => navigation.navigate('FoodReports')}>
-          <Text style={styles.actionTitle}>Food Records</Text>
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.sectionTitle}>Recent Centers</Text>
-      {centers.slice(0, 3).map((center) => (
-        <View style={styles.tile} key={center._id}>
-          <Text style={styles.tileHeading}>{center.name}</Text>
-          <Text style={styles.tileText}>{center.fullAddress}</Text>
-        </View>
       ))}
       {centers.length === 0 && <Text style={styles.emptyText}>No centers yet. Add a collection center to get started.</Text>}
     </ScrollView>
@@ -132,35 +149,94 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginTop: 28,
-    marginBottom: 12,
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a'
+    marginBottom: 6,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+    textAlign: 'center'
   },
-  grid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between'
+  sectionSubtitle: {
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 14
   },
-  actionTile: {
-    width: '48%',
+  manageCenterButton: {
+    marginTop: 24,
     backgroundColor: '#2563eb',
     borderRadius: 18,
-    padding: 20
+    paddingVertical: 14,
+    alignItems: 'center'
   },
-  actionTitle: {
+  manageCenterButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  secondaryButton: {
+    marginTop: 12,
+    backgroundColor: '#7c3aed',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center'
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  secondaryButtonOutline: {
+    marginTop: 12,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0d9488'
+  },
+  secondaryButtonOutlineText: {
+    color: '#0d9488',
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  smsButton: {
+    marginTop: 12,
+    backgroundColor: '#0f172a',
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: 'center'
+  },
+  smsButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700'
   },
   tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 18,
-    padding: 18,
+    padding: 14,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 12,
     elevation: 3
+  },
+  tileIndex: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#dbeafe',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  tileIndexText: {
+    color: '#1d4ed8',
+    fontWeight: '800'
+  },
+  tileContent: {
+    marginLeft: 12,
+    flex: 1
   },
   tileHeading: {
     fontSize: 16,

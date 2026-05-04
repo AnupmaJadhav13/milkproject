@@ -18,13 +18,9 @@ const collectionCenterSchema = mongoose.Schema({
   centerCode: { type: String, required: true, unique: true },
   fullAddress: { type: String, required: true },
   village: { type: String, required: true },
-  taluka: { type: String, required: true },
   district: { type: String, required: true },
   state: { type: String, required: true },
   pincode: { type: String, required: true },
-  gpsLocation: { type: String },
-  latitude: { type: Number },
-  longitude: { type: Number },
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   collectionHead: { type: collectionHeadSchema, default: () => ({}) }
 }, { timestamps: true });

@@ -6,6 +6,10 @@ const authRoutes = require('./routes/authRoutes');
 const centerRoutes = require('./routes/centerRoutes');
 const farmerRoutes = require('./routes/farmerRoutes');
 const foodRoutes = require('./routes/foodRoutes');
+const rateChartRoutes = require('./routes/rateChartRoutes');
+const milkRoutes = require('./routes/milkRoutes');
+const annualBonusRoutes = require('./routes/annualBonusRoutes');
+const adminSmsRoutes = require('./routes/adminSmsRoutes');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 dotenv.config();
@@ -19,6 +23,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/centers', centerRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/food', foodRoutes);
+app.use('/api/admin/rate-chart', rateChartRoutes);
+app.use('/api/milk', milkRoutes);
+app.use('/api/admin/annual-bonus', annualBonusRoutes);
+app.use('/api/admin/sms', adminSmsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
