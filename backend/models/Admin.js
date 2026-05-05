@@ -6,6 +6,7 @@ const adminSchema = mongoose.Schema({
   email: { type: String, required: true, unique: true },
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  phoneNumber: { type: String },
   role: { type: String, default: 'admin' }
 }, { timestamps: true });
 

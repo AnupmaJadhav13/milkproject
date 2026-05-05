@@ -31,8 +31,7 @@ const FoodEntryScreen = ({ navigation }) => {
   }, [dispatch, token, user]);
 
   const filteredFarmers = farmers.filter(farmer =>
-    farmer.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    farmer.mobileNumber.includes(searchQuery)
+    farmer.farmerCode?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSubmit = async (values) => {
@@ -98,7 +97,7 @@ const FoodEntryScreen = ({ navigation }) => {
                 onPress={() => setFarmerModalVisible(true)}
               >
                 <Text style={styles.farmerText}>
-                  {selectedFarmer ? `${selectedFarmer.fullName} (${selectedFarmer.mobileNumber})` : 'Select Farmer'}
+                  {selectedFarmer ? `${selectedFarmer.farmerCode || 'N/A'} - ${selectedFarmer.fullName}` : 'Select Farmer'}
                 </Text>
               </TouchableOpacity>
               {touched.farmerId && errors.farmerId && (
@@ -303,7 +302,7 @@ const FoodEntryScreen = ({ navigation }) => {
       >
         <View style={styles.modalContainer}>
           <SearchBar
-            placeholder="Search farmers..."
+            placeholder="Search by farmer code..."
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -321,6 +320,7 @@ const FoodEntryScreen = ({ navigation }) => {
                   setFarmerModalVisible(false);
                 }}
               >
+                <Text style={styles.farmerCode}>{item.farmerCode || 'N/A'}</Text>
                 <Text style={styles.farmerName}>{item.fullName}</Text>
                 <Text style={styles.farmerMobile}>{item.mobileNumber}</Text>
               </TouchableOpacity>

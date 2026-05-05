@@ -121,6 +121,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  farmerCode: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2563eb',
+    marginBottom: 4,
+  },
   farmerName: {
     fontSize: 16,
     fontWeight: 'bold',

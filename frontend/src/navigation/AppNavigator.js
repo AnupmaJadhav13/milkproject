@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSelector } from 'react-redux';
 import LoginScreen from '../screens/auth/LoginScreen';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
+import AdminProfileScreen from '../screens/admin/AdminProfileScreen';
+import EditAdminProfileScreen from '../screens/admin/EditAdminProfileScreen';
 import CenterListScreen from '../screens/admin/CenterListScreen';
 import AddCenterScreen from '../screens/admin/AddCenterScreen';
 import EditCenterScreen from '../screens/admin/EditCenterScreen';
@@ -34,6 +36,8 @@ const AppNavigator = () => {
       ) : user.role === ROLE_ADMIN ? (
         <>
           <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="AdminProfile" component={AdminProfileScreen} />
+          <Stack.Screen name="EditAdminProfile" component={EditAdminProfileScreen} />
           <Stack.Screen name="CenterList" component={CenterListScreen} />
           <Stack.Screen name="AddCenter" component={AddCenterScreen} />
           <Stack.Screen name="EditCenter" component={EditCenterScreen} />

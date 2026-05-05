@@ -41,6 +41,7 @@ const login = asyncHandler(async (req, res) => {
       id: user._id,
       name: role === 'admin' ? user.name : user.collectionHead?.fullName || user.name,
       username: role === 'admin' ? user.username : user.collectionHead?.username,
+      phoneNumber: role === 'admin' ? user.phoneNumber : user.collectionHead?.mobileNumber,
       role,
       assignedCenter: role === 'admin' ? undefined : user._id,
       token: generateToken(user._id, role)
@@ -68,4 +69,68 @@ const createAdmin = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { login, createAdmin };
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  let user;
+  if (userRole === 'admin') {
+    user = await Admin.findById(userId);
+  } else if (userRole === 'collection_head') {
+    user = await CollectionHead.findById(userId);
+  }
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  const isMatch = await user.matchPassword(currentPassword);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error('Current password is incorrect');
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  res.json({ message: 'Password changed successfully' });
+});
+
+const updateProfile = asyncHandler(async (req, res) => {
+  const { name, username, phoneNumber } = req.body;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  let user;
+  if (userRole === 'admin') {
+    user = await Admin.findById(userId);
+  } else if (userRole === 'collection_head') {
+    user = await CollectionHead.findById(userId);
+  }
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (name) user.name = name;
+  if (username) user.username = username;
+  if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
+  await user.save();
+
+  res.json({
+    message: 'Profile updated successfully',
+    user: {
+      id: user._id,
+      name: user.name,
+      username: user.username,
+      phoneNumber: user.phoneNumber,
+      role: user.role
+    }
+  });
+});
+
+module.exports = { login, createAdmin, changePassword, updateProfile };

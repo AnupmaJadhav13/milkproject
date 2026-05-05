@@ -36,8 +36,13 @@ const AdminDashboardScreen = ({ navigation }) => {
           <Text style={styles.title}>Admin Dashboard</Text>
           <Text style={styles.subtitle}>Welcome back, {user?.name || 'Admin'}</Text>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={onSignOut}>
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity 
+          style={styles.avatarButton} 
+          onPress={() => navigation.navigate('AdminProfile')}
+        >
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'A'}</Text>
+          </View>
         </TouchableOpacity>
       </View>
       <View style={styles.cards}>
@@ -122,6 +127,22 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#fff',
     fontWeight: '700'
+  },
+  avatarButton: {
+    padding: 4
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#2563eb',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff'
   },
   cards: {
     flexDirection: 'row',
