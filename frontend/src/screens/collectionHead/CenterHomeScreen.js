@@ -49,6 +49,9 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
       <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.navigate('FoodHistory')}>
         <Text style={styles.buttonText}>Center Food History</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.buttonSecondaryAlt} onPress={() => navigation.navigate('MilkEntry')}>
+        <Text style={styles.buttonText}>Daily Milk Collection</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('CollectionHeadFarmers') }>
         <Text style={styles.buttonText}>View Farmers</Text>
       </TouchableOpacity>
@@ -121,6 +124,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     backgroundColor: '#0f172a',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  buttonSecondaryAlt: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#7c3aed',
     alignItems: 'center',
     marginBottom: 12
   },

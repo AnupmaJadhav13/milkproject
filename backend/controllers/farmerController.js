@@ -156,7 +156,12 @@ const getAllFarmers = asyncHandler(async (req, res) => {
 });
 
 const getFarmersByCenter = asyncHandler(async (req, res) => {
-  const center = req.params.centerId || req.user.assignedCenter;
+  const requestedCenterId = req.params.centerId || req.user.assignedCenter;
+  if (req.user.role === 'collection_head' && String(requestedCenterId) !== String(req.user.assignedCenter)) {
+    res.status(403);
+    throw new Error('Not authorized to access farmers of another center');
+  }
+  const center = requestedCenterId;
   const farmers = await Farmer.find({ assignedCenter: center, status: 'Active' })
     .populate('assignedCenter', 'name centerCode status')
     .sort({ fullName: 1 });

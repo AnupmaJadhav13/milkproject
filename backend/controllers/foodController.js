@@ -192,8 +192,12 @@ const getFoodRecordsByCenter = asyncHandler(async (req, res) => {
 // @access  Private (Collection Head, Admin)
 const getFoodRecordsByFarmer = asyncHandler(async (req, res) => {
   const { farmerId } = req.params;
+  let filter = { farmerId };
+  if (req.user.role === 'collection_head') {
+    filter = { farmerId, collectionCenterId: req.user.assignedCenter || req.user.id };
+  }
 
-  const foodRecords = await FoodRecord.find({ farmerId })
+  const foodRecords = await FoodRecord.find(filter)
     .populate('collectionCenterId', 'name')
     .populate('collectionHeadId', 'name collectionHead.fullName')
     .sort({ createdAt: -1 });

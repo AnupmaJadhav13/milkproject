@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, FlatList, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { Picker } from '@react-native-picker/picker';
-import Toast from 'react-native-toast-message';
-import { fetchFoodRecords, deleteFoodRecord } from '../../redux/slices/foodSlice';
+import { fetchFoodRecords } from '../../redux/slices/foodSlice';
 import { LoadingIndicator, EmptyState, SearchBar } from '../../components';
 import styles from './adminStyles';
 
@@ -98,40 +97,6 @@ const FoodReportsScreen = ({ navigation, route }) => {
     dispatch(fetchFoodRecords({ token, params }));
   };
 
-  const handleDelete = (id) => {
-    Alert.alert(
-      'Delete Record',
-      'Are you sure you want to delete this food record?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(deleteFoodRecord({ id, token })).unwrap();
-              Toast.show({
-                type: 'success',
-                text1: 'Success',
-                text2: 'Record deleted successfully',
-                position: 'top',
-                visibilityTime: 3000,
-              });
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: error,
-                position: 'top',
-                visibilityTime: 4000,
-              });
-            }
-          }
-        }
-      ]
-    );
-  };
-
   const filteredRecords = useMemo(() => {
     const search = searchQuery.trim().toLowerCase();
 
@@ -163,20 +128,6 @@ const FoodReportsScreen = ({ navigation, route }) => {
         <Text>Total: ₹{item.totalAmount}</Text>
         <Text>Status: {item.paymentStatus}</Text>
         <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
-      </View>
-      <View style={styles.recordActions}>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => navigation.navigate('EditFoodRecord', { record: item })}
-        >
-          <Text style={styles.editButtonText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDelete(item._id)}
-        >
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );

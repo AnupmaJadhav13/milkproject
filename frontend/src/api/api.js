@@ -1,9 +1,18 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const DEV_HOST = '192.168.101.236';
 const APP_CONFIG_URL = Constants.expoConfig?.extra?.apiUrl || Constants.manifest?.extra?.apiUrl;
-const DEFAULT_API_URL = APP_CONFIG_URL || `http://${DEV_HOST}:5000/api`;
+
+const getRuntimeHost = () => {
+  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost || '';
+  if (!hostUri) return null;
+  return String(hostUri).split(':')[0];
+};
+
+const runtimeHost = getRuntimeHost();
+const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const DEFAULT_API_URL = APP_CONFIG_URL || `http://${runtimeHost || fallbackHost}:5000/api`;
 
 const API_BASE_URL = DEFAULT_API_URL;
 
@@ -58,7 +67,8 @@ export const annualBonusApi = {
 };
 
 export const milkApi = {
-  add: (data, token) => api.post('/milk', data, { headers: { Authorization: `Bearer ${token}` } })
+  add: (data, token) => api.post('/milk', data, { headers: { Authorization: `Bearer ${token}` } }),
+  getAll: (token, params) => api.get('/milk', { headers: { Authorization: `Bearer ${token}` }, params })
 };
 
 export const smsApi = {

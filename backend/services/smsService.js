@@ -68,6 +68,35 @@ const sendBonusEligibleSMS = async (phoneNumber, data) => {
   return true;
 };
 
+const sendMilkCollectionSMS = async (phoneNumber, data) => {
+  if (!FAST2SMS_API_KEY) {
+    console.warn('FAST2SMS_API_KEY not set — skipping milk collection SMS');
+    return false;
+  }
+  const message = `Dear Farmer,\nToday's milk submitted successfully.\n\nMilk: ${data.quantityLiters} Liters\nAnimal: ${data.animalType}\nFAT: ${data.fat}\nSNF: ${data.snf}\nRate: ₹${data.ratePerLiter}/L\nTotal Amount: ₹${data.totalAmount}\n\nCollection Center: ${data.centerName}`;
+  const payload = {
+    route: FAST2SMS_ROUTE,
+    sender_id: FAST2SMS_SENDER_ID,
+    message,
+    language: 'english',
+    flash: 0,
+    numbers: phoneNumber
+  };
+  const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+    method: 'POST',
+    headers: {
+      Authorization: FAST2SMS_API_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+  const dataResponse = await response.json();
+  if (!response.ok || dataResponse.return !== true) {
+    throw new Error(`Fast2SMS error: ${dataResponse.message || 'SMS not delivered'}`);
+  }
+  return true;
+};
+
 const normalizeIndianMobile = (raw) => {
   if (!raw) return null;
   const digits = String(raw).replace(/\D/g, '');
@@ -119,6 +148,7 @@ const sendBulkRawSMS = async (message, phoneNumbers) => {
 module.exports = {
   sendSMS,
   sendBonusEligibleSMS,
+  sendMilkCollectionSMS,
   sendBulkRawSMS,
   normalizeIndianMobile
 };

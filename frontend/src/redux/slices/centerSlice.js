@@ -58,14 +58,41 @@ const centerSlice = createSlice({
         state.status = 'failed';
         state.error = action.payload;
       })
+      .addCase(createCenter.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(createCenter.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.list.unshift(action.payload);
       })
+      .addCase(createCenter.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(updateCenter.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(updateCenter.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.list = state.list.map((center) => (center._id === action.payload._id ? action.payload : center));
       })
+      .addCase(updateCenter.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(deleteCenter.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(deleteCenter.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.list = state.list.filter((center) => center._id !== action.payload);
+      })
+      .addCase(deleteCenter.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
       });
   }
 });

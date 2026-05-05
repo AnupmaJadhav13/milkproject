@@ -28,12 +28,11 @@ const foodRecordValidationRules = [
 
 // Collection Head routes
 router.post('/', authorizeRoles('collection_head'), foodRecordValidationRules, validateRequest, createFoodRecord);
-router.put('/:id', authorizeRoles('collection_head', 'admin'), foodRecordValidationRules, validateRequest, updateFoodRecord);
+router.put('/:id', authorizeRoles('collection_head'), foodRecordValidationRules, validateRequest, updateFoodRecord);
 
 // Admin routes
 router.get('/', authorizeRoles('admin'), getAllFoodRecords);
 router.get('/reports/monthly', authorizeRoles('admin'), getMonthlyReports);
-router.delete('/:id', authorizeRoles('admin'), deleteFoodRecord);
 
 // Shared routes (Collection Head and Admin)
 router.get('/center/:centerId', authorizeRoles('collection_head', 'admin'), getFoodRecordsByCenter);

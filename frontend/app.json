@@ -8,8 +8,6 @@
     "platforms": ["ios", "android", "web"],
     "assetBundlePatterns": ["**/*"],
     "ios": { "supportsTablet": true },
-    "extra": {
-      "apiUrl": "http://192.168.101.236:5000/api"
-    }
+    "extra": {}
   }
 }

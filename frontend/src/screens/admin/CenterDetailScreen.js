@@ -24,6 +24,9 @@ const CenterDetailScreen = ({ navigation, route }) => {
       <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={() => navigation.navigate('FarmerList', { centerId, centerCode, centerName })}>
         <Text style={styles.actionText}>Add Farmers</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={[styles.actionButton, styles.collectionButton]} onPress={() => navigation.navigate('CollectionRecords', { centerId, centerName })}>
+        <Text style={styles.actionText}>Collection Records</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -84,6 +87,10 @@ const styles = StyleSheet.create({
   secondaryButton: {
     marginTop: 12,
     backgroundColor: '#0ea5e9'
+  },
+  collectionButton: {
+    marginTop: 12,
+    backgroundColor: '#7c3aed'
   }
 });
 

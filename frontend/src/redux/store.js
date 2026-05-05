@@ -5,12 +5,14 @@ import authReducer from './slices/authSlice';
 import centerReducer from './slices/centerSlice';
 import farmerReducer from './slices/farmerSlice';
 import foodReducer from './slices/foodSlice';
+import milkReducer from './slices/milkSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
   centers: centerReducer,
   farmers: farmerReducer,
-  food: foodReducer
+  food: foodReducer,
+  milk: milkReducer
 });
 
 const persistConfig = {

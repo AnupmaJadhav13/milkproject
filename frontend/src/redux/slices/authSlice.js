@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { authApi } from '../../api/api';
+import { authApi, apiBaseUrl } from '../../api/api';
 
 const storedUser = null;
 
@@ -8,9 +8,16 @@ export const loginUser = createAsyncThunk('auth/loginUser', async (credentials, 
     const response = await authApi.login(credentials);
     return response.data;
   } catch (error) {
-    const errorMessage =
+    const rawMessage =
       error?.response?.data?.message ||
       (typeof error?.message === 'string' ? error.message : null) ||
+      '';
+    const isNetworkIssue =
+      !error?.response ||
+      /network error|timeout|socket|failed to fetch|request failed/i.test(rawMessage);
+    const errorMessage =
+      (isNetworkIssue && `Network error: unable to reach server at ${apiBaseUrl}. Make sure backend is running and phone + laptop are on same Wi-Fi.`) ||
+      rawMessage ||
       JSON.stringify(error) ||
       'Login failed';
     return thunkAPI.rejectWithValue(errorMessage);

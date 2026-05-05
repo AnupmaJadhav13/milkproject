@@ -78,14 +78,41 @@ const farmerSlice = createSlice({
         state.status = 'failed';
         state.error = action.payload;
       })
+      .addCase(createFarmer.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(createFarmer.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.list.unshift(action.payload);
       })
+      .addCase(createFarmer.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(updateFarmer.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(updateFarmer.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.list = state.list.map((farmer) => (farmer._id === action.payload._id ? action.payload : farmer));
       })
+      .addCase(updateFarmer.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(deleteFarmer.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(deleteFarmer.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.list = state.list.filter((farmer) => farmer._id !== action.payload);
+      })
+      .addCase(deleteFarmer.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
       });
   }
 });

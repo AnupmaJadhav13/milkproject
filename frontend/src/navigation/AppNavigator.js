@@ -17,10 +17,12 @@ import CenterDetailScreen from '../screens/admin/CenterDetailScreen';
 import RateChartScreen from '../screens/admin/RateChartScreen';
 import AnnualBonusScreen from '../screens/admin/AnnualBonusScreen';
 import SendSmsScreen from '../screens/admin/SendSmsScreen';
+import CollectionRecordsScreen from '../screens/admin/CollectionRecordsScreen';
 import CollectionHeadHomeScreen from '../screens/collectionHead/CenterHomeScreen';
 import CollectionHeadFarmerListScreen from '../screens/collectionHead/FarmerListScreen';
 import FoodEntryScreen from '../screens/collectionHead/FoodEntryScreen';
 import FoodHistoryScreen from '../screens/collectionHead/FoodHistoryScreen';
+import MilkEntryScreen from '../screens/collectionHead/MilkEntryScreen';
 import { ROLE_ADMIN, ROLE_COLLECTION_HEAD } from '../constants/roles';
 
 const Stack = createNativeStackNavigator();
@@ -50,6 +52,7 @@ const AppNavigator = () => {
           <Stack.Screen name="RateChart" component={RateChartScreen} />
           <Stack.Screen name="AnnualBonus" component={AnnualBonusScreen} />
           <Stack.Screen name="SendSms" component={SendSmsScreen} />
+          <Stack.Screen name="CollectionRecords" component={CollectionRecordsScreen} />
         </>
       ) : (
         <>
@@ -57,6 +60,7 @@ const AppNavigator = () => {
           <Stack.Screen name="CollectionHeadFarmers" component={CollectionHeadFarmerListScreen} />
           <Stack.Screen name="FoodEntry" component={FoodEntryScreen} />
           <Stack.Screen name="FoodHistory" component={FoodHistoryScreen} />
+          <Stack.Screen name="MilkEntry" component={MilkEntryScreen} />
         </>
       )}
     </Stack.Navigator>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import { Picker } from '@react-native-picker/picker';
@@ -285,7 +285,7 @@ const FoodEntryScreen = ({ navigation }) => {
               disabled={foodStatus === 'loading'}
             >
               {foodStatus === 'loading' ? (
-                <LoadingIndicator />
+                <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.submitButtonText}>Submit Record</Text>
               )}

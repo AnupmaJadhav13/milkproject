@@ -96,29 +96,78 @@ const foodSlice = createSlice({
         state.status = 'failed';
         state.error = action.payload;
       })
+      .addCase(createFoodRecord.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
       .addCase(createFoodRecord.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.records.unshift(action.payload);
       })
+      .addCase(createFoodRecord.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(updateFoodRecord.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(updateFoodRecord.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         const index = state.records.findIndex(record => record._id === action.payload._id);
         if (index !== -1) {
           state.records[index] = action.payload;
         }
       })
+      .addCase(updateFoodRecord.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(deleteFoodRecord.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(deleteFoodRecord.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.records = state.records.filter(record => record._id !== action.payload);
       })
+      .addCase(deleteFoodRecord.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(fetchFoodRecordsByCenter.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(fetchFoodRecordsByCenter.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.records = action.payload.foodRecords;
         state.totalPages = action.payload.totalPages;
         state.currentPage = action.payload.currentPage;
         state.total = action.payload.total;
       })
+      .addCase(fetchFoodRecordsByCenter.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(fetchFoodRecordsByFarmer.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(fetchFoodRecordsByFarmer.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.records = action.payload;
       })
+      .addCase(fetchFoodRecordsByFarmer.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(fetchMonthlyReports.pending, (state) => {
+        state.status = 'loading';
+      })
       .addCase(fetchMonthlyReports.fulfilled, (state, action) => {
+        state.status = 'succeeded';
         state.reports = action.payload;
+      })
+      .addCase(fetchMonthlyReports.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
       });
   }
 });
