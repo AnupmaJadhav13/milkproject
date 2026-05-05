@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchFarmers } from '../../redux/slices/farmerSlice';
+import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import FarmerCard from '../../components/FarmerCard';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import SearchBar from '../../components/SearchBar';
@@ -15,7 +15,7 @@ const CollectionHeadFarmerListScreen = () => {
 
   useEffect(() => {
     if (token && user?.assignedCenter) {
-      dispatch(fetchFarmers({ token, params: { centerId: user.assignedCenter } }));
+      dispatch(fetchFarmersByCenter({ centerId: user.assignedCenter, token }));
     }
   }, [dispatch, token, user]);
 

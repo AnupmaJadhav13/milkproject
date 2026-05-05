@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useSelector } from 'react-redux';
-import { fetchFarmers } from '../../redux/slices/farmerSlice';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
+import { logout } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
-import { useDispatch } from 'react-redux';
 
 const CollectionHeadHomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.auth.user);
@@ -15,16 +17,27 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (user?.assignedCenter && token) {
-      dispatch(fetchFarmers({ token, params: { centerId: user.assignedCenter } }));
+      dispatch(fetchFarmersByCenter({ centerId: user.assignedCenter, token }));
     }
   }, [dispatch, token, user]);
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   if (status === 'loading') return <LoadingIndicator />;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Collection Head</Text>
-      <Text style={styles.subheading}>Welcome, {user?.name || user?.fullName}</Text>
+    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.heading}>Collection Head</Text>
+          <Text style={styles.subheading}>Welcome, {user?.name || user?.fullName}</Text>
+        </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.card}>
         <Text style={styles.cardLabel}>Assigned Center</Text>
         <Text style={styles.cardValue}>{centerName}</Text>
@@ -49,6 +62,12 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: '#f8fafc'
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24
+  },
   heading: {
     fontSize: 28,
     fontWeight: '800',
@@ -56,8 +75,17 @@ const styles = StyleSheet.create({
   },
   subheading: {
     color: '#64748b',
-    marginTop: 8,
-    marginBottom: 24
+    marginTop: 8
+  },
+  logoutButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16
+  },
+  logoutText: {
+    color: '#fff',
+    fontWeight: '700'
   },
   card: {
     backgroundColor: '#fff',

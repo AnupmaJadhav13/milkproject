@@ -10,6 +10,15 @@ export const fetchFarmers = createAsyncThunk('farmers/fetchFarmers', async ({ to
   }
 });
 
+export const fetchFarmersByCenter = createAsyncThunk('farmers/fetchFarmersByCenter', async ({ centerId, token }, thunkAPI) => {
+  try {
+    const response = await farmerApi.getByCenter(centerId, token);
+    return response.data;
+  } catch (error) {
+    return thunkAPI.rejectWithValue(error.response?.data?.message || 'Failed to load farmers');
+  }
+});
+
 export const createFarmer = createAsyncThunk('farmers/createFarmer', async ({ data, token }, thunkAPI) => {
   try {
     const response = await farmerApi.add(data, token);
@@ -55,6 +64,17 @@ const farmerSlice = createSlice({
         state.list = action.payload;
       })
       .addCase(fetchFarmers.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(fetchFarmersByCenter.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchFarmersByCenter.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.list = action.payload;
+      })
+      .addCase(fetchFarmersByCenter.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload;
       })

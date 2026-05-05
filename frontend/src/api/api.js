@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-const DEV_HOST = '192.168.0.104';
+const DEV_HOST = '192.168.101.236';
 const APP_CONFIG_URL = Constants.expoConfig?.extra?.apiUrl || Constants.manifest?.extra?.apiUrl;
 const DEFAULT_API_URL = APP_CONFIG_URL || `http://${DEV_HOST}:5000/api`;
 

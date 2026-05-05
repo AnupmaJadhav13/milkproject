@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, FlatList } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
 import { foodSchema } from '../../validation/schemas';
 import { createFoodRecord } from '../../redux/slices/foodSlice';
-import { fetchFarmers } from '../../redux/slices/farmerSlice';
+import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import { SearchBar, LoadingIndicator } from '../../components';
 import styles from './styles';
 
@@ -22,10 +22,11 @@ const FoodEntryScreen = ({ navigation }) => {
   const [farmerModalVisible, setFarmerModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFarmer, setSelectedFarmer] = useState(null);
+  const formikRef = useRef(null);
 
   useEffect(() => {
     if (token && user?.assignedCenter) {
-      dispatch(fetchFarmers({ token, params: { center: user.assignedCenter } }));
+      dispatch(fetchFarmersByCenter({ centerId: user.assignedCenter, token }));
     }
   }, [dispatch, token, user]);
 
@@ -72,6 +73,7 @@ const FoodEntryScreen = ({ navigation }) => {
       <Text style={styles.title}>Add Food Record</Text>
 
       <Formik
+        innerRef={formikRef}
         initialValues={{
           farmerId: '',
           animalType: '',
@@ -313,7 +315,9 @@ const FoodEntryScreen = ({ navigation }) => {
                 style={styles.farmerItem}
                 onPress={() => {
                   setSelectedFarmer(item);
-                  setFieldValue('farmerId', item._id);
+                  if (formikRef.current) {
+                    formikRef.current.setFieldValue('farmerId', item._id);
+                  }
                   setFarmerModalVisible(false);
                 }}
               >
