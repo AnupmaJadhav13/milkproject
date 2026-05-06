@@ -23,7 +23,14 @@ const milkSlice = createSlice({
   name: 'milk',
   initialState: {
     entries: [],
-    summary: null,
+    summary: {
+      totalMilkLiters: 0,
+      totalAmountInr: 0,
+      cowMilkLiters: 0,
+      buffaloMilkLiters: 0,
+      morningMilkLiters: 0,
+      eveningMilkLiters: 0
+    },
     total: 0,
     status: 'idle',
     error: null
@@ -49,8 +56,19 @@ const milkSlice = createSlice({
       })
       .addCase(fetchMilkEntries.fulfilled, (state, action) => {
         state.status = 'succeeded';
+        console.log('=== REDUX MILK ENTRIES FULFILLED ===');
+        console.log('Full payload:', JSON.stringify(action.payload, null, 2));
+        console.log('Summary received:', action.payload.summary);
+        console.log('====================================');
         state.entries = action.payload.entries || [];
-        state.summary = action.payload.summary || null;
+        state.summary = action.payload.summary || {
+          totalMilkLiters: 0,
+          totalAmountInr: 0,
+          cowMilkLiters: 0,
+          buffaloMilkLiters: 0,
+          morningMilkLiters: 0,
+          eveningMilkLiters: 0
+        };
         state.total = action.payload.total || 0;
       })
       .addCase(fetchMilkEntries.rejected, (state, action) => {

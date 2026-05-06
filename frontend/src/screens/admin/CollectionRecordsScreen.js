@@ -24,6 +24,11 @@ const CollectionRecordsScreen = ({ route }) => {
     farmerCode: ''
   });
 
+  console.log('=== FILTERS STATE ===');
+  console.log('Current filters:', JSON.stringify(filters));
+  console.log('Initial center from route:', initialCenter);
+  console.log('=====================');
+
   useEffect(() => {
     if (token) dispatch(fetchCenters(token));
   }, [dispatch, token]);
@@ -36,20 +41,26 @@ const CollectionRecordsScreen = ({ route }) => {
     if (filters.shift) params.shift = filters.shift;
     if (filters.animalType) params.animalType = filters.animalType;
     if (filters.farmerCode.trim()) params.farmerCode = filters.farmerCode.trim();
+    console.log('=== FETCHING MILK ENTRIES ===');
+    console.log('API params:', JSON.stringify(params));
+    console.log('=============================');
     dispatch(fetchMilkEntries({ token, params }));
   }, [dispatch, token, filters]);
 
-  const cards = useMemo(
-    () => [
+  const cards = useMemo(() => {
+    console.log('=== COLLECTION RECORDS SCREEN ===');
+    console.log('Summary from Redux:', JSON.stringify(summary, null, 2));
+    console.log('Entries count:', entries.length);
+    console.log('=================================');
+    return [
       { label: 'Total milk', value: `${Number(summary?.totalMilkLiters || 0).toFixed(2)} L` },
       { label: 'Cow milk', value: `${Number(summary?.cowMilkLiters || 0).toFixed(2)} L` },
       { label: 'Buffalo milk', value: `${Number(summary?.buffaloMilkLiters || 0).toFixed(2)} L` },
       { label: 'Morning', value: `${Number(summary?.morningMilkLiters || 0).toFixed(2)} L` },
       { label: 'Evening', value: `${Number(summary?.eveningMilkLiters || 0).toFixed(2)} L` },
       { label: 'Total amount', value: `₹${Number(summary?.totalAmountInr || 0).toFixed(2)}` }
-    ],
-    [summary]
-  );
+    ];
+  }, [summary, entries.length]);
 
   if (status === 'loading' && entries.length === 0) return <LoadingIndicator />;
 

@@ -2,10 +2,10 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const APP_CONFIG_URL = Constants.expoConfig?.extra?.apiUrl || Constants.manifest?.extra?.apiUrl;
+const APP_CONFIG_URL = Constants.expoConfig?.extra?.apiUrl;
 
 const getRuntimeHost = () => {
-  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost || '';
+  const hostUri = Constants.expoConfig?.hostUri || '';
   if (!hostUri) return null;
   return String(hostUri).split(':')[0];
 };

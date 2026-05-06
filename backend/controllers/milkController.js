@@ -131,10 +131,15 @@ const getMilkEntries = asyncHandler(async (req, res) => {
   if (userRole === 'collection_head') {
     filter.collectionCenterId = req.user.assignedCenter || req.user._id;
   } else if (centerId) {
-    filter.collectionCenterId = centerId;
+    // Convert string to ObjectId for proper matching
+    const mongoose = require('mongoose');
+    filter.collectionCenterId = new mongoose.Types.ObjectId(centerId);
   }
 
-  if (farmerId) filter.farmerId = farmerId;
+  if (farmerId) {
+    const mongoose = require('mongoose');
+    filter.farmerId = new mongoose.Types.ObjectId(farmerId);
+  }
   if (farmerCode) filter.farmerCode = new RegExp(String(farmerCode).trim(), 'i');
   if (shift) filter.shift = shift;
   if (animalType) filter.animalType = animalType;
@@ -171,19 +176,27 @@ const getMilkEntries = asyncHandler(async (req, res) => {
     }
   ]);
 
+  const summary = stats[0] || {
+    totalMilkLiters: 0,
+    totalAmountInr: 0,
+    cowMilkLiters: 0,
+    buffaloMilkLiters: 0,
+    morningMilkLiters: 0,
+    eveningMilkLiters: 0
+  };
+
+  console.log('=== MILK COLLECTION SUMMARY ===');
+  console.log('Filter:', JSON.stringify(filter));
+  console.log('Total entries found:', total);
+  console.log('Summary stats:', JSON.stringify(summary));
+  console.log('===============================');
+
   res.json({
     entries,
     total,
     currentPage: pageNo,
     totalPages: Math.ceil(total / pageSize),
-    summary: stats[0] || {
-      totalMilkLiters: 0,
-      totalAmountInr: 0,
-      cowMilkLiters: 0,
-      buffaloMilkLiters: 0,
-      morningMilkLiters: 0,
-      eveningMilkLiters: 0
-    }
+    summary
   });
 });
 
