@@ -140,7 +140,9 @@ const getMilkEntries = asyncHandler(async (req, res) => {
     const mongoose = require('mongoose');
     filter.farmerId = new mongoose.Types.ObjectId(farmerId);
   }
-  if (farmerCode) filter.farmerCode = new RegExp(String(farmerCode).trim(), 'i');
+  if (farmerCode) {
+    filter.farmerCode = new RegExp(String(farmerCode).trim(), 'i');
+  }
   if (shift) filter.shift = shift;
   if (animalType) filter.animalType = animalType;
   if (collectionHeadName) filter.collectionHeadName = new RegExp(String(collectionHeadName).trim(), 'i');
@@ -152,28 +154,30 @@ const getMilkEntries = asyncHandler(async (req, res) => {
   const pageNo = Number(page) || 1;
   const pageSize = Number(limit) || 30;
 
-  const entries = await MilkCollection.find(filter)
-    .populate('farmerId', 'fullName mobileNumber farmerCode')
-    .populate('collectionCenterId', 'name centerCode')
-    .sort({ date: -1, createdAt: -1 })
-    .skip((pageNo - 1) * pageSize)
-    .limit(pageSize)
-    .lean();
-
-  const total = await MilkCollection.countDocuments(filter);
-  const stats = await MilkCollection.aggregate([
-    { $match: filter },
-    {
-      $group: {
-        _id: null,
-        totalMilkLiters: { $sum: '$quantityLiters' },
-        totalAmountInr: { $sum: '$amountInr' },
-        cowMilkLiters: { $sum: { $cond: [{ $eq: ['$animalType', 'Cow'] }, '$quantityLiters', 0] } },
-        buffaloMilkLiters: { $sum: { $cond: [{ $eq: ['$animalType', 'Buffalo'] }, '$quantityLiters', 0] } },
-        morningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Morning'] }, '$quantityLiters', 0] } },
-        eveningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Evening'] }, '$quantityLiters', 0] } }
+  // Run all queries in parallel for better performance
+  const [entries, total, stats] = await Promise.all([
+    MilkCollection.find(filter)
+      .populate('farmerId', 'fullName mobileNumber farmerCode')
+      .populate('collectionCenterId', 'name centerCode')
+      .sort({ date: -1, createdAt: -1 })
+      .skip((pageNo - 1) * pageSize)
+      .limit(pageSize)
+      .lean(),
+    MilkCollection.countDocuments(filter),
+    MilkCollection.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          totalMilkLiters: { $sum: '$quantityLiters' },
+          totalAmountInr: { $sum: '$amountInr' },
+          cowMilkLiters: { $sum: { $cond: [{ $eq: ['$animalType', 'Cow'] }, '$quantityLiters', 0] } },
+          buffaloMilkLiters: { $sum: { $cond: [{ $eq: ['$animalType', 'Buffalo'] }, '$quantityLiters', 0] } },
+          morningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Morning'] }, '$quantityLiters', 0] } },
+          eveningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Evening'] }, '$quantityLiters', 0] } }
+        }
       }
-    }
+    ])
   ]);
 
   const summary = stats[0] || {
@@ -184,12 +188,6 @@ const getMilkEntries = asyncHandler(async (req, res) => {
     morningMilkLiters: 0,
     eveningMilkLiters: 0
   };
-
-  console.log('=== MILK COLLECTION SUMMARY ===');
-  console.log('Filter:', JSON.stringify(filter));
-  console.log('Total entries found:', total);
-  console.log('Summary stats:', JSON.stringify(summary));
-  console.log('===============================');
 
   res.json({
     entries,

@@ -56,10 +56,6 @@ const milkSlice = createSlice({
       })
       .addCase(fetchMilkEntries.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        console.log('=== REDUX MILK ENTRIES FULFILLED ===');
-        console.log('Full payload:', JSON.stringify(action.payload, null, 2));
-        console.log('Summary received:', action.payload.summary);
-        console.log('====================================');
         state.entries = action.payload.entries || [];
         state.summary = action.payload.summary || {
           totalMilkLiters: 0,

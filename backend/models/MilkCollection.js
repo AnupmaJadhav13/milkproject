@@ -22,5 +22,6 @@ const milkCollectionSchema = mongoose.Schema(
 milkCollectionSchema.index({ farmerId: 1, collectionCenterId: 1, date: 1, shift: 1 }, { unique: true });
 milkCollectionSchema.index({ collectionCenterId: 1, date: -1 });
 milkCollectionSchema.index({ date: -1, animalType: 1, shift: 1 });
+milkCollectionSchema.index({ farmerCode: 1, collectionCenterId: 1 });
 
 module.exports = mongoose.model('MilkCollection', milkCollectionSchema);
