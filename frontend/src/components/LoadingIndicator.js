@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { colors, spacing, typography } from '../theme';
 
 const LoadingIndicator = ({ message = 'Loading...' }) => (
   <View style={styles.container}>
-    <ActivityIndicator size="large" color="#2563eb" />
+    <ActivityIndicator size="large" color={colors.primary} />
     <Text style={styles.text}>{message}</Text>
   </View>
 );
@@ -13,12 +14,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24
+    padding: spacing.lg
   },
   text: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#334155'
+    marginTop: spacing.sm,
+    fontSize: typography.body,
+    color: colors.textMuted
   }
 });
 

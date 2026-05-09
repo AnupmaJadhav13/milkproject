@@ -18,13 +18,14 @@ import RateChartScreen from '../screens/admin/RateChartScreen';
 import AnnualBonusScreen from '../screens/admin/AnnualBonusScreen';
 import SendSmsScreen from '../screens/admin/SendSmsScreen';
 import CollectionRecordsScreen from '../screens/admin/CollectionRecordsScreen';
+import AllPaysScreen from '../screens/admin/AllPaysScreen';
 import CollectionHeadHomeScreen from '../screens/collectionHead/CenterHomeScreen';
 import CollectionHeadFarmerListScreen from '../screens/collectionHead/FarmerListScreen';
 import FoodEntryScreen from '../screens/collectionHead/FoodEntryScreen';
 import FoodHistoryScreen from '../screens/collectionHead/FoodHistoryScreen';
 import MilkEntryScreen from '../screens/collectionHead/MilkEntryScreen';
 import { ROLE_ADMIN, ROLE_COLLECTION_HEAD } from '../constants/roles';
-import AllPaysScreen from '../screens/admin/AllPaysScreen';
+
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {

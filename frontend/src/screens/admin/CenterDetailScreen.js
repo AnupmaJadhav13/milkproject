@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, radius, spacing, typography, shadows } from '../../theme';
 
 const CenterDetailScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -27,6 +28,9 @@ const CenterDetailScreen = ({ navigation, route }) => {
       <TouchableOpacity style={[styles.actionButton, styles.collectionButton]} onPress={() => navigation.navigate('CollectionRecords', { centerId, centerName })}>
         <Text style={styles.actionText}>Collection Records</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={[styles.actionButton, styles.allPaysButton]} onPress={() => navigation.navigate('AllPays', { centerId, centerName })}>
+        <Text style={styles.actionText}>💰 All Pays</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -34,35 +38,32 @@ const CenterDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    padding: 20,
+    backgroundColor: colors.bg,
+    padding: spacing.lg,
     justifyContent: 'center',
     gap: 12
   },
   centerCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3
+    ...shadows.card
   },
   title: {
-    fontSize: 24,
+    fontSize: typography.h2,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.text,
     textAlign: 'center'
   },
   address: {
     marginTop: 10,
     fontSize: 15,
-    color: '#475569',
+    color: colors.textMuted,
     textAlign: 'center'
   },
   code: {
     marginTop: 6,
-    color: '#2563eb',
+    color: colors.primary,
     textAlign: 'center',
     fontWeight: '700'
   },
@@ -71,26 +72,30 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a'
+    color: colors.text
   },
   actionButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingVertical: 14,
     alignItems: 'center'
   },
   actionText: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '700'
   },
   secondaryButton: {
     marginTop: 12,
-    backgroundColor: '#0ea5e9'
+    backgroundColor: '#0f766e'
   },
   collectionButton: {
     marginTop: 12,
-    backgroundColor: '#7c3aed'
+    backgroundColor: colors.accent
+  },
+  allPaysButton: {
+    marginTop: 12,
+    backgroundColor: '#0369a1'
   }
 });
 

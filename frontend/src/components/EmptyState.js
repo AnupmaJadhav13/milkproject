@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { colors, spacing, typography } from '../theme';
 
-const EmptyState = ({ title, subtitle }) => (
+const EmptyState = ({ title, subtitle, message }) => (
   <View style={styles.container}>
-    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.title}>{title || message || 'No data found'}</Text>
     {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
   </View>
 );
@@ -13,18 +14,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 64,
-    paddingHorizontal: 24
+    paddingHorizontal: spacing.lg
   },
   title: {
-    fontSize: 20,
-    color: '#0f172a',
+    fontSize: typography.h3,
+    color: colors.text,
     fontWeight: '700',
     textAlign: 'center'
   },
   subtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#475569',
+    marginTop: spacing.xs,
+    fontSize: typography.caption,
+    color: colors.textMuted,
     textAlign: 'center'
   }
 });

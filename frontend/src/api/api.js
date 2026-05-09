@@ -90,4 +90,21 @@ export const foodApi = {
   getMonthlyReports: (token, params) => api.get('/food/reports/monthly', { headers: { Authorization: `Bearer ${token}` }, params })
 };
 
+export const advanceApi = {
+  getAll: (token, params) => api.get('/advances', { headers: { Authorization: `Bearer ${token}` }, params }),
+  add: (data, token) => api.post('/advances', data, { headers: { Authorization: `Bearer ${token}` } }),
+  update: (id, data, token) => api.put(`/advances/${id}`, data, { headers: { Authorization: `Bearer ${token}` } }),
+  remove: (id, token) => api.delete(`/advances/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  getFarmerDetails: (farmerId, token) => api.get(`/advances/farmer/${farmerId}`, { headers: { Authorization: `Bearer ${token}` } })
+};
+
+export const payableApi = {
+  getAll: (token, params) => api.get('/payable', { headers: { Authorization: `Bearer ${token}` }, params }),
+  generate: (data, token) => api.post('/payable/generate', data, { headers: { Authorization: `Bearer ${token}` } }),
+  clear: (id, token) => api.put(`/payable/${id}/clear`, {}, { headers: { Authorization: `Bearer ${token}` } }),
+  remove: (id, token) => api.delete(`/payable/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+  getFarmerDetails: (farmerId, token, params) => api.get(`/payable/farmer/${farmerId}`, { headers: { Authorization: `Bearer ${token}` }, params }),
+  getCenterReport: (centerId, token, params) => api.get(`/payable/center/${centerId}/report`, { headers: { Authorization: `Bearer ${token}` }, params })
+};
+
 export default api;

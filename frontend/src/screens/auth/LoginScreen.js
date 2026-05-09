@@ -6,6 +6,7 @@ import Toast from 'react-native-toast-message';
 import { loginSchema } from '../../validation/schemas';
 import { loginUser } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
+import { colors, radius, spacing, typography, shadows } from '../../theme';
 
 const LoginScreen = () => {
   const dispatch = useDispatch();
@@ -62,7 +63,7 @@ const LoginScreen = () => {
           )}
         </Formik>
       </View>
-      {status === 'loading' && <LoadingIndicator />}
+      {status === 'loading' && <LoadingIndicator message="Signing in..." />}
     </KeyboardAvoidingView>
   );
 };
@@ -70,54 +71,52 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
-    padding: 24
+    padding: spacing.lg
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 6
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    ...shadows.card
   },
   heading: {
-    fontSize: 24,
+    fontSize: typography.h2,
     fontWeight: '800',
-    color: '#0f172a'
+    color: colors.text
   },
   subheading: {
-    marginTop: 8,
-    color: '#475569',
-    marginBottom: 24
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+    marginBottom: spacing.lg
   },
   input: {
     height: 50,
     width: '100%',
-    borderRadius: 14,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    color: '#0f172a'
+    borderColor: colors.border,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    color: colors.text,
+    backgroundColor: colors.surfaceMuted
   },
   button: {
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     height: 50,
-    marginTop: 8
+    marginTop: spacing.xs
   },
   buttonText: {
-    color: '#fff',
+    color: colors.surface,
     fontWeight: '700'
   },
   error: {
-    color: '#dc2626',
-    marginBottom: 8
+    color: colors.danger,
+    marginBottom: spacing.xs
   }
 });
 

@@ -6,6 +6,7 @@ import { fetchCenters } from '../../redux/slices/centerSlice';
 import { fetchFarmers } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import { logout } from '../../redux/slices/authSlice';
+import { colors, radius, spacing, typography, shadows } from '../../theme';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -67,6 +68,9 @@ const AdminDashboardScreen = ({ navigation }) => {
       <TouchableOpacity style={styles.smsButton} onPress={() => navigation.navigate('SendSms')}>
         <Text style={styles.smsButtonText}>Send SMS</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.allPaysButton} onPress={() => navigation.navigate('AllPays')}>
+        <Text style={styles.allPaysButtonText}>All Pays</Text>
+      </TouchableOpacity>
       <Text style={styles.sectionTitle}>Center List</Text>
       <Text style={styles.sectionSubtitle}>Select one center to view actions</Text>
       {centers.slice(0, 3).map((center, index) => (
@@ -99,10 +103,10 @@ const AdminDashboardScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc'
+    backgroundColor: colors.bg
   },
   content: {
-    padding: 20
+    padding: spacing.lg
   },
   header: {
     flexDirection: 'row',
@@ -110,13 +114,13 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   title: {
-    fontSize: 28,
+    fontSize: typography.h1,
     fontWeight: '800',
-    color: '#0f172a'
+    color: colors.text
   },
   subtitle: {
     marginTop: 6,
-    color: '#64748b'
+    color: colors.textMuted
   },
   logoutButton: {
     backgroundColor: '#ef4444',
@@ -135,124 +139,130 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center'
   },
   avatarText: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#fff'
+    color: colors.surface
   },
   cards: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24
+    marginTop: spacing.lg
   },
   card: {
     width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    ...shadows.card
   },
   cardLabel: {
-    color: '#64748b',
+    color: colors.textMuted,
     marginBottom: 10
   },
   cardValue: {
-    fontSize: 28,
+    fontSize: typography.h1,
     fontWeight: '800',
-    color: '#0f172a'
+    color: colors.text
   },
   sectionTitle: {
     marginTop: 28,
     marginBottom: 6,
-    fontSize: 22,
+    fontSize: typography.h2,
     fontWeight: '800',
-    color: '#0f172a',
+    color: colors.text,
     textAlign: 'center'
   },
   sectionSubtitle: {
-    color: '#64748b',
+    color: colors.textMuted,
     textAlign: 'center',
     marginBottom: 14
   },
   manageCenterButton: {
     marginTop: 24,
-    backgroundColor: '#2563eb',
-    borderRadius: 18,
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     alignItems: 'center'
   },
   manageCenterButtonText: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '700'
   },
   secondaryButton: {
     marginTop: 12,
-    backgroundColor: '#7c3aed',
-    borderRadius: 18,
+    backgroundColor: colors.accent,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     alignItems: 'center'
   },
   secondaryButtonText: {
-    color: '#fff',
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '700'
   },
   secondaryButtonOutline: {
     marginTop: 12,
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#0d9488'
+    borderColor: colors.success
   },
   secondaryButtonOutlineText: {
-    color: '#0d9488',
+    color: colors.success,
     fontSize: 16,
     fontWeight: '700'
   },
   smsButton: {
     marginTop: 12,
-    backgroundColor: '#0f172a',
-    borderRadius: 18,
+    backgroundColor: colors.text,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     alignItems: 'center'
   },
   smsButtonText: {
-    color: '#fff',
+    color: colors.surface,
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  allPaysButton: {
+    marginTop: 12,
+    backgroundColor: colors.warning,
+    borderRadius: radius.lg,
+    paddingVertical: 14,
+    alignItems: 'center'
+  },
+  allPaysButtonText: {
+    color: colors.surface,
     fontSize: 16,
     fontWeight: '700'
   },
   tile: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 14,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3
+    ...shadows.card
   },
   tileIndex: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#dbeafe',
+    backgroundColor: '#e0e7ff',
     justifyContent: 'center',
     alignItems: 'center'
   },
   tileIndexText: {
-    color: '#1d4ed8',
+    color: colors.primaryDark,
     fontWeight: '800'
   },
   tileContent: {
@@ -262,15 +272,15 @@ const styles = StyleSheet.create({
   tileHeading: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0f172a'
+    color: colors.text
   },
   tileText: {
     marginTop: 8,
-    color: '#475569'
+    color: colors.textMuted
   },
   emptyText: {
     marginTop: 12,
-    color: '#64748b'
+    color: colors.textMuted
   }
 });
 

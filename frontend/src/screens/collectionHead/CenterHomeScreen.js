@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import { logout } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
+import { colors, radius, spacing, typography, shadows } from '../../theme';
 
 const CollectionHeadHomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -62,80 +63,77 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    backgroundColor: '#f8fafc'
+    padding: spacing.lg,
+    backgroundColor: colors.bg
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: spacing.lg
   },
   heading: {
-    fontSize: 28,
+    fontSize: typography.h1,
     fontWeight: '800',
-    color: '#0f172a'
+    color: colors.text
   },
   subheading: {
-    color: '#64748b',
-    marginTop: 8
+    color: colors.textMuted,
+    marginTop: spacing.xs
   },
   logoutButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: colors.danger,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 16
+    borderRadius: radius.md
   },
   logoutText: {
-    color: '#fff',
+    color: colors.surface,
     fontWeight: '700'
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 4
+    marginBottom: spacing.lg,
+    ...shadows.card
   },
   cardLabel: {
-    color: '#64748b',
+    color: colors.textMuted,
     marginBottom: 8
   },
   cardValue: {
-    fontSize: 22,
+    fontSize: typography.h2,
     fontWeight: '800',
-    color: '#0f172a'
+    color: colors.text
   },
   cardDetail: {
     marginTop: 10,
-    color: '#475569'
+    color: colors.textMuted
   },
   button: {
     paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#2563eb',
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     marginBottom: 12
   },
   buttonSecondary: {
     paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#0f172a',
+    borderRadius: radius.md,
+    backgroundColor: colors.text,
     alignItems: 'center',
     marginBottom: 12
   },
   buttonSecondaryAlt: {
     paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#7c3aed',
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     marginBottom: 12
   },
   buttonText: {
-    color: '#fff',
+    color: colors.surface,
     fontWeight: '700',
     fontSize: 16
   }

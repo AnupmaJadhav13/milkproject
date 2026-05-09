@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
+import { colors, radius, spacing, typography } from '../theme';
 
 const SearchBar = ({ value, onChangeText, onChange, placeholder = 'Search' }) => (
   <View style={styles.container}>
@@ -15,15 +16,17 @@ const SearchBar = ({ value, onChangeText, onChange, placeholder = 'Search' }) =>
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginVertical: 12
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    marginVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border
   },
   input: {
     height: 48,
-    color: '#0f172a',
-    fontSize: 16
+    color: colors.text,
+    fontSize: typography.body
   }
 });
 
