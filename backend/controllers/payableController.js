@@ -63,13 +63,27 @@ const generatePayable = asyncHandler(async (req, res) => {
   });
   const totalAdvanceBalance = activeAdvances.reduce((s, a) => s + a.remainingAmount, 0);
 
-  // 4. Formula: finalPayable = milkIncome - advanceBalance - foodExpenses
-  const deductions = totalAdvanceBalance + totalFoodExpenses;
-  const finalPayableAmount = totalMilkIncome - deductions;
-  const remainingAdvanceBalance = finalPayableAmount < 0 ? Math.abs(finalPayableAmount) : 0;
+  // 4. Correct calculation logic: Adjust advance against milk earnings first
+  let finalPayableAmount, remainingAdvanceBalance, totalAdvanceDeducted;
+  
+  if (totalMilkIncome > totalAdvanceBalance) {
+    // Milk earnings are greater than advance - admin pays remaining balance
+    finalPayableAmount = totalMilkIncome - totalAdvanceBalance - totalFoodExpenses;
+    remainingAdvanceBalance = 0;
+    totalAdvanceDeducted = totalAdvanceBalance;
+  } else {
+    // Advance is greater than or equal to milk earnings - farmer has pending advance
+    finalPayableAmount = 0; // No payable amount since advance covers milk earnings
+    remainingAdvanceBalance = totalAdvanceBalance - totalMilkIncome;
+    totalAdvanceDeducted = totalMilkIncome; // Only deduct up to milk earnings
+  }
 
   let paymentStatus = 'Pending';
-  if (finalPayableAmount < 0) paymentStatus = 'Carry Forward';
+  if (remainingAdvanceBalance > 0) {
+    paymentStatus = 'Carry Forward';
+  } else if (finalPayableAmount <= 0) {
+    paymentStatus = 'Cleared';
+  }
 
   const collectionCenterId = centerId || farmer.assignedCenter;
 
@@ -83,7 +97,7 @@ const generatePayable = asyncHandler(async (req, res) => {
       year: Number(year),
       totalMilkIncome,
       totalMilkQuantity,
-      totalAdvanceDeducted: totalAdvanceBalance,
+      totalAdvanceDeducted,
       totalFoodExpenses,
       finalPayableAmount,
       remainingAdvanceBalance,
@@ -173,31 +187,24 @@ const clearPayable = asyncHandler(async (req, res) => {
   payable.paymentStatus = 'Cleared';
   await payable.save();
 
-  // Also mark all active advances of this farmer as Cleared if payable >= 0
-  if (payable.finalPayableAmount >= 0) {
-    await Advance.updateMany(
-      { farmerId: payable.farmerId, status: 'Active' },
-      { $set: { status: 'Cleared', remainingAmount: 0 } }
-    );
-  } else {
-    // carry-forward: reduce advance balances by milk income + food deductions
-    const toDeduct = payable.totalMilkIncome - payable.totalFoodExpenses;
-    if (toDeduct > 0) {
-      let remaining = toDeduct;
-      const advances = await Advance.find({ farmerId: payable.farmerId, status: 'Active' }).sort({ createdAt: 1 });
-      for (const adv of advances) {
-        if (remaining <= 0) break;
-        if (adv.remainingAmount <= remaining) {
-          remaining -= adv.remainingAmount;
-          adv.remainingAmount = 0;
-          adv.status = 'Cleared';
-        } else {
-          adv.remainingAmount -= remaining;
-          remaining = 0;
-        }
-        await adv.save();
-      }
+  // Handle advance adjustments based on the new business logic
+  const advances = await Advance.find({ farmerId: payable.farmerId, status: 'Active' }).sort({ createdAt: 1 });
+  let totalToDeduct = payable.totalAdvanceDeducted; // Use the calculated deducted amount
+  
+  for (const adv of advances) {
+    if (totalToDeduct <= 0) break;
+    
+    if (adv.remainingAmount <= totalToDeduct) {
+      // Clear this advance completely
+      totalToDeduct -= adv.remainingAmount;
+      adv.remainingAmount = 0;
+      adv.status = 'Cleared';
+    } else {
+      // Partially deduct from this advance
+      adv.remainingAmount -= totalToDeduct;
+      totalToDeduct = 0;
     }
+    await adv.save();
   }
   res.json({ success: true, data: payable });
 });
