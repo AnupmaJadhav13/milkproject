@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFarmers, deleteFarmer } from '../../redux/slices/farmerSlice';
 import FarmerCard from '../../components/FarmerCard';
@@ -20,12 +21,14 @@ const FarmerListScreen = ({ navigation, route }) => {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
 
-  useEffect(() => {
-    if (token) {
-      const params = selectedCenterId ? { centerId: selectedCenterId } : {};
-      dispatch(fetchFarmers({ token, params }));
-    }
-  }, [dispatch, token, selectedCenterId]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (token) {
+        const params = selectedCenterId ? { centerId: selectedCenterId } : {};
+        dispatch(fetchFarmers({ token, params }));
+      }
+    }, [dispatch, token, selectedCenterId])
+  );
 
   const filtered = list.filter((farmer) =>
     [farmer.fullName, farmer.mobileNumber, farmer.village].some((field) => field?.toLowerCase().includes(search.toLowerCase()))

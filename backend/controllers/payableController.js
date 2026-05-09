@@ -63,19 +63,26 @@ const generatePayable = asyncHandler(async (req, res) => {
   });
   const totalAdvanceBalance = activeAdvances.reduce((s, a) => s + a.remainingAmount, 0);
 
-  // 4. Correct calculation logic: Adjust advance against milk earnings first
+  // 4. Correct calculation logic: Deduct both advance AND food from milk income
+  const totalDeductions = totalAdvanceBalance + totalFoodExpenses;
   let finalPayableAmount, remainingAdvanceBalance, totalAdvanceDeducted;
-  
-  if (totalMilkIncome > totalAdvanceBalance) {
-    // Milk earnings are greater than advance - admin pays remaining balance
-    finalPayableAmount = totalMilkIncome - totalAdvanceBalance - totalFoodExpenses;
+
+  if (totalMilkIncome >= totalDeductions) {
+    // Milk income covers all deductions - pay remaining to farmer
+    finalPayableAmount = totalMilkIncome - totalDeductions;
     remainingAdvanceBalance = 0;
     totalAdvanceDeducted = totalAdvanceBalance;
+  } else if (totalMilkIncome >= totalFoodExpenses) {
+    // Milk income covers food but not full advance
+    finalPayableAmount = 0;
+    const afterFood = totalMilkIncome - totalFoodExpenses;
+    totalAdvanceDeducted = afterFood;
+    remainingAdvanceBalance = totalAdvanceBalance - afterFood;
   } else {
-    // Advance is greater than or equal to milk earnings - farmer has pending advance
-    finalPayableAmount = 0; // No payable amount since advance covers milk earnings
-    remainingAdvanceBalance = totalAdvanceBalance - totalMilkIncome;
-    totalAdvanceDeducted = totalMilkIncome; // Only deduct up to milk earnings
+    // Milk income doesn't even cover food expenses
+    finalPayableAmount = 0;
+    totalAdvanceDeducted = 0;
+    remainingAdvanceBalance = totalAdvanceBalance + (totalFoodExpenses - totalMilkIncome);
   }
 
   let paymentStatus = 'Pending';

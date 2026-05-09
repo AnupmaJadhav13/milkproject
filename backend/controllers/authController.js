@@ -78,7 +78,7 @@ const changePassword = asyncHandler(async (req, res) => {
   if (userRole === 'admin') {
     user = await Admin.findById(userId);
   } else if (userRole === 'collection_head') {
-    user = await CollectionHead.findById(userId);
+    user = await CollectionCenter.findById(userId);
   }
 
   if (!user) {
@@ -107,7 +107,7 @@ const updateProfile = asyncHandler(async (req, res) => {
   if (userRole === 'admin') {
     user = await Admin.findById(userId);
   } else if (userRole === 'collection_head') {
-    user = await CollectionHead.findById(userId);
+    user = await CollectionCenter.findById(userId);
   }
 
   if (!user) {

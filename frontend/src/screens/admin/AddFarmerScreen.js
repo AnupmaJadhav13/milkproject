@@ -56,7 +56,12 @@ const AddFarmerScreen = ({ navigation, route }) => {
               position: 'top',
               visibilityTime: 3000,
             });
-            navigation.goBack();
+            navigation.navigate('FarmerList', { 
+              centerId: selectedCenterId, 
+              centerCode: selectedCenterCode, 
+              centerName: selectedCenterName,
+              refresh: Date.now()
+            });
           } catch (error) {
             Toast.show({
               type: 'error',
