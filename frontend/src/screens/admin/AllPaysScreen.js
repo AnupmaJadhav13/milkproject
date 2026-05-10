@@ -6,27 +6,33 @@ import AdvanceScreen from './AdvanceScreen';
 import PayableScreen from './PayableScreen';
 
 const TABS = [
-  { key: 'advance', label: '💳 Advance' },
-  { key: 'payable', label: '📋 Payable' }
+  { key: 'advance', label: 'Advance', icon: '💳' },
+  { key: 'payable', label: 'Payable', icon: '📋' }
 ];
 
 const AllPaysScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState('advance');
   const centerId = route?.params?.centerId;
-  const centerName = route?.params?.centerName || 'Collection Center';
+  const centerName = route?.params?.centerName || 'All Centers';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>All Pays</Text>
-          <Text style={styles.subtitle}>{centerName}</Text>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.brandText}>Sarvasvaa Milk</Text>
+            <Text style={styles.headerTitle}>All Pays</Text>
+            <Text style={styles.headerSubtitle}>{centerName}</Text>
+          </View>
         </View>
+        <TouchableOpacity style={styles.logoutIcon}>
+          <Text style={styles.logoutIconText}>⎋</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tab bar */}
@@ -57,19 +63,69 @@ const AllPaysScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.bg 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.surface,
-    ...shadows.card
+    ...shadows.small
   },
-  backBtn: { marginRight: spacing.md },
-  backText: { color: colors.primary, fontSize: 15, fontWeight: '600' },
-  title: { fontSize: typography.h3, fontWeight: '800', color: colors.text },
-  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.lightBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm
+  },
+  backIcon: {
+    fontSize: 20,
+    color: colors.primary,
+    fontWeight: '700'
+  },
+  headerTitleContainer: {
+    flex: 1
+  },
+  brandText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+    marginBottom: 2
+  },
+  headerTitle: { 
+    fontSize: 20, 
+    fontWeight: '800', 
+    color: colors.text 
+  },
+  headerSubtitle: { 
+    fontSize: 13, 
+    color: colors.textMuted, 
+    marginTop: 2 
+  },
+  logoutIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.lightGray,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  logoutIconText: {
+    fontSize: 18,
+    color: colors.text
+  },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
@@ -77,7 +133,7 @@ const styles = StyleSheet.create({
     marginVertical: spacing.md,
     borderRadius: radius.md,
     padding: 4,
-    ...shadows.card
+    ...shadows.small
   },
   tab: {
     flex: 1,
@@ -85,9 +141,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.sm
   },
-  tabActive: { backgroundColor: colors.primary },
-  tabText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
-  tabTextActive: { color: '#fff' }
+  tabActive: { 
+    backgroundColor: colors.primary 
+  },
+  tabText: { 
+    fontSize: 14, 
+    fontWeight: '700', 
+    color: colors.textMuted 
+  },
+  tabTextActive: { 
+    color: '#fff' 
+  }
 });
 
 export default AllPaysScreen;

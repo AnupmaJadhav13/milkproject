@@ -1,36 +1,153 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../../redux/slices/authSlice';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
 
 const CenterDetailScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user);
   const centerId = route?.params?.centerId;
   const centerCode = route?.params?.centerCode || '';
   const centerName = route?.params?.centerName || 'Collection Center';
   const centerAddress = route?.params?.centerAddress || '';
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <View style={styles.centerCard}>
-        <Text style={styles.title}>{centerName}</Text>
-        {centerCode ? <Text style={styles.code}>Code: {centerCode}</Text> : null}
-        {centerAddress ? <Text style={styles.address}>{centerAddress}</Text> : null}
-      </View>
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
-      <Text style={styles.actionHeading}>Center Actions</Text>
-      <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('FoodReports', { centerId, centerName })}>
-        <Text style={styles.actionText}>Food Records</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={() => navigation.navigate('FarmerList', { centerId, centerCode, centerName })}>
-        <Text style={styles.actionText}>Add Farmers</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.actionButton, styles.collectionButton]} onPress={() => navigation.navigate('CollectionRecords', { centerId, centerName })}>
-        <Text style={styles.actionText}>Collection Records</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.actionButton, styles.allPaysButton]} onPress={() => navigation.navigate('AllPays', { centerId, centerName })}>
-        <Text style={styles.actionText}>💰 All Pays</Text>
-      </TouchableOpacity>
+  return (
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.brandText}>Sarvasvaa Milk</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutIcon}>⎋</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.title}>Center Details</Text>
+        <Text style={styles.subtitle}>Manage center operations and records</Text>
+
+        {/* Center Info Card */}
+        <View style={styles.centerCard}>
+          <View style={styles.centerIconContainer}>
+            <Text style={styles.centerIcon}>🏢</Text>
+          </View>
+          <Text style={styles.centerName}>{centerName}</Text>
+          {centerCode ? <Text style={styles.centerCode}>Code: {centerCode}</Text> : null}
+          {centerAddress ? (
+            <View style={styles.addressRow}>
+              <Text style={styles.addressIcon}>📍</Text>
+              <Text style={styles.centerAddress}>{centerAddress}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Action Buttons */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.actionButtonPrimary]} 
+          onPress={() => navigation.navigate('FoodReports', { centerId, centerName })}
+        >
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>🌾</Text>
+              </View>
+              <Text style={styles.actionButtonText}>Food Records</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.actionButtonSecondary]} 
+          onPress={() => navigation.navigate('FarmerList', { centerId, centerCode, centerName })}
+        >
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>👥</Text>
+              </View>
+              <Text style={styles.actionButtonText}>Manage Farmers</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.actionButtonTertiary]} 
+          onPress={() => navigation.navigate('CollectionRecords', { centerId, centerName })}
+        >
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>📦</Text>
+              </View>
+              <Text style={styles.actionButtonText}>Collection Records</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.actionButtonQuaternary]} 
+          onPress={() => navigation.navigate('AllPays', { centerId, centerName })}
+        >
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>💰</Text>
+              </View>
+              <Text style={styles.actionButtonText}>All Payments</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Bottom Navigation */}
+      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>📊</Text>
+          </View>
+          <Text style={styles.navLabel}>Dashboard</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>📦</Text>
+          </View>
+          <Text style={styles.navLabel}>Collections</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>💳</Text>
+          </View>
+          <Text style={styles.navLabel}>Payments</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>👥</Text>
+          </View>
+          <Text style={styles.navLabel}>Farmers</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -38,64 +155,201 @@ const CenterDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg,
-    padding: spacing.lg,
-    justifyContent: 'center',
-    gap: 12
+    backgroundColor: colors.bg
   },
-  centerCard: {
+  scrollView: {
+    flex: 1
+  },
+  content: {
+    padding: spacing.lg
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: 18,
-    ...shadows.card
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border
   },
-  title: {
-    fontSize: typography.h2,
-    fontWeight: '800',
-    color: colors.text,
-    textAlign: 'center'
+  backIcon: {
+    fontSize: 20,
+    color: colors.text
   },
-  address: {
-    marginTop: 10,
-    fontSize: 15,
-    color: colors.textMuted,
-    textAlign: 'center'
-  },
-  code: {
-    marginTop: 6,
-    color: colors.primary,
-    textAlign: 'center',
-    fontWeight: '700'
-  },
-  actionHeading: {
-    marginTop: 14,
-    marginBottom: 2,
+  brandText: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.text
   },
+  logoutButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.dangerLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.danger
+  },
+  logoutIcon: {
+    fontSize: 18,
+    color: colors.danger
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    marginTop: spacing.sm
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: spacing.lg
+  },
+  centerCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+    ...shadows.card
+  },
+  centerIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.lightBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md
+  },
+  centerIcon: {
+    fontSize: 32
+  },
+  centerName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.xs
+  },
+  centerCode: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
+    marginBottom: spacing.sm
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs
+  },
+  addressIcon: {
+    fontSize: 14,
+    marginRight: 6
+  },
+  centerAddress: {
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    flex: 1
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: spacing.md
+  },
   actionButton: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center'
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    ...shadows.small
   },
-  actionText: {
-    color: colors.surface,
-    fontSize: 16,
-    fontWeight: '700'
+  actionButtonPrimary: {
+    backgroundColor: colors.primary
   },
-  secondaryButton: {
-    marginTop: 12,
-    backgroundColor: '#0f766e'
+  actionButtonSecondary: {
+    backgroundColor: colors.success
   },
-  collectionButton: {
-    marginTop: 12,
+  actionButtonTertiary: {
     backgroundColor: colors.accent
   },
-  allPaysButton: {
-    marginTop: 12,
-    backgroundColor: '#0369a1'
+  actionButtonQuaternary: {
+    backgroundColor: colors.orange
+  },
+  actionButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  actionButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  actionButtonIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm
+  },
+  actionButtonIconText: {
+    fontSize: 16
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.surface
+  },
+  actionButtonArrow: {
+    fontSize: 20,
+    color: colors.surface,
+    fontWeight: '700'
+  },
+  bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...shadows.medium
+  },
+  navItem: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs
+  },
+  navIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  navIcon: {
+    fontSize: 20
+  },
+  navLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600'
   }
 });
 

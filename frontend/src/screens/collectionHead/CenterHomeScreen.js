@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
@@ -14,7 +14,6 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
   const user = useSelector((state) => state.auth.user);
   const farmers = useSelector((state) => state.farmers.list);
   const status = useSelector((state) => state.farmers.status);
-  const [centerName, setCenterName] = useState('My Center');
 
   useEffect(() => {
     if (user?.assignedCenter && token) {
@@ -28,34 +27,133 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
 
   if (status === 'loading') return <LoadingIndicator />;
 
+  const activeFarmers = farmers.filter(f => f.status === 'Active').length;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.heading}>Collection Head</Text>
-          <Text style={styles.subheading}>Welcome, {user?.name || user?.fullName}</Text>
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'C'}</Text>
+            </View>
+            <Text style={styles.brandText}>Sarvasvaa Milk</Text>
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutIcon}>⎋</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Logout</Text>
+
+        {/* Title & Subtitle */}
+        <Text style={styles.title}>Collection Head</Text>
+        <Text style={styles.subtitle}>Welcome, {user?.name || user?.fullName || 'Collection Head'}</Text>
+
+        {/* Center Info Card */}
+        <View style={styles.centerCard}>
+          <View style={styles.centerIconContainer}>
+            <Text style={styles.centerIcon}>🏢</Text>
+          </View>
+          <Text style={styles.centerLabel}>Assigned Center</Text>
+          <Text style={styles.centerName}>My Center</Text>
+          <View style={styles.centerStats}>
+            <View style={styles.centerStat}>
+              <Text style={styles.centerStatValue}>{activeFarmers}</Text>
+              <Text style={styles.centerStatLabel}>Active Farmers</Text>
+            </View>
+            <View style={styles.centerStat}>
+              <Text style={styles.centerStatValue}>{farmers.length}</Text>
+              <Text style={styles.centerStatLabel}>Total Farmers</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+
+        <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={() => navigation.navigate('FoodEntry')}>
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>🌾</Text>
+              </View>
+              <Text style={styles.actionButtonText}>Add Food Record</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={() => navigation.navigate('MilkEntry')}>
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>🥛</Text>
+              </View>
+              <Text style={styles.actionButtonText}>Daily Milk Collection</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.actionButton, styles.actionButtonTertiary]} onPress={() => navigation.navigate('FoodHistory')}>
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>📋</Text>
+              </View>
+              <Text style={styles.actionButtonText}>Center Food History</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.actionButton, styles.actionButtonQuaternary]} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
+          <View style={styles.actionButtonContent}>
+            <View style={styles.actionButtonLeft}>
+              <View style={styles.actionButtonIcon}>
+                <Text style={styles.actionButtonIconText}>👥</Text>
+              </View>
+              <Text style={styles.actionButtonText}>View Farmers</Text>
+            </View>
+            <Text style={styles.actionButtonArrow}>→</Text>
+          </View>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Bottom Navigation */}
+      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <View style={[styles.navIconContainer, styles.navIconActive]}>
+            <Text style={styles.navIcon}>🏠</Text>
+          </View>
+          <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>🥛</Text>
+          </View>
+          <Text style={styles.navLabel}>Milk Entry</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>🌾</Text>
+          </View>
+          <Text style={styles.navLabel}>Food Entry</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
+          <View style={styles.navIconContainer}>
+            <Text style={styles.navIcon}>👥</Text>
+          </View>
+          <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Assigned Center</Text>
-        <Text style={styles.cardValue}>{centerName}</Text>
-        <Text style={styles.cardDetail}>{farmers.length} active farmers</Text>
-      </View>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('FoodEntry')}>
-        <Text style={styles.buttonText}>Add Food Record</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.navigate('FoodHistory')}>
-        <Text style={styles.buttonText}>Center Food History</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.buttonSecondaryAlt} onPress={() => navigation.navigate('MilkEntry')}>
-        <Text style={styles.buttonText}>Daily Milk Collection</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('CollectionHeadFarmers') }>
-        <Text style={styles.buttonText}>View Farmers</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -63,79 +161,212 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
     backgroundColor: colors.bg
+  },
+  scrollView: {
+    flex: 1
+  },
+  content: {
+    padding: spacing.lg
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg
+    marginBottom: spacing.md
   },
-  heading: {
-    fontSize: typography.h1,
-    fontWeight: '800',
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm
+  },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.surface
+  },
+  brandText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text
   },
-  subheading: {
-    color: colors.textMuted,
-    marginTop: spacing.xs
-  },
   logoutButton: {
-    backgroundColor: colors.danger,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: radius.md
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: colors.dangerLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.danger
   },
-  logoutText: {
+  logoutIcon: {
+    fontSize: 18,
+    color: colors.danger
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    marginTop: spacing.sm
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: 4,
+    marginBottom: spacing.lg
+  },
+  centerCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+    ...shadows.card
+  },
+  centerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.lightBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md
+  },
+  centerIcon: {
+    fontSize: 28
+  },
+  centerLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginBottom: 4
+  },
+  centerName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: spacing.md
+  },
+  centerStats: {
+    flexDirection: 'row',
+    gap: spacing.xl,
+    marginTop: spacing.sm
+  },
+  centerStat: {
+    alignItems: 'center'
+  },
+  centerStatValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.primary,
+    marginBottom: 4
+  },
+  centerStatLabel: {
+    fontSize: 11,
+    color: colors.textMuted
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: spacing.md
+  },
+  actionButton: {
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    ...shadows.small
+  },
+  actionButtonPrimary: {
+    backgroundColor: colors.primary
+  },
+  actionButtonSecondary: {
+    backgroundColor: colors.accent
+  },
+  actionButtonTertiary: {
+    backgroundColor: colors.darkGray
+  },
+  actionButtonQuaternary: {
+    backgroundColor: colors.success
+  },
+  actionButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  actionButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  actionButtonIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm
+  },
+  actionButtonIconText: {
+    fontSize: 16
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.surface
+  },
+  actionButtonArrow: {
+    fontSize: 20,
     color: colors.surface,
     fontWeight: '700'
   },
-  card: {
+  bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: 24,
-    marginBottom: spacing.lg,
-    ...shadows.card
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...shadows.medium
   },
-  cardLabel: {
+  navItem: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs
+  },
+  navIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  navIconActive: {
+    backgroundColor: colors.primary
+  },
+  navIcon: {
+    fontSize: 20
+  },
+  navLabel: {
+    fontSize: 11,
     color: colors.textMuted,
-    marginBottom: 8
+    fontWeight: '600'
   },
-  cardValue: {
-    fontSize: typography.h2,
-    fontWeight: '800',
-    color: colors.text
-  },
-  cardDetail: {
-    marginTop: 10,
-    color: colors.textMuted
-  },
-  button: {
-    paddingVertical: 16,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  buttonSecondary: {
-    paddingVertical: 16,
-    borderRadius: radius.md,
-    backgroundColor: colors.text,
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  buttonSecondaryAlt: {
-    paddingVertical: 16,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  buttonText: {
-    color: colors.surface,
-    fontWeight: '700',
-    fontSize: 16
+  navLabelActive: {
+    color: colors.primary
   }
 });
 
