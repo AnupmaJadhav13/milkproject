@@ -149,20 +149,6 @@ const AdminDashboardScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.actionButtonOrange]} 
-          onPress={() => navigation.navigate('AllPays')}
-        >
-          <View style={styles.actionButtonContent}>
-            <View style={styles.actionButtonLeft}>
-              <View style={styles.actionButtonIcon}>
-                <Text style={styles.actionButtonIconText}>💰</Text>
-              </View>
-              <Text style={styles.actionButtonText}>All Pays</Text>
-            </View>
-            <Text style={styles.actionButtonArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
 
         {/* Center List Preview */}
         <View style={styles.sectionHeader}>
@@ -219,12 +205,6 @@ const AdminDashboardScreen = ({ navigation }) => {
           <Text style={styles.navLabel}>Collections</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
-          <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>💳</Text>
-          </View>
-          <Text style={styles.navLabel}>Payments</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
           <View style={styles.navIconContainer}>
@@ -365,9 +345,6 @@ const styles = StyleSheet.create({
   },
   actionButtonGray: {
     backgroundColor: colors.darkGray
-  },
-  actionButtonOrange: {
-    backgroundColor: colors.orange
   },
   actionButtonContent: {
     flexDirection: 'row',
