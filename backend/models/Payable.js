@@ -16,7 +16,7 @@ const payableSchema = mongoose.Schema(
     remainingAdvanceBalance: { type: Number, default: 0 },
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Cleared', 'Carry Forward'],
+      enum: ['Paid', 'Pending', 'AdvanceRemaining'],
       default: 'Pending'
     },
     // snapshot of weekly breakdown

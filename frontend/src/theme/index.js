@@ -1,73 +1,229 @@
+// ─── Sarvasvaa Milk · Design System ────────────────────────────────────────
+// Soft Teal / Warm Neutral — Enterprise SaaS palette
+
 export const colors = {
-  bg: '#f8fafc',
-  surface: '#ffffff',
-  surfaceMuted: '#f1f5f9',
-  text: '#0f172a',
-  textMuted: '#64748b',
-  primary: '#2563eb',
-  primaryDark: '#1d4ed8',
-  accent: '#7c3aed',
-  purple: '#8b5cf6',
-  success: '#16a34a',
-  successLight: '#dcfce7',
-  danger: '#dc2626',
-  dangerLight: '#fee2e2',
-  warning: '#f59e0b',
-  warningLight: '#fef3c7',
-  orange: '#ff6b35',
-  border: '#cbd5e1',
-  lightBlue: '#eff6ff',
-  lightPurple: '#f3e8ff',
-  lightGreen: '#f0fdf4',
-  lightGray: '#f1f5f9',
-  darkGray: '#334155',
-  iconBlue: '#3b82f6',
-  iconPurple: '#a855f7',
-  iconOrange: '#fb923c',
-  iconGreen: '#10b981'
+  bg:             '#F4F7F6',
+  bgDeep:         '#EBF0EE',
+  surface:        '#FFFFFF',
+  surfaceMuted:   '#F8FAFA',
+  surfaceHover:   '#F0F5F3',
+
+  primary:        '#2C7A6E',
+  primaryDark:    '#1F5C53',
+  primaryLight:   '#3D9487',
+  primaryXLight:  '#E6F3F1',
+
+  accent:         '#4A8C7C',
+  accentLight:    '#EAF4F1',
+
+  teal50:         '#F0F9F7',
+  teal100:        '#CCEAE4',
+  teal200:        '#99D4C9',
+  teal600:        '#2C7A6E',
+  teal700:        '#1F5C53',
+
+  success:        '#22896B',
+  successLight:   '#E6F5EF',
+  successDark:    '#166347',
+
+  danger:         '#C0392B',
+  dangerLight:    '#FDECEB',
+
+  warning:        '#C87A1B',
+  warningLight:   '#FEF4E6',
+
+  info:           '#2563EB',
+  infoLight:      '#EFF6FF',
+
+  text:           '#1A2B28',
+  textSecondary:  '#3D5450',
+  textMuted:      '#7A9690',
+  textDisabled:   '#AFC4C0',
+
+  border:         '#D9E8E5',
+  borderStrong:   '#B3CEC9',
+  divider:        '#ECF2F1',
+
+  navBg:          '#FFFFFF',
+  navActive:      '#2C7A6E',
+  navInactive:    '#7A9690',
+
+  overlay:        'rgba(26, 43, 40, 0.55)',
+  white:          '#FFFFFF',
+  black:          '#000000',
+
+  statTeal:       '#E6F3F1',
+  statSage:       '#EAF4F0',
+  statWarm:       '#FEF4E6',
+  statCool:       '#EFF6FF',
+
+  // legacy aliases
+  bg_compat:      '#F4F7F6',
+  lightBlue:      '#E6F3F1',
+  lightPurple:    '#EAF4F0',
+  lightGreen:     '#E6F5EF',
+  lightGray:      '#F4F7F6',
+  darkGray:       '#3D5450',
+  purple:         '#4A8C7C',
+  orange:         '#C87A1B',
+  iconBlue:       '#2C7A6E',
+  iconPurple:     '#4A8C7C',
+  iconOrange:     '#C87A1B',
+  iconGreen:      '#22896B',
 };
 
 export const spacing = {
-  xs: 6,
-  sm: 10,
-  md: 16,
-  lg: 20,
-  xl: 28
+  xxs: 4,
+  xs:  8,
+  sm:  12,
+  md:  16,
+  lg:  20,
+  xl:  24,
+  xxl: 32,
+  xxxl: 40,
 };
 
 export const radius = {
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 22
+  xs:  6,
+  sm:  10,
+  md:  14,
+  lg:  18,
+  xl:  22,
+  xxl: 28,
+  full: 999,
 };
 
 export const typography = {
-  h1: 28,
-  h2: 22,
-  h3: 18,
-  body: 15,
-  caption: 13
+  display: 32,
+  h1:      26,
+  h2:      20,
+  h3:      17,
+  body:    15,
+  small:   13,
+  xs:      11,
+  caption: 13,
+
+  regular:   '400',
+  medium:    '500',
+  semibold:  '600',
+  bold:      '700',
+  extrabold: '800',
 };
 
 export const shadows = {
-  card: {
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3
-  },
-  small: {
-    shadowColor: '#0f172a',
+  none: {},
+  xs: {
+    shadowColor: '#1A2B28',
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  sm: {
+    shadowColor: '#1A2B28',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2
+    elevation: 2,
+  },
+  card: {
+    shadowColor: '#1A2B28',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
   },
   medium: {
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4
-  }
+    shadowColor: '#1A2B28',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.09,
+    shadowRadius: 18,
+    elevation: 5,
+  },
+  modal: {
+    shadowColor: '#1A2B28',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.14,
+    shadowRadius: 28,
+    elevation: 10,
+  },
+  small: {
+    shadowColor: '#1A2B28',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
 };
 
+export const commonStyles = {
+  screen: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: typography.h3,
+    fontWeight: typography.bold,
+    color: colors.text,
+    letterSpacing: -0.2,
+  },
+  viewAll: {
+    fontSize: typography.small,
+    fontWeight: typography.semibold,
+    color: colors.primary,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    ...shadows.card,
+  },
+  btnPrimary: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  btnPrimaryText: {
+    color: colors.white,
+    fontSize: typography.body,
+    fontWeight: typography.bold,
+    letterSpacing: 0.3,
+  },
+  bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.navBg,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    ...shadows.medium,
+  },
+  navItem: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+    minWidth: 64,
+  },
+  navLabel: {
+    fontSize: typography.xs,
+    color: colors.navInactive,
+    fontWeight: typography.medium,
+  },
+  navLabelActive: {
+    color: colors.primary,
+    fontWeight: typography.bold,
+  },
+};

@@ -12,6 +12,7 @@ const annualBonusRoutes = require('./routes/annualBonusRoutes');
 const adminSmsRoutes = require('./routes/adminSmsRoutes');
 const advanceRoutes = require('./routes/advanceRoutes');
 const payableRoutes = require('./routes/payableRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
 dotenv.config();
@@ -31,6 +32,7 @@ app.use('/api/admin/annual-bonus', annualBonusRoutes);
 app.use('/api/admin/sms', adminSmsRoutes);
 app.use('/api/advances', advanceRoutes);
 app.use('/api/payable', payableRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

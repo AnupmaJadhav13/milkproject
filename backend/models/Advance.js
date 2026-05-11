@@ -16,7 +16,7 @@ const advanceSchema = mongoose.Schema(
     notes: { type: String, trim: true },
     status: {
       type: String,
-      enum: ['Active', 'Cleared'],
+      enum: ['Active', 'Settled'],
       default: 'Active'
     }
   },

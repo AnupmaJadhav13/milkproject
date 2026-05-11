@@ -1,17 +1,24 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { colors, radius, spacing, typography, shadows } from '../theme';
 
 const ConfirmDialog = ({ visible, title, message, onConfirm, onCancel }) => (
   <Modal transparent visible={visible} animationType="fade">
     <View style={styles.overlay}>
       <View style={styles.container}>
+        <View style={styles.iconRow}>
+          <View style={styles.alertIcon}>
+            <Text style={styles.alertIconText}>!</Text>
+          </View>
+        </View>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.message}>{message}</Text>
+        <View style={styles.divider} />
         <View style={styles.actions}>
-          <TouchableOpacity style={[styles.button, styles.cancel]} onPress={onCancel}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.confirm]} onPress={onConfirm}>
+          <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
             <Text style={styles.confirmText}>Confirm</Text>
           </TouchableOpacity>
         </View>
@@ -23,51 +30,88 @@ const ConfirmDialog = ({ visible, title, message, onConfirm, onCancel }) => (
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: colors.overlay,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   container: {
-    width: '86%',
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 24
+    width: '88%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    ...shadows.modal,
+  },
+  iconRow: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  alertIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.warningLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.warning,
+  },
+  alertIconText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.warning,
   },
   title: {
-    fontSize: 20,
+    fontSize: typography.h2,
     fontWeight: '700',
-    color: '#0f172a'
+    color: colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
   },
   message: {
-    marginTop: 12,
-    fontSize: 15,
-    color: '#475569'
+    marginTop: spacing.sm,
+    fontSize: typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginVertical: spacing.lg,
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 24
+    gap: spacing.sm,
   },
-  button: {
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    marginLeft: 12
+  cancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cancel: {
-    backgroundColor: '#e2e8f0'
-  },
-  confirm: {
-    backgroundColor: '#2563eb'
+  confirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
   },
   cancelText: {
-    color: '#0f172a',
-    fontWeight: '600'
+    color: colors.textSecondary,
+    fontWeight: '600',
+    fontSize: typography.body,
   },
   confirmText: {
-    color: '#fff',
-    fontWeight: '600'
-  }
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: typography.body,
+  },
 });
 
 export default ConfirmDialog;

@@ -1,25 +1,42 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { colors, radius, spacing, typography, shadows } from '../theme';
 
 const CenterCard = ({ center, onEdit, onDelete }) => (
   <View style={styles.card}>
     <View style={styles.header}>
-      <Text style={styles.name}>{center.name}</Text>
-      <Text style={[styles.status, center.status === 'Active' ? styles.active : styles.inactive]}>{center.status}</Text>
+      <View style={styles.iconBox}>
+        <Text style={styles.iconBoxText}>◈</Text>
+      </View>
+      <View style={styles.titleBlock}>
+        <Text style={styles.name} numberOfLines={1}>{center.name}</Text>
+        <Text style={styles.code}>{center.centerCode}</Text>
+      </View>
+      <View style={center.status === 'Active' ? styles.badgeActive : styles.badgeInactive}>
+        <Text style={center.status === 'Active' ? styles.badgeActiveText : styles.badgeInactiveText}>
+          {center.status}
+        </Text>
+      </View>
     </View>
-    <Text style={styles.subtitle}>{center.centerCode}</Text>
-    <Text style={styles.meta}>{center.fullAddress}</Text>
-    <View style={styles.row}>
-      <Text style={styles.chip}>{center.village}</Text>
-      <Text style={styles.chip}>{center.district}</Text>
-      <Text style={styles.chip}>{center.state}</Text>
+
+    <View style={styles.divider} />
+
+    <Text style={styles.address}>{center.fullAddress}</Text>
+
+    <View style={styles.chips}>
+      {[center.village, center.district, center.state].filter(Boolean).map((tag, i) => (
+        <View key={i} style={styles.chip}>
+          <Text style={styles.chipText}>{tag}</Text>
+        </View>
+      ))}
     </View>
+
     <View style={styles.actions}>
-      <TouchableOpacity style={styles.button} onPress={onEdit}>
-        <Text style={styles.buttonText}>Edit</Text>
+      <TouchableOpacity style={styles.editBtn} onPress={onEdit}>
+        <Text style={styles.editBtnText}>Edit</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.button, styles.delete]} onPress={onDelete}>
-        <Text style={styles.buttonText}>Delete</Text>
+      <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
+        <Text style={styles.deleteBtnText}>Delete</Text>
       </TouchableOpacity>
     </View>
   </View>
@@ -27,79 +44,132 @@ const CenterCard = ({ center, onEdit, onDelete }) => (
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    ...shadows.card,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6
+    alignItems: 'center',
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primaryXLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  iconBoxText: {
+    fontSize: 18,
+    color: colors.primary,
+  },
+  titleBlock: {
+    flex: 1,
   },
   name: {
-    fontSize: 16,
+    fontSize: typography.body,
     fontWeight: '700',
-    color: '#0f172a'
+    color: colors.text,
+    letterSpacing: -0.2,
   },
-  status: {
-    fontSize: 12,
-    fontWeight: '700',
+  code: {
+    fontSize: typography.xs,
+    color: colors.textMuted,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  badgeActive: {
+    backgroundColor: colors.successLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
-    color: '#fff'
+    borderRadius: radius.full,
   },
-  active: {
-    backgroundColor: '#16a34a'
+  badgeActiveText: {
+    color: colors.success,
+    fontSize: typography.xs,
+    fontWeight: '700',
   },
-  inactive: {
-    backgroundColor: '#ef4444'
+  badgeInactive: {
+    backgroundColor: colors.dangerLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
   },
-  subtitle: {
-    color: '#64748b',
-    marginBottom: 8
+  badgeInactiveText: {
+    color: colors.danger,
+    fontSize: typography.xs,
+    fontWeight: '700',
   },
-  meta: {
-    color: '#475569',
-    marginBottom: 12
+  divider: {
+    height: 1,
+    backgroundColor: colors.divider,
+    marginVertical: spacing.sm,
   },
-  row: {
+  address: {
+    fontSize: typography.small,
+    color: colors.textMuted,
+    lineHeight: 18,
+    marginBottom: spacing.sm,
+  },
+  chips: {
     flexDirection: 'row',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
   },
   chip: {
-    backgroundColor: '#e2e8f0',
+    backgroundColor: colors.surfaceMuted,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 12,
-    color: '#0f172a',
-    marginRight: 8,
-    marginBottom: 6
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipText: {
+    fontSize: typography.xs,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   actions: {
     flexDirection: 'row',
-    marginTop: 12,
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
   },
-  button: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#2563eb',
-    marginLeft: 8
+  editBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: radius.sm,
+    backgroundColor: colors.primaryXLight,
+    borderWidth: 1,
+    borderColor: colors.teal100,
   },
-  delete: {
-    backgroundColor: '#ef4444'
+  editBtnText: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: typography.small,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '700'
-  }
+  deleteBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: radius.sm,
+    backgroundColor: colors.dangerLight,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  deleteBtnText: {
+    color: colors.danger,
+    fontWeight: '700',
+    fontSize: typography.small,
+  },
 });
 
 export default CenterCard;

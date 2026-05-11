@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
@@ -21,17 +21,22 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
     }
   }, [dispatch, token, user]);
 
-  const handleLogout = () => {
-    dispatch(logout());
-  };
+  const handleLogout = () => { dispatch(logout()); };
 
   if (status === 'loading') return <LoadingIndicator />;
 
   const activeFarmers = farmers.filter(f => f.status === 'Active').length;
 
+  const actions = [
+    { label: 'Add Food Record', symbol: '◆', nav: 'FoodEntry', bg: colors.primary, text: colors.white },
+    { label: 'Daily Milk Collection', symbol: '◉', nav: 'MilkEntry', bg: colors.teal50, text: colors.primary, border: true },
+    { label: 'Food History', symbol: '▦', nav: 'FoodHistory', bg: colors.warningLight, text: colors.warning, border2: true },
+    { label: 'View Farmers', symbol: '◎', nav: 'CollectionHeadFarmers', bg: colors.successLight, text: colors.success, border3: true },
+  ];
+
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
@@ -42,332 +47,165 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'C'}</Text>
             </View>
-            <Text style={styles.brandText}>Sarvasvaa Milk</Text>
+            <View>
+              <Text style={styles.headerWelcome}>Welcome back</Text>
+              <Text style={styles.headerName}>{user?.name || user?.fullName || 'Collection Head'}</Text>
+            </View>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutIcon}>⎋</Text>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Text style={styles.logoutBtnText}>Sign out</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Title & Subtitle */}
-        <Text style={styles.title}>Collection Head</Text>
-        <Text style={styles.subtitle}>Welcome, {user?.name || user?.fullName || 'Collection Head'}</Text>
-
-        {/* Center Info Card */}
-        <View style={styles.centerCard}>
-          <View style={styles.centerIconContainer}>
-            <Text style={styles.centerIcon}>🏢</Text>
+        {/* Page Title */}
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Collection Head</Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>Head</Text>
           </View>
-          <Text style={styles.centerLabel}>Assigned Center</Text>
-          <Text style={styles.centerName}>My Center</Text>
-          <View style={styles.centerStats}>
-            <View style={styles.centerStat}>
-              <Text style={styles.centerStatValue}>{activeFarmers}</Text>
-              <Text style={styles.centerStatLabel}>Active Farmers</Text>
+        </View>
+
+        {/* Center Summary Card */}
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryHeader}>
+            <View style={styles.summaryIconBox}>
+              <Text style={styles.summaryIcon}>◈</Text>
             </View>
-            <View style={styles.centerStat}>
-              <Text style={styles.centerStatValue}>{farmers.length}</Text>
-              <Text style={styles.centerStatLabel}>Total Farmers</Text>
+            <View>
+              <Text style={styles.summaryLabel}>Assigned Center</Text>
+              <Text style={styles.summaryTitle}>My Center</Text>
+            </View>
+            <View style={styles.activeDot} />
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryStats}>
+            <View style={styles.summaryStat}>
+              <Text style={styles.summaryStatValue}>{activeFarmers}</Text>
+              <Text style={styles.summaryStatLabel}>Active</Text>
+            </View>
+            <View style={styles.summaryStatDivider} />
+            <View style={styles.summaryStat}>
+              <Text style={styles.summaryStatValue}>{farmers.length}</Text>
+              <Text style={styles.summaryStatLabel}>Total</Text>
+            </View>
+            <View style={styles.summaryStatDivider} />
+            <View style={styles.summaryStat}>
+              <Text style={styles.summaryStatValue}>{farmers.length - activeFarmers}</Text>
+              <Text style={styles.summaryStatLabel}>Inactive</Text>
             </View>
           </View>
         </View>
 
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-        <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={() => navigation.navigate('FoodEntry')}>
-          <View style={styles.actionButtonContent}>
-            <View style={styles.actionButtonLeft}>
-              <View style={styles.actionButtonIcon}>
-                <Text style={styles.actionButtonIconText}>🌾</Text>
-              </View>
-              <Text style={styles.actionButtonText}>Add Food Record</Text>
-            </View>
-            <Text style={styles.actionButtonArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={() => navigation.navigate('MilkEntry')}>
-          <View style={styles.actionButtonContent}>
-            <View style={styles.actionButtonLeft}>
-              <View style={styles.actionButtonIcon}>
-                <Text style={styles.actionButtonIconText}>🥛</Text>
-              </View>
-              <Text style={styles.actionButtonText}>Daily Milk Collection</Text>
-            </View>
-            <Text style={styles.actionButtonArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.actionButton, styles.actionButtonTertiary]} onPress={() => navigation.navigate('FoodHistory')}>
-          <View style={styles.actionButtonContent}>
-            <View style={styles.actionButtonLeft}>
-              <View style={styles.actionButtonIcon}>
-                <Text style={styles.actionButtonIconText}>📋</Text>
-              </View>
-              <Text style={styles.actionButtonText}>Center Food History</Text>
-            </View>
-            <Text style={styles.actionButtonArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.actionButton, styles.actionButtonQuaternary]} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
-          <View style={styles.actionButtonContent}>
-            <View style={styles.actionButtonLeft}>
-              <View style={styles.actionButtonIcon}>
-                <Text style={styles.actionButtonIconText}>👥</Text>
-              </View>
-              <Text style={styles.actionButtonText}>View Farmers</Text>
-            </View>
-            <Text style={styles.actionButtonArrow}>→</Text>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.actionsGrid}>
+          {actions.map((action, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                styles.actionTile,
+                { backgroundColor: action.bg },
+                action.border && { borderWidth: 1.5, borderColor: colors.teal100 },
+                action.border2 && { borderWidth: 1.5, borderColor: colors.warning + '44' },
+                action.border3 && { borderWidth: 1.5, borderColor: colors.success + '44' },
+              ]}
+              onPress={() => navigation.navigate(action.nav)}
+            >
+              <Text style={[styles.actionSymbol, { color: action.text }]}>{action.symbol}</Text>
+              <Text style={[styles.actionLabel, { color: action.text }]}>{action.label}</Text>
+              <Text style={[styles.actionArrow, { color: action.text + '88' }]}>→</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Nav */}
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>🏠</Text>
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
-          <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🥛</Text>
-          </View>
-          <Text style={styles.navLabel}>Milk Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
-          <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🌾</Text>
-          </View>
-          <Text style={styles.navLabel}>Food Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
-          <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
+        {[
+          { label: 'Home', nav: null },
+          { label: 'Milk Entry', nav: 'MilkEntry' },
+          { label: 'Food Entry', nav: 'FoodEntry' },
+          { label: 'Farmers', nav: 'CollectionHeadFarmers' },
+        ].map((item, i) => (
+          <TouchableOpacity key={i} style={styles.navItem} onPress={() => item.nav && navigation.navigate(item.nav)}>
+            <View style={[styles.navPill, i === 0 && styles.navPillActive]}>
+              <Text style={[styles.navPillText, i === 0 && styles.navPillActiveText]}>{item.label}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg
-  },
-  scrollView: {
-    flex: 1
-  },
-  content: {
-    padding: spacing.lg
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
+  scrollView: { flex: 1 },
+  content: { padding: spacing.lg },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+    marginRight: spacing.sm, borderWidth: 2, borderColor: colors.teal100,
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.surface
+  avatarText: { fontSize: 18, fontWeight: '700', color: colors.white },
+  headerWelcome: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500' },
+  headerName: { fontSize: typography.body, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+  logoutBtn: {
+    paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.sm,
+    backgroundColor: colors.dangerLight, borderWidth: 1, borderColor: colors.danger,
   },
-  brandText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text
+  logoutBtnText: { fontSize: typography.xs, fontWeight: '700', color: colors.danger },
+  titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+  title: { fontSize: typography.h1, fontWeight: '800', color: colors.text, letterSpacing: -0.5, marginRight: spacing.sm },
+  roleBadge: {
+    backgroundColor: colors.primaryXLight, paddingHorizontal: spacing.sm, paddingVertical: 3,
+    borderRadius: radius.full, borderWidth: 1, borderColor: colors.teal100,
   },
-  logoutButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: colors.dangerLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger
+  roleBadgeText: { fontSize: typography.xs, fontWeight: '700', color: colors.primary },
+  summaryCard: {
+    backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg,
+    marginBottom: spacing.xl, ...shadows.card, borderWidth: 1, borderColor: colors.divider,
   },
-  logoutIcon: {
-    fontSize: 18,
-    color: colors.danger
+  summaryHeader: { flexDirection: 'row', alignItems: 'center' },
+  summaryIconBox: {
+    width: 48, height: 48, borderRadius: 14, backgroundColor: colors.primaryXLight,
+    alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: spacing.sm
+  summaryIcon: { fontSize: 22, color: colors.primary },
+  summaryLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  summaryTitle: { fontSize: typography.h3, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
+  activeDot: {
+    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success,
+    marginLeft: 'auto',
   },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 4,
-    marginBottom: spacing.lg
+  summaryDivider: { height: 1, backgroundColor: colors.divider, marginVertical: spacing.md },
+  summaryStats: { flexDirection: 'row', justifyContent: 'space-around' },
+  summaryStat: { alignItems: 'center', flex: 1 },
+  summaryStatValue: { fontSize: typography.h2, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
+  summaryStatLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', marginTop: 2 },
+  summaryStatDivider: { width: 1, backgroundColor: colors.divider },
+  sectionTitle: { fontSize: typography.h3, fontWeight: '700', color: colors.text, marginBottom: spacing.sm, letterSpacing: -0.2 },
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  actionTile: {
+    width: '47.5%', borderRadius: radius.lg, padding: spacing.md,
+    justifyContent: 'space-between', minHeight: 90, ...shadows.xs,
   },
-  centerCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    marginBottom: spacing.lg,
-    alignItems: 'center',
-    ...shadows.card
-  },
-  centerIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.lightBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md
-  },
-  centerIcon: {
-    fontSize: 28
-  },
-  centerLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 4
-  },
-  centerName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: spacing.md
-  },
-  centerStats: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-    marginTop: spacing.sm
-  },
-  centerStat: {
-    alignItems: 'center'
-  },
-  centerStatValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.primary,
-    marginBottom: 4
-  },
-  centerStatLabel: {
-    fontSize: 11,
-    color: colors.textMuted
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: spacing.md
-  },
-  actionButton: {
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadows.small
-  },
-  actionButtonPrimary: {
-    backgroundColor: colors.primary
-  },
-  actionButtonSecondary: {
-    backgroundColor: colors.accent
-  },
-  actionButtonTertiary: {
-    backgroundColor: colors.darkGray
-  },
-  actionButtonQuaternary: {
-    backgroundColor: colors.success
-  },
-  actionButtonContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  actionButtonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
-  },
-  actionButtonIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm
-  },
-  actionButtonIconText: {
-    fontSize: 16
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.surface
-  },
-  actionButtonArrow: {
-    fontSize: 20,
-    color: colors.surface,
-    fontWeight: '700'
-  },
+  actionSymbol: { fontSize: 22, fontWeight: '700', marginBottom: spacing.xs },
+  actionLabel: { fontSize: typography.small, fontWeight: '700', flex: 1, letterSpacing: -0.2 },
+  actionArrow: { fontSize: 18, fontWeight: '700', marginTop: 4 },
   bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.medium
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: colors.surface, flexDirection: 'row',
+    justifyContent: 'space-around', paddingTop: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.medium,
   },
-  navItem: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs
-  },
-  navIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4
-  },
-  navIconActive: {
-    backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
-  },
-  navLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
-  },
-  navLabelActive: {
-    color: colors.primary
-  }
+  navItem: { flex: 1, alignItems: 'center', paddingVertical: spacing.xs },
+  navPill: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
+  navPillActive: { backgroundColor: colors.primaryXLight },
+  navPillText: { fontSize: typography.xs, color: colors.navInactive, fontWeight: '600' },
+  navPillActiveText: { fontSize: typography.xs, color: colors.primary, fontWeight: '700' },
 });
 
 export default CollectionHeadHomeScreen;

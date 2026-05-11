@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import Toast from 'react-native-toast-message';
@@ -15,31 +15,28 @@ const LoginScreen = () => {
   useEffect(() => {
     if (error) {
       const errorMessage = typeof error === 'string' ? error : error.message || 'Login failed';
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: errorMessage,
-        position: 'top',
-        visibilityTime: 4000,
-      });
+      Toast.show({ type: 'error', text1: 'Login Failed', text2: errorMessage, position: 'top', visibilityTime: 4000 });
     }
   }, [error]);
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
       <View style={styles.content}>
-        {/* Logo & Brand */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoIcon}>
-            <Text style={styles.logoIconText}>🥛</Text>
+
+        {/* Brand Header */}
+        <View style={styles.brandSection}>
+          <View style={styles.logoMark}>
+            <Text style={styles.logoSymbol}>◈</Text>
           </View>
-          <Text style={styles.brandTitle}>Sarvasvaa Milk</Text>
+          <Text style={styles.brandName}>Sarvasvaa Milk</Text>
+          <Text style={styles.brandTagline}>Dairy Management System</Text>
         </View>
 
         {/* Login Card */}
         <View style={styles.card}>
-          <Text style={styles.heading}>Dairy Management Login</Text>
-          <Text style={styles.subheading}>Enter your credentials to continue</Text>
+          <Text style={styles.cardTitle}>Welcome back</Text>
+          <Text style={styles.cardSubtitle}>Sign in to your account</Text>
 
           <Formik
             initialValues={{ username: '', password: '' }}
@@ -48,31 +45,35 @@ const LoginScreen = () => {
           >
             {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
               <>
-                {/* Username Field */}
-                <View style={styles.inputGroup}>
+                {/* Username */}
+                <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Username</Text>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputIcon}>👤</Text>
+                  <View style={[styles.inputWrap, touched.username && errors.username && styles.inputError]}>
+                    <View style={styles.inputIcon}>
+                      <Text style={styles.inputIconText}>@</Text>
+                    </View>
                     <TextInput
                       value={values.username}
                       onChangeText={handleChange('username')}
                       onBlur={handleBlur('username')}
                       placeholder="Enter your username"
                       style={styles.input}
-                      placeholderTextColor={colors.textMuted}
+                      placeholderTextColor={colors.textDisabled}
                       autoCapitalize="none"
                     />
                   </View>
                   {touched.username && errors.username ? (
-                    <Text style={styles.error}>{errors.username}</Text>
+                    <Text style={styles.errorText}>{errors.username}</Text>
                   ) : null}
                 </View>
 
-                {/* Password Field */}
-                <View style={styles.inputGroup}>
+                {/* Password */}
+                <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Password</Text>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.inputIcon}>🔒</Text>
+                  <View style={[styles.inputWrap, touched.password && errors.password && styles.inputError]}>
+                    <View style={styles.inputIcon}>
+                      <Text style={styles.inputIconText}>*</Text>
+                    </View>
                     <TextInput
                       value={values.password}
                       onChangeText={handleChange('password')}
@@ -80,26 +81,24 @@ const LoginScreen = () => {
                       placeholder="Enter your password"
                       secureTextEntry
                       style={styles.input}
-                      placeholderTextColor={colors.textMuted}
+                      placeholderTextColor={colors.textDisabled}
                     />
                   </View>
                   {touched.password && errors.password ? (
-                    <Text style={styles.error}>{errors.password}</Text>
+                    <Text style={styles.errorText}>{errors.password}</Text>
                   ) : null}
                 </View>
 
-                {/* Forgot Password Link */}
-                <TouchableOpacity style={styles.forgotPassword}>
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <TouchableOpacity style={styles.forgotRow}>
+                  <Text style={styles.forgotText}>Forgot Password?</Text>
                 </TouchableOpacity>
 
-                {/* Sign In Button */}
-                <TouchableOpacity 
-                  style={styles.button} 
-                  onPress={handleSubmit} 
+                <TouchableOpacity
+                  style={[styles.signInBtn, status === 'loading' && styles.signInBtnDisabled]}
+                  onPress={handleSubmit}
                   disabled={status === 'loading'}
                 >
-                  <Text style={styles.buttonText}>
+                  <Text style={styles.signInBtnText}>
                     {status === 'loading' ? 'Signing in...' : 'Sign In'}
                   </Text>
                 </TouchableOpacity>
@@ -108,7 +107,7 @@ const LoginScreen = () => {
           </Formik>
         </View>
 
-        {/* Support Link */}
+        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Need help? </Text>
           <TouchableOpacity>
@@ -125,124 +124,158 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg
+    backgroundColor: colors.bg,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: spacing.xl
+    padding: spacing.xl,
   },
-  logoContainer: {
+  brandSection: {
     alignItems: 'center',
-    marginBottom: spacing.xl
+    marginBottom: spacing.xxl,
   },
-  logoIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+  logoMark: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
     backgroundColor: colors.primary,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.md,
-    ...shadows.card
+    ...shadows.medium,
   },
-  logoIconText: {
-    fontSize: 32
+  logoSymbol: {
+    fontSize: 32,
+    color: colors.white,
   },
-  brandTitle: {
-    fontSize: 24,
+  brandName: {
+    fontSize: typography.h1,
     fontWeight: '800',
-    color: colors.primary
+    color: colors.text,
+    letterSpacing: -0.5,
+  },
+  brandTagline: {
+    fontSize: typography.small,
+    color: colors.textMuted,
+    marginTop: 4,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     padding: spacing.xl,
-    ...shadows.card
+    ...shadows.card,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
-  heading: {
-    fontSize: 24,
+  cardTitle: {
+    fontSize: typography.h2,
     fontWeight: '800',
     color: colors.text,
-    textAlign: 'center'
+    letterSpacing: -0.3,
   },
-  subheading: {
-    marginTop: spacing.xs,
-    fontSize: 14,
+  cardSubtitle: {
+    fontSize: typography.small,
     color: colors.textMuted,
+    marginTop: 4,
     marginBottom: spacing.lg,
-    textAlign: 'center'
+    fontWeight: '400',
   },
-  inputGroup: {
-    marginBottom: spacing.md
+  fieldGroup: {
+    marginBottom: spacing.md,
   },
   label: {
-    fontSize: 14,
+    fontSize: typography.small,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.xs
+    color: colors.textSecondary,
+    marginBottom: spacing.xxs,
+    letterSpacing: 0.2,
   },
-  inputContainer: {
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: spacing.md
+    paddingHorizontal: spacing.sm,
+    height: 52,
+  },
+  inputError: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerLight,
   },
   inputIcon: {
-    fontSize: 18,
-    marginRight: spacing.sm
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: colors.primaryXLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  inputIconText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
   },
   input: {
     flex: 1,
-    height: 50,
-    fontSize: 15,
-    color: colors.text
+    fontSize: typography.body,
+    color: colors.text,
+    height: 52,
   },
-  error: {
+  errorText: {
     color: colors.danger,
-    fontSize: 12,
-    marginTop: spacing.xs
+    fontSize: typography.xs,
+    marginTop: spacing.xxs,
+    fontWeight: '500',
   },
-  forgotPassword: {
+  forgotRow: {
     alignSelf: 'flex-end',
-    marginBottom: spacing.md
+    marginBottom: spacing.lg,
+    marginTop: -spacing.xs,
   },
-  forgotPasswordText: {
-    fontSize: 14,
+  forgotText: {
+    fontSize: typography.small,
     color: colors.primary,
-    fontWeight: '600'
+    fontWeight: '600',
   },
-  button: {
+  signInBtn: {
     backgroundColor: colors.primary,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 52,
-    ...shadows.small
+    ...shadows.sm,
   },
-  buttonText: {
-    color: colors.surface,
+  signInBtnDisabled: {
+    opacity: 0.65,
+  },
+  signInBtnText: {
+    color: colors.white,
     fontWeight: '700',
-    fontSize: 16
+    fontSize: typography.body,
+    letterSpacing: 0.3,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.xl
+    marginTop: spacing.xl,
   },
   footerText: {
-    fontSize: 14,
-    color: colors.textMuted
+    fontSize: typography.small,
+    color: colors.textMuted,
   },
   footerLink: {
-    fontSize: 14,
+    fontSize: typography.small,
     color: colors.primary,
-    fontWeight: '600'
-  }
+    fontWeight: '600',
+  },
 });
 
 export default LoginScreen;

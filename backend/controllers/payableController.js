@@ -87,9 +87,9 @@ const generatePayable = asyncHandler(async (req, res) => {
 
   let paymentStatus = 'Pending';
   if (remainingAdvanceBalance > 0) {
-    paymentStatus = 'Carry Forward';
+    paymentStatus = 'AdvanceRemaining';
   } else if (finalPayableAmount <= 0) {
-    paymentStatus = 'Cleared';
+    paymentStatus = 'Paid';
   }
 
   const collectionCenterId = centerId || farmer.assignedCenter;
@@ -176,27 +176,33 @@ const getCenterPayableReport = asyncHandler(async (req, res) => {
     totalFoodExpenses: payables.reduce((s, p) => s + p.totalFoodExpenses, 0),
     totalPayable: payables.filter(p => p.finalPayableAmount > 0).reduce((s, p) => s + p.finalPayableAmount, 0),
     pendingCount: payables.filter(p => p.paymentStatus === 'Pending').length,
-    clearedCount: payables.filter(p => p.paymentStatus === 'Cleared').length,
-    carryForwardCount: payables.filter(p => p.paymentStatus === 'Carry Forward').length
+    paidCount: payables.filter(p => p.paymentStatus === 'Paid').length,
+    advanceRemainingCount: payables.filter(p => p.paymentStatus === 'AdvanceRemaining').length
   };
 
   res.json({ success: true, data: { payables, summary } });
 });
 
-// @desc  Mark payable as Cleared
-// @route PUT /api/payable/:id/clear
-const clearPayable = asyncHandler(async (req, res) => {
+// @desc  Mark payable as Paid
+// @route PUT /api/payable/:id/mark-paid
+const markPayableAsPaid = asyncHandler(async (req, res) => {
   const payable = await Payable.findById(req.params.id);
   if (!payable) {
     res.status(404);
     throw new Error('Payable record not found');
   }
-  payable.paymentStatus = 'Cleared';
+
+  if (payable.paymentStatus !== 'Pending') {
+    res.status(400);
+    throw new Error('Only pending payables can be marked as paid');
+  }
+
+  payable.paymentStatus = 'Paid';
   await payable.save();
 
-  // Handle advance adjustments based on the new business logic
+  // Handle advance adjustments based on the settlement
   const advances = await Advance.find({ farmerId: payable.farmerId, status: 'Active' }).sort({ createdAt: 1 });
-  let totalToDeduct = payable.totalAdvanceDeducted; // Use the calculated deducted amount
+  let totalToDeduct = payable.totalAdvanceDeducted;
   
   for (const adv of advances) {
     if (totalToDeduct <= 0) break;
@@ -205,7 +211,7 @@ const clearPayable = asyncHandler(async (req, res) => {
       // Clear this advance completely
       totalToDeduct -= adv.remainingAmount;
       adv.remainingAmount = 0;
-      adv.status = 'Cleared';
+      adv.status = 'Settled';
     } else {
       // Partially deduct from this advance
       adv.remainingAmount -= totalToDeduct;
@@ -213,6 +219,7 @@ const clearPayable = asyncHandler(async (req, res) => {
     }
     await adv.save();
   }
+
   res.json({ success: true, data: payable });
 });
 
@@ -232,4 +239,4 @@ const deletePayable = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Payable record deleted' });
 });
 
-module.exports = { generatePayable, getPayables, getFarmerPayableDetails, getCenterPayableReport, clearPayable, deletePayable };
+module.exports = { generatePayable, getPayables, getFarmerPayableDetails, getCenterPayableReport, markPayableAsPaid, deletePayable };
