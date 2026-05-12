@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, FlatList, StyleSheet, Modal } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Store, House, CreditCard, Users, LogOut, Search, Droplet } from 'lucide-react-native';
 import { fetchMilkEntries } from '../../redux/slices/milkSlice';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -28,7 +29,6 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
   });
   const [searchInput, setSearchInput] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   useEffect(() => {
     if (token) dispatch(fetchCenters(token));
@@ -92,7 +92,7 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
           <TouchableOpacity style={styles.logoutIcon}>
-            <Text style={styles.logoutIconText}>⎋</Text>
+            <LogOut size={18} color={colors.text} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -102,7 +102,9 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <View style={styles.searchIconWrapper}>
+            <Search size={18} color={colors.textMuted} />
+          </View>
           <TextInput
             style={styles.searchInput}
             value={searchInput}
@@ -152,14 +154,13 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
               <Text style={styles.dateButtonText}>
                 {filters.date ? new Date(filters.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Select Date'}
               </Text>
-              <Text style={styles.dateButtonIcon}>📅</Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker
                 value={filters.date ? new Date(filters.date) : new Date()}
                 mode="date"
                 display="default"
-                onChange={(event, date) => {
+                onChange={(_, date) => {
                   setShowDatePicker(false);
                   if (date) {
                     setFilters((prev) => ({ ...prev, date: date.toISOString().split('T')[0] }));
@@ -206,13 +207,16 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
         <View style={styles.summaryCards}>
           <View style={styles.summaryCardLarge}>
             <View style={styles.summaryIconContainer}>
-              <Text style={styles.summaryIcon}>💧</Text>
+              <Store size={24} color={colors.primary} />
             </View>
             <Text style={styles.summaryLabel}>Total Milk</Text>
             <Text style={styles.summaryValue}>{Number(summary?.totalMilkLiters || 0).toFixed(0)} L</Text>
           </View>
 
           <View style={styles.summaryCardSmall}>
+            <View style={styles.summaryIconContainer}>
+              <Droplet size={24} color={colors.primary} />
+            </View>
             <Text style={styles.summarySmallLabel}>Cow / Buffalo</Text>
             <Text style={styles.summarySmallValue}>
               {Number(summary?.cowMilkLiters || 0).toFixed(0)}L / {Number(summary?.buffaloMilkLiters || 0).toFixed(0)}L
@@ -238,7 +242,7 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
                   </View>
                   <View style={styles.recordHeaderInfo}>
                     <Text style={styles.recordFarmerCode}>
-                      {item.farmerCode} • {item.collectionCenterId?.name || 'Center'} • {item.shift}
+                      {item.animalType === 'Buffalo' ? '🐃' : '🐄'} {item.farmerCode} • {item.collectionCenterId?.name || 'Center'} • {item.shift}
                     </Text>
                     <Text style={styles.recordFarmerName}>{item.farmerId?.fullName || 'Unknown'}</Text>
                   </View>
@@ -271,28 +275,28 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>📊</Text>
+            <House size={22} color={colors.textMuted} />
           </View>
           <Text style={styles.navLabel}>Dashboard</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>📦</Text>
+            <Store size={22} color={colors.surface} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Collections</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>💳</Text>
+            <CreditCard size={22} color={colors.textMuted} />
           </View>
           <Text style={styles.navLabel}>Payments</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -352,10 +356,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.small
   },
-  logoutIconText: {
-    fontSize: 18,
-    color: colors.text
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -378,8 +378,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border
   },
-  searchIcon: {
-    fontSize: 16,
+  searchIconWrapper: {
     marginRight: spacing.xs
   },
   searchInput: {
@@ -450,9 +449,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text
   },
-  dateButtonIcon: {
-    fontSize: 16
-  },
   summaryCards: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -473,9 +469,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xs
-  },
-  summaryIcon: {
-    fontSize: 20
   },
   summaryLabel: {
     fontSize: 12,
@@ -611,9 +604,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

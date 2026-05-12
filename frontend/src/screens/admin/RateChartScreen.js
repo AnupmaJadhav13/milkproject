@@ -1,16 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
+  ScrollView,
   ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { useSelector } from 'react-redux';
+import { House, Store, Users, CreditCard, ChevronLeft, Settings, LayoutGrid, Info, Save, Download, Printer, NotepadText } from 'lucide-react-native';
 import { rateChartApi } from '../../api/api';
 import { colors, radius, spacing, shadows } from '../../theme';
 
@@ -142,7 +143,7 @@ const RateChartScreen = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backIcon}>←</Text>
+            <ChevronLeft size={20} color={colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
           <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           <View style={styles.headerSpacer} />
@@ -159,7 +160,7 @@ const RateChartScreen = ({ navigation }) => {
         {/* Base Configuration Card */}
         <View style={styles.configCard}>
           <View style={styles.configHeader}>
-            <Text style={styles.configIcon}>⚙️</Text>
+            <Settings size={20} color={colors.primary} strokeWidth={2} />
             <Text style={styles.configTitle}>Base Configuration</Text>
           </View>
 
@@ -206,7 +207,7 @@ const RateChartScreen = ({ navigation }) => {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.saveButtonIcon}>💾</Text>
+                <Save size={18} color={colors.surface} strokeWidth={2} />
                 <Text style={styles.saveButtonText}>Save Configuration</Text>
               </>
             )}
@@ -216,7 +217,7 @@ const RateChartScreen = ({ navigation }) => {
         {/* Matrix Overview */}
         <View style={styles.overviewCard}>
           <View style={styles.overviewHeader}>
-            <Text style={styles.overviewIcon}>📊</Text>
+            <LayoutGrid size={20} color={colors.primary} strokeWidth={2} />
             <Text style={styles.overviewTitle}>Matrix Overview</Text>
           </View>
 
@@ -240,7 +241,7 @@ const RateChartScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.infoBox}>
-            <Text style={styles.infoIcon}>ℹ️</Text>
+            <Info size={16} color={colors.primary} strokeWidth={2} />
             <Text style={styles.infoText}>
               The matrix below displays computed rates per liter. Top row represents SNF % (Fixed), 
               left column represents Fat % (Fixed). Values highlight the progressive increment based on your step configuration.
@@ -252,15 +253,15 @@ const RateChartScreen = ({ navigation }) => {
         <View style={styles.matrixCard}>
           <View style={styles.matrixHeader}>
             <View style={styles.matrixHeaderLeft}>
-              <Text style={styles.matrixIcon}>📋</Text>
+              <NotepadText size={20} color={colors.primary} strokeWidth={2} />
               <Text style={styles.matrixTitle}>Generated Rate Matrix</Text>
             </View>
             <View style={styles.matrixActions}>
               <TouchableOpacity style={styles.matrixActionButton}>
-                <Text style={styles.matrixActionIcon}>⬇️</Text>
+                <Download size={16} color={colors.text} strokeWidth={2} />
               </TouchableOpacity>
               <TouchableOpacity style={styles.matrixActionButton}>
-                <Text style={styles.matrixActionIcon}>🖨️</Text>
+                <Printer size={16} color={colors.text} strokeWidth={2} />
               </TouchableOpacity>
             </View>
           </View>
@@ -307,28 +308,28 @@ const RateChartScreen = ({ navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>📊</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Dashboard</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>📦</Text>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Collections</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>💳</Text>
+            <CreditCard size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Payments</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -373,11 +374,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.small
   },
-  backIcon: {
-    fontSize: 20,
-    color: colors.text,
-    fontWeight: '700'
-  },
   brandText: {
     fontSize: 16,
     fontWeight: '700',
@@ -408,11 +404,8 @@ const styles = StyleSheet.create({
   configHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
     marginBottom: spacing.md
-  },
-  configIcon: {
-    fontSize: 20,
-    marginRight: spacing.xs
   },
   configTitle: {
     fontSize: 16,
@@ -479,11 +472,8 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
     ...shadows.small
-  },
-  saveButtonIcon: {
-    fontSize: 16,
-    marginRight: spacing.xs
   },
   saveButtonText: {
     color: colors.surface,
@@ -500,11 +490,8 @@ const styles = StyleSheet.create({
   overviewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.xs,
     marginBottom: spacing.md
-  },
-  overviewIcon: {
-    fontSize: 20,
-    marginRight: spacing.xs
   },
   overviewTitle: {
     fontSize: 16,
@@ -539,11 +526,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.lightGray,
     borderRadius: radius.sm,
-    padding: spacing.sm
-  },
-  infoIcon: {
-    fontSize: 16,
-    marginRight: spacing.xs
+    padding: spacing.sm,
+    gap: spacing.xs
   },
   infoText: {
     flex: 1,
@@ -566,11 +550,8 @@ const styles = StyleSheet.create({
   },
   matrixHeaderLeft: {
     flexDirection: 'row',
-    alignItems: 'center'
-  },
-  matrixIcon: {
-    fontSize: 20,
-    marginRight: spacing.xs
+    alignItems: 'center',
+    gap: spacing.xs
   },
   matrixTitle: {
     fontSize: 16,
@@ -588,9 +569,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     justifyContent: 'center',
     alignItems: 'center'
-  },
-  matrixActionIcon: {
-    fontSize: 14
   },
   matrixScroll: {
     flexGrow: 0
@@ -668,9 +646,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

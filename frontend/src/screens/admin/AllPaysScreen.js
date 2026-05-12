@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius, spacing, typography, shadows } from '../../theme';
+import { ChevronLeft, CreditCard, LogOut } from 'lucide-react-native';
+import { colors, radius, spacing, shadows } from '../../theme';
 import AdvanceScreen from './AdvanceScreen';
 import PayableScreen from './PayableScreen';
 
 const TABS = [
-  { key: 'advance', label: 'Advance', icon: '💳' },
-  { key: 'payable', label: 'Payable', icon: '📋' }
+  { key: 'advance', label: 'Advance' },
+  { key: 'payable', label: 'Payable' }
 ];
 
 const AllPaysScreen = ({ navigation, route }) => {
@@ -22,7 +23,7 @@ const AllPaysScreen = ({ navigation, route }) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
+            <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
@@ -31,7 +32,7 @@ const AllPaysScreen = ({ navigation, route }) => {
           </View>
         </View>
         <TouchableOpacity style={styles.logoutIcon}>
-          <Text style={styles.logoutIconText}>⎋</Text>
+          <LogOut size={18} color={colors.text} strokeWidth={2} />
         </TouchableOpacity>
       </View>
 
@@ -90,11 +91,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: spacing.sm
   },
-  backIcon: {
-    fontSize: 20,
-    color: colors.primary,
-    fontWeight: '700'
-  },
   headerTitleContainer: {
     flex: 1
   },
@@ -121,10 +117,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lightGray,
     justifyContent: 'center',
     alignItems: 'center'
-  },
-  logoutIconText: {
-    fontSize: 18,
-    color: colors.text
   },
   tabBar: {
     flexDirection: 'row',

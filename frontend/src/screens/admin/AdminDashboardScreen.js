@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { House, Store, Users, CreditCard, LayoutGrid, Gift, MessageCircleMore } from 'lucide-react-native';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import { fetchFarmers } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -32,10 +33,10 @@ const AdminDashboardScreen = ({ navigation }) => {
   const activeFarmers = farmers.filter(f => f.status === 'Active').length;
 
   const quickActions = [
-    { label: 'Manage Centers', symbol: '◈', nav: 'CenterList', bg: colors.primary, text: colors.white },
-    { label: 'Rate Chart', symbol: '▦', nav: 'RateChart', bg: colors.teal50, text: colors.primary, border: true },
-    { label: 'Annual Bonus', symbol: '◆', nav: 'AnnualBonus', bg: colors.warningLight, text: colors.warning, textBorder: true },
-    { label: 'Send SMS', symbol: '◉', nav: 'SendSms', bg: colors.infoLight, text: colors.info, textBorder: true },
+    { label: 'Manage Centers', icon: Store, nav: 'CenterList', bg: colors.primary, text: colors.white },
+    { label: 'Rate Chart', icon: LayoutGrid, nav: 'RateChart', bg: colors.teal50, text: colors.primary, border: true },
+    { label: 'Annual Bonus', icon: Gift, nav: 'AnnualBonus', bg: colors.warningLight, text: colors.warning, textBorder: true },
+    { label: 'Send SMS', icon: MessageCircleMore, nav: 'SendSms', bg: colors.infoLight, text: colors.info, textBorder: true },
   ];
 
   return (
@@ -74,17 +75,17 @@ const AdminDashboardScreen = ({ navigation }) => {
         {/* Stat Cards */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.primaryXLight }]}>
-            <Text style={styles.statSymbol}>◈</Text>
+            <Store size={20} color={colors.primary} strokeWidth={2.5} />
             <Text style={styles.statValue}>{activeCenters}</Text>
             <Text style={styles.statLabel}>Active{'\n'}Centers</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.statSage }]}>
-            <Text style={styles.statSymbol}>◎</Text>
+            <Users size={20} color={colors.primary} strokeWidth={2.5} />
             <Text style={styles.statValue}>{activeFarmers}</Text>
             <Text style={styles.statLabel}>Active{'\n'}Farmers</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.statWarm }]}>
-            <Text style={styles.statSymbol}>◉</Text>
+            <Store size={20} color={colors.primary} strokeWidth={2.5} />
             <Text style={styles.statValue}>{centers.length}</Text>
             <Text style={styles.statLabel}>Total{'\n'}Centers</Text>
           </View>
@@ -96,22 +97,25 @@ const AdminDashboardScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.actionsGrid}>
-          {quickActions.map((action, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[
-                styles.actionTile,
-                { backgroundColor: action.bg },
-                action.border && { borderWidth: 1.5, borderColor: colors.teal100 },
-                action.textBorder && { borderWidth: 1.5, borderColor: action.text + '33' },
-              ]}
-              onPress={() => navigation.navigate(action.nav)}
-            >
-              <Text style={[styles.actionSymbol, { color: action.text }]}>{action.symbol}</Text>
-              <Text style={[styles.actionLabel, { color: action.text }]}>{action.label}</Text>
-              <Text style={[styles.actionArrow, { color: action.text + '88' }]}>→</Text>
-            </TouchableOpacity>
-          ))}
+          {quickActions.map((action, i) => {
+            const IconComponent = action.icon;
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.actionTile,
+                  { backgroundColor: action.bg },
+                  action.border && { borderWidth: 1.5, borderColor: colors.teal100 },
+                  action.textBorder && { borderWidth: 1.5, borderColor: action.text + '33' },
+                ]}
+                onPress={() => navigation.navigate(action.nav)}
+              >
+                <IconComponent size={24} color={action.text} strokeWidth={2.5} />
+                <Text style={[styles.actionLabel, { color: action.text }]}>{action.label}</Text>
+                <Text style={[styles.actionArrow, { color: action.text + '88' }]}>→</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Center List Preview */}
@@ -126,15 +130,10 @@ const AdminDashboardScreen = ({ navigation }) => {
           <TouchableOpacity
             style={styles.centerRow}
             key={center._id}
-            onPress={() => navigation.navigate('CenterDetail', {
-              centerId: center._id,
-              centerCode: center.centerCode,
-              centerName: center.name,
-              centerAddress: center.fullAddress,
-            })}
+            onPress={() => navigation.navigate('CenterDetail', { center })}
           >
             <View style={styles.centerIconBox}>
-              <Text style={styles.centerIconSymbol}>◈</Text>
+              <Store size={16} color={colors.primary} strokeWidth={2.5} />
             </View>
             <View style={styles.centerInfo}>
               <Text style={styles.centerName}>{center.name}</Text>
@@ -155,19 +154,28 @@ const AdminDashboardScreen = ({ navigation }) => {
       {/* Bottom Nav */}
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navPill, styles.navPillActive]}>
-            <Text style={styles.navPillActiveText}>Dashboard</Text>
+          <View style={[styles.navIconContainer, styles.navIconActive]}>
+            <House size={22} color={colors.surface} strokeWidth={2.5} />
           </View>
+          <Text style={[styles.navLabel, styles.navLabelActive]}>Dashboard</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
-          <View style={styles.navPill}>
-            <Text style={styles.navPillText}>Collections</Text>
+          <View style={styles.navIconContainer}>
+            <Store size={22} color={colors.textMuted} strokeWidth={2.5} />
           </View>
+          <Text style={styles.navLabel}>Collections</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
+          <View style={styles.navIconContainer}>
+            <CreditCard size={22} color={colors.textMuted} strokeWidth={2.5} />
+          </View>
+          <Text style={styles.navLabel}>Payments</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
-          <View style={styles.navPill}>
-            <Text style={styles.navPillText}>Farmers</Text>
+          <View style={styles.navIconContainer}>
+            <Users size={22} color={colors.textMuted} strokeWidth={2.5} />
           </View>
+          <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -207,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start', ...shadows.xs,
     borderWidth: 1, borderColor: colors.divider,
   },
-  statSymbol: { fontSize: 20, color: colors.primary, marginBottom: spacing.xs },
+
   statValue: { fontSize: typography.h1, fontWeight: '800', color: colors.text, letterSpacing: -0.5 },
   statLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', marginTop: 2, lineHeight: 16 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
@@ -218,7 +226,7 @@ const styles = StyleSheet.create({
     width: '47.5%', borderRadius: radius.lg, padding: spacing.md,
     justifyContent: 'space-between', minHeight: 90, ...shadows.xs,
   },
-  actionSymbol: { fontSize: 22, fontWeight: '700', marginBottom: spacing.xs },
+
   actionLabel: { fontSize: typography.small, fontWeight: '700', flex: 1, letterSpacing: -0.2 },
   actionArrow: { fontSize: 18, fontWeight: '700', marginTop: 4 },
   centerRow: {
@@ -230,7 +238,7 @@ const styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: 11, backgroundColor: colors.primaryXLight,
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
   },
-  centerIconSymbol: { fontSize: 16, color: colors.primary },
+
   centerInfo: { flex: 1 },
   centerName: { fontSize: typography.body, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
   centerAddress: { fontSize: typography.xs, color: colors.textMuted, marginTop: 2 },
@@ -247,13 +255,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider,
     ...shadows.medium,
   },
-  navItem: { alignItems: 'center', paddingVertical: spacing.xs, flex: 1 },
-  navPill: {
-    paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.full,
+  navItem: { alignItems: 'center', paddingVertical: spacing.xs },
+  navIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4
   },
-  navPillActive: { backgroundColor: colors.primaryXLight },
-  navPillText: { fontSize: typography.small, color: colors.navInactive, fontWeight: '600' },
-  navPillActiveText: { fontSize: typography.small, color: colors.primary, fontWeight: '700' },
+  navIconActive: {
+    backgroundColor: colors.primary
+  },
+  navLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600'
+  },
+  navLabelActive: {
+    color: colors.primary
+  },
 });
 
 export default AdminDashboardScreen;

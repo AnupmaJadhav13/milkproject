@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, ScrollView } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import { Picker } from '@react-native-picker/picker';
+import { House, Store, Users, Salad, Phone, LogOut } from 'lucide-react-native';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import { createMilkEntry, fetchMilkEntries } from '../../redux/slices/milkSlice';
 import { logout } from '../../redux/slices/authSlice';
-import { colors, radius, spacing, typography, shadows } from '../../theme';
+import { colors, radius, spacing, shadows } from '../../theme';
 
 const MilkEntryScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -93,7 +94,7 @@ const MilkEntryScreen = ({ navigation }) => {
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutIcon}>⎋</Text>
+            <LogOut size={18} color={colors.danger} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -113,7 +114,12 @@ const MilkEntryScreen = ({ navigation }) => {
               ))}
             </Picker>
           </View>
-          {selectedFarmer ? <Text style={styles.helper}>📱 {selectedFarmer.mobileNumber}</Text> : null}
+          {selectedFarmer ? (
+            <View style={styles.helperRow}>
+              <Phone size={14} color={colors.textMuted} strokeWidth={2} />
+              <Text style={styles.helper}>{selectedFarmer.mobileNumber}</Text>
+            </View>
+          ) : null}
 
           <Text style={styles.label}>Date</Text>
           <TextInput style={styles.input} value={form.date} onChangeText={(value) => setForm((prev) => ({ ...prev, date: value }))} placeholder="YYYY-MM-DD" />
@@ -206,28 +212,28 @@ const MilkEntryScreen = ({ navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🏠</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>🥛</Text>
+            <Store size={22} color={colors.surface} strokeWidth={2} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Milk Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🌾</Text>
+            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Food Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -286,10 +292,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.danger
   },
-  logoutIcon: {
-    fontSize: 18,
-    color: colors.danger
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -341,8 +343,13 @@ const styles = StyleSheet.create({
   },
   helper: {
     color: colors.textMuted,
-    marginTop: 6,
-    fontSize: 13
+    fontSize: 13,
+    marginLeft: 6
+  },
+  helperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6
   },
   row: {
     flexDirection: 'row',
@@ -496,9 +503,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

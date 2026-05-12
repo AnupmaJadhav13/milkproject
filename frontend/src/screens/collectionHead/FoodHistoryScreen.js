@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { House, Store, Users, Salad, LogOut } from 'lucide-react-native';
 import { fetchFoodRecordsByCenter } from '../../redux/slices/foodSlice';
 import { logout } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import SearchBar from '../../components/SearchBar';
 import FoodRecordCard from '../../components/FoodRecordCard';
-import { colors, radius, spacing, typography, shadows } from '../../theme';
+import { colors, radius, spacing, shadows } from '../../theme';
 
 const FoodHistoryScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -49,7 +50,7 @@ const FoodHistoryScreen = ({ navigation }) => {
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutIcon}>⎋</Text>
+            <LogOut size={18} color={colors.danger} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -76,28 +77,28 @@ const FoodHistoryScreen = ({ navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🏠</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🥛</Text>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Milk Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>🌾</Text>
+            <Salad size={22} color={colors.surface} strokeWidth={2} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Food Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -154,10 +155,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.danger
-  },
-  logoutIcon: {
-    fontSize: 18,
-    color: colors.danger
   },
   title: {
     fontSize: 28,
@@ -220,9 +217,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

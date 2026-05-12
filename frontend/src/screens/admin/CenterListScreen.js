@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { House, Store, Users, CreditCard, Plus, MapPin, Trash2, SquarePen, LogOut } from 'lucide-react-native';
 import { fetchCenters, deleteCenter } from '../../redux/slices/centerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import SearchBar from '../../components/SearchBar';
@@ -80,7 +81,7 @@ const CenterListScreen = ({ navigation }) => {
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
           <TouchableOpacity style={styles.logoutIcon}>
-            <Text style={styles.logoutIconText}>⎋</Text>
+            <LogOut size={18} color={colors.text} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -89,7 +90,8 @@ const CenterListScreen = ({ navigation }) => {
 
         {/* Add Center Button */}
         <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddCenter')}>
-          <Text style={styles.addButtonText}>+ Add Center</Text>
+          <Plus size={20} color={colors.surface} strokeWidth={2.5} />
+          <Text style={styles.addButtonText}>Add Center</Text>
         </TouchableOpacity>
 
         {/* Search Bar */}
@@ -121,18 +123,8 @@ const CenterListScreen = ({ navigation }) => {
 
               {/* Address */}
               <View style={styles.addressRow}>
-                <Text style={styles.addressIcon}>📍</Text>
+                <MapPin size={14} color={colors.textMuted} strokeWidth={2} />
                 <Text style={styles.addressText}>{center.fullAddress}</Text>
-              </View>
-
-              {/* Tags */}
-              <View style={styles.tagsRow}>
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>Cooling Unit</Text>
-                </View>
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>Testing Lab</Text>
-                </View>
               </View>
 
               {/* Action Buttons */}
@@ -141,14 +133,14 @@ const CenterListScreen = ({ navigation }) => {
                   style={styles.editButton} 
                   onPress={() => navigation.navigate('EditCenter', { center })}
                 >
-                  <Text style={styles.editButtonIcon}>✏️</Text>
+                  <SquarePen size={16} color={colors.text} strokeWidth={2} />
                   <Text style={styles.editButtonText}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.deleteButton} 
                   onPress={() => onDelete(center)}
                 >
-                  <Text style={styles.deleteButtonIcon}>🗑️</Text>
+                  <Trash2 size={16} color={colors.danger} strokeWidth={2} />
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
@@ -161,28 +153,28 @@ const CenterListScreen = ({ navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>📊</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Dashboard</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>📦</Text>
+            <Store size={22} color={colors.surface} strokeWidth={2} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Collections</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>💳</Text>
+            <CreditCard size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Payments</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -250,10 +242,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.small
   },
-  logoutIconText: {
-    fontSize: 18,
-    color: colors.text
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -262,10 +250,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: 14,
-    alignItems: 'center',
     marginBottom: spacing.md,
     ...shadows.small
   },
@@ -319,12 +310,8 @@ const styles = StyleSheet.create({
   addressRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: 6,
     marginBottom: spacing.sm
-  },
-  addressIcon: {
-    fontSize: 14,
-    marginRight: 6,
-    marginTop: 2
   },
   addressText: {
     fontSize: 13,
@@ -360,15 +347,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     backgroundColor: colors.lightGray,
     borderRadius: radius.sm,
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: colors.border
-  },
-  editButtonIcon: {
-    fontSize: 14,
-    marginRight: 6
   },
   editButtonText: {
     fontSize: 14,
@@ -380,15 +364,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
     backgroundColor: colors.dangerLight,
     borderRadius: radius.sm,
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: colors.danger
-  },
-  deleteButtonIcon: {
-    fontSize: 14,
-    marginRight: 6
   },
   deleteButtonText: {
     fontSize: 14,
@@ -429,9 +410,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

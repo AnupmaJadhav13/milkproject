@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
+import { House, Store, Users, Salad, LogOut } from 'lucide-react-native';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import { logout } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -28,10 +29,10 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
   const activeFarmers = farmers.filter(f => f.status === 'Active').length;
 
   const actions = [
-    { label: 'Add Food Record', symbol: '◆', nav: 'FoodEntry', bg: colors.primary, text: colors.white },
-    { label: 'Daily Milk Collection', symbol: '◉', nav: 'MilkEntry', bg: colors.teal50, text: colors.primary, border: true },
-    { label: 'Food History', symbol: '▦', nav: 'FoodHistory', bg: colors.warningLight, text: colors.warning, border2: true },
-    { label: 'View Farmers', symbol: '◎', nav: 'CollectionHeadFarmers', bg: colors.successLight, text: colors.success, border3: true },
+    { label: 'Add Food Record', icon: Salad, nav: 'FoodEntry', bg: colors.primary, text: colors.white },
+    { label: 'Daily Milk Collection', icon: Store, nav: 'MilkEntry', bg: colors.teal50, text: colors.primary, border: true },
+    { label: 'Food History', icon: Salad, nav: 'FoodHistory', bg: colors.warningLight, text: colors.warning, border2: true },
+    { label: 'View Farmers', icon: Users, nav: 'CollectionHeadFarmers', bg: colors.successLight, text: colors.success, border3: true },
   ];
 
   return (
@@ -69,7 +70,7 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
             <View style={styles.summaryIconBox}>
-              <Text style={styles.summaryIcon}>◈</Text>
+              <Store size={22} color={colors.primary} strokeWidth={2.5} />
             </View>
             <View>
               <Text style={styles.summaryLabel}>Assigned Center</Text>
@@ -99,40 +100,47 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
-          {actions.map((action, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[
-                styles.actionTile,
-                { backgroundColor: action.bg },
-                action.border && { borderWidth: 1.5, borderColor: colors.teal100 },
-                action.border2 && { borderWidth: 1.5, borderColor: colors.warning + '44' },
-                action.border3 && { borderWidth: 1.5, borderColor: colors.success + '44' },
-              ]}
-              onPress={() => navigation.navigate(action.nav)}
-            >
-              <Text style={[styles.actionSymbol, { color: action.text }]}>{action.symbol}</Text>
-              <Text style={[styles.actionLabel, { color: action.text }]}>{action.label}</Text>
-              <Text style={[styles.actionArrow, { color: action.text + '88' }]}>→</Text>
-            </TouchableOpacity>
-          ))}
+          {actions.map((action, i) => {
+            const IconComponent = action.icon;
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.actionTile,
+                  { backgroundColor: action.bg },
+                  action.border && { borderWidth: 1.5, borderColor: colors.teal100 },
+                  action.border2 && { borderWidth: 1.5, borderColor: colors.warning + '44' },
+                  action.border3 && { borderWidth: 1.5, borderColor: colors.success + '44' },
+                ]}
+                onPress={() => navigation.navigate(action.nav)}
+              >
+                <IconComponent size={24} color={action.text} strokeWidth={2.5} />
+                <Text style={[styles.actionLabel, { color: action.text }]}>{action.label}</Text>
+                <Text style={[styles.actionArrow, { color: action.text + '88' }]}>→</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
 
       {/* Bottom Nav */}
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         {[
-          { label: 'Home', nav: null },
-          { label: 'Milk Entry', nav: 'MilkEntry' },
-          { label: 'Food Entry', nav: 'FoodEntry' },
-          { label: 'Farmers', nav: 'CollectionHeadFarmers' },
-        ].map((item, i) => (
-          <TouchableOpacity key={i} style={styles.navItem} onPress={() => item.nav && navigation.navigate(item.nav)}>
-            <View style={[styles.navPill, i === 0 && styles.navPillActive]}>
-              <Text style={[styles.navPillText, i === 0 && styles.navPillActiveText]}>{item.label}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+          { label: 'Home', nav: null, icon: House },
+          { label: 'Milk Entry', nav: 'MilkEntry', icon: Store },
+          { label: 'Food Entry', nav: 'FoodEntry', icon: Salad },
+          { label: 'Farmers', nav: 'CollectionHeadFarmers', icon: Users },
+        ].map((item, i) => {
+          const IconComponent = item.icon;
+          return (
+            <TouchableOpacity key={i} style={styles.navItem} onPress={() => item.nav && navigation.navigate(item.nav)}>
+              <View style={[styles.navPill, i === 0 && styles.navPillActive]}>
+                <IconComponent size={18} color={i === 0 ? colors.primary : colors.navInactive} strokeWidth={2.5} style={styles.navPillIcon} />
+                <Text style={[styles.navPillText, i === 0 && styles.navPillActiveText]}>{item.label}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -173,7 +181,6 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 14, backgroundColor: colors.primaryXLight,
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
   },
-  summaryIcon: { fontSize: 22, color: colors.primary },
   summaryLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
   summaryTitle: { fontSize: typography.h3, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
   activeDot: {
@@ -192,7 +199,6 @@ const styles = StyleSheet.create({
     width: '47.5%', borderRadius: radius.lg, padding: spacing.md,
     justifyContent: 'space-between', minHeight: 90, ...shadows.xs,
   },
-  actionSymbol: { fontSize: 22, fontWeight: '700', marginBottom: spacing.xs },
   actionLabel: { fontSize: typography.small, fontWeight: '700', flex: 1, letterSpacing: -0.2 },
   actionArrow: { fontSize: 18, fontWeight: '700', marginTop: 4 },
   bottomNav: {
@@ -202,8 +208,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.medium,
   },
   navItem: { flex: 1, alignItems: 'center', paddingVertical: spacing.xs },
-  navPill: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
+  navPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
   navPillActive: { backgroundColor: colors.primaryXLight },
+  navPillIcon: { marginRight: 4 },
   navPillText: { fontSize: typography.xs, color: colors.navInactive, fontWeight: '600' },
   navPillActiveText: { fontSize: typography.xs, color: colors.primary, fontWeight: '700' },
 });

@@ -90,7 +90,7 @@ const FoodEntryScreen = ({ navigation }) => {
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutIcon}>⎋</Text>
+            <LogOut size={18} color={colors.danger} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -377,28 +377,28 @@ const FoodEntryScreen = ({ navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🏠</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🥛</Text>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Milk Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>🌾</Text>
+            <Salad size={22} color={colors.surface} strokeWidth={2} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Food Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -456,10 +456,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.danger
-  },
-  logoutIcon: {
-    fontSize: 18,
-    color: colors.danger
   },
   title: {
     fontSize: 28,
@@ -687,9 +683,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

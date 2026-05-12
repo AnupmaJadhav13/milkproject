@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch } from 'react-redux';
+import { House, Store, Users, Salad, ChevronLeft, LogOut } from 'lucide-react-native';
 import { logout } from '../../redux/slices/authSlice';
 import { colors, radius, spacing, shadows } from '../../theme';
 import AdvanceScreen from '../admin/AdvanceScreen';
@@ -23,11 +24,11 @@ const AllPaysScreen = ({ route, navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backIcon}>←</Text>
+            <ChevronLeft size={20} color={colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
           <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutIcon}>⎋</Text>
+            <LogOut size={18} color={colors.danger} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
@@ -66,28 +67,28 @@ const AllPaysScreen = ({ route, navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🏠</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🥛</Text>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Milk Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🌾</Text>
+            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Food Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
         </TouchableOpacity>
@@ -122,10 +123,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border
   },
-  backIcon: {
-    fontSize: 20,
-    color: colors.text
-  },
   brandText: {
     fontSize: 16,
     fontWeight: '700',
@@ -140,10 +137,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.danger
-  },
-  logoutIcon: {
-    fontSize: 18,
-    color: colors.danger
   },
   title: {
     fontSize: 28,
@@ -207,9 +200,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

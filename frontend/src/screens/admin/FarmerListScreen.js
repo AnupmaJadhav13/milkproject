@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
+import { House, Store, Users, CreditCard, Plus, MapPin, Phone, Trash2, SquarePen, LogOut } from 'lucide-react-native';
 import { fetchFarmers, deleteFarmer } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import SearchBar from '../../components/SearchBar';
@@ -24,7 +25,7 @@ const FarmerListScreen = ({ navigation, route }) => {
   const [selectedFarmer, setSelectedFarmer] = useState(null);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       if (token) {
         const params = selectedCenterId ? { centerId: selectedCenterId } : {};
         dispatch(fetchFarmers({ token, params }));
@@ -95,21 +96,26 @@ const FarmerListScreen = ({ navigation, route }) => {
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
           <TouchableOpacity style={styles.logoutIcon}>
-            <Text style={styles.logoutIconText}>⎋</Text>
+            <LogOut size={18} color={colors.text} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
         {/* Title & Subtitle */}
         <Text style={styles.title}>Farmers</Text>
-        <Text style={styles.subtitle}>Manage and track your dairy farmers</Text>
+        <Text style={styles.subtitle}>
+          {selectedCenterId ? `Manage farmers for ${selectedCenterName}` : 'Manage and track your dairy farmers'}
+        </Text>
 
-        {/* Add Farmer Button */}
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('AddFarmer', { centerId: selectedCenterId, centerCode: selectedCenterCode, centerName: selectedCenterName })}
-        >
-          <Text style={styles.addButtonText}>+ Add Farmer</Text>
-        </TouchableOpacity>
+        {/* Add Farmer Button - Only show when coming from a center */}
+        {selectedCenterId && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('AddFarmer', { centerId: selectedCenterId, centerCode: selectedCenterCode, centerName: selectedCenterName })}
+          >
+            <Plus size={20} color={colors.surface} strokeWidth={2.5} />
+            <Text style={styles.addButtonText}>Add Farmer</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Search Bar */}
         <SearchBar 
@@ -160,19 +166,21 @@ const FarmerListScreen = ({ navigation, route }) => {
 
               {/* Farmer Details */}
               <View style={styles.farmerDetail}>
-                <Text style={styles.detailIcon}>📞</Text>
+                <Phone size={14} color={colors.textMuted} strokeWidth={2} />
                 <Text style={styles.detailText}>{farmer.mobileNumber}</Text>
               </View>
 
               <View style={styles.farmerDetail}>
-                <Text style={styles.detailIcon}>📍</Text>
+                <MapPin size={14} color={colors.textMuted} strokeWidth={2} />
                 <Text style={styles.detailText}>{farmer.village}, {farmer.address}</Text>
               </View>
 
               {/* Tags */}
               <View style={styles.tagsRow}>
                 <View style={styles.tag}>
-                  <Text style={styles.tagIcon}>🐄</Text>
+                  <Text style={styles.tagIcon}>
+                    {farmer.animalType === 'Buffalo' ? '🐃' : farmer.animalType === 'Cow' ? '🐄' : '🐄/🐃'}
+                  </Text>
                   <Text style={styles.tagText}>{farmer.animalType}</Text>
                 </View>
                 <View style={styles.tag}>
@@ -184,13 +192,14 @@ const FarmerListScreen = ({ navigation, route }) => {
               {/* Action Buttons */}
               <View style={styles.actionButtons}>
                 <TouchableOpacity style={styles.callButton} onPress={() => onCall(farmer.mobileNumber)}>
-                  <Text style={styles.callButtonIcon}>📞</Text>
+                  <Phone size={18} color={colors.success} strokeWidth={2} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate('EditFarmer', { farmer })}>
-                  <Text style={styles.editButtonIcon}>✏️</Text>
+                  <SquarePen size={16} color={colors.text} strokeWidth={2} />
+                  <Text style={styles.editButtonText}>Edit</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(farmer)}>
-                  <Text style={styles.deleteButtonIcon}>🗑️</Text>
+                  <Trash2 size={16} color={colors.danger} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -202,28 +211,28 @@ const FarmerListScreen = ({ navigation, route }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>📊</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Dashboard</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>📦</Text>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Collections</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>💳</Text>
+            <CreditCard size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Payments</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.surface} strokeWidth={2} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Farmers</Text>
         </TouchableOpacity>
@@ -291,10 +300,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.small
   },
-  logoutIconText: {
-    fontSize: 18,
-    color: colors.text
-  },
   title: {
     fontSize: 28,
     fontWeight: '800',
@@ -308,10 +313,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: 14,
-    alignItems: 'center',
     marginBottom: spacing.md,
     ...shadows.small
   },
@@ -416,11 +424,8 @@ const styles = StyleSheet.create({
   farmerDetail: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: spacing.xs
-  },
-  detailIcon: {
-    fontSize: 14,
-    marginRight: 8
   },
   detailText: {
     fontSize: 13,
@@ -467,21 +472,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.success
   },
-  callButtonIcon: {
-    fontSize: 16
-  },
   editButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: colors.lightGray,
     borderRadius: radius.sm,
     paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border
   },
-  editButtonIcon: {
-    fontSize: 16
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text
   },
   deleteButton: {
     flex: 1,
@@ -492,9 +498,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.danger
-  },
-  deleteButtonIcon: {
-    fontSize: 16
   },
   emptyText: {
     marginTop: 24,
@@ -529,9 +532,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,
