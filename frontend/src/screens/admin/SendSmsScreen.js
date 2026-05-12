@@ -8,13 +8,15 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
-  Alert
+  Alert,
+  LinearGradient
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import { smsApi } from '../../api/api';
+import { colors, radius, spacing, typography, shadows, gradients } from '../../theme';
 
 const USER_TYPES = [
   { value: 'farmer', label: 'Farmers' },
@@ -185,112 +187,143 @@ const SendSmsScreen = ({ navigation }) => {
   return (
     <View style={[styles.root, { paddingTop: insets.top + 12 }]}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()} hitSlop={12}>
-          <Text style={styles.backLinkText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.heading}>Send SMS notifications</Text>
-        <Text style={styles.intro}>
-          Choose Farmers or Collection heads, search if needed, tap rows or use Select all, then write your message and send.
-        </Text>
-
-        <Text style={styles.section}>Recipients</Text>
-        <Text style={styles.fieldLabel}>Send to</Text>
-        <View style={styles.pickerWrap}>
-          <Picker selectedValue={userType} onValueChange={setUserType}>
-            {USER_TYPES.map((u) => (
-              <Picker.Item key={u.value} label={u.label} value={u.value} />
-            ))}
-          </Picker>
-        </View>
-
-        <Text style={styles.fieldLabel}>Search (optional)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Name, mobile, code…"
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor="#94a3b8"
-        />
-
-        <View style={styles.rowBtns}>
-          <TouchableOpacity style={[styles.smallBtn, styles.smallBtnLeft]} onPress={selectAllVisible}>
-            <Text style={styles.smallBtnText}>Select all</Text>
+        {/* Header Section */}
+        <View style={styles.headerSection}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={12}>
+            <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.smallBtn, styles.smallBtnGhost]} onPress={clearSelection}>
-            <Text style={styles.smallBtnGhostText}>Clear</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.heading}>Send SMS</Text>
+            <Text style={styles.subtitle}>Send notifications to farmers and collection heads</Text>
+          </View>
+        </View>
+
+        {/* Message Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Message</Text>
+          
+          <Text style={styles.fieldLabel}>Message title</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Short title (optional, shown first in SMS)"
+            value={messageTitle}
+            onChangeText={setMessageTitle}
+            placeholderTextColor={colors.textMuted}
+          />
+
+          <Text style={styles.fieldLabel}>Template</Text>
+          <View style={styles.pickerContainer}>
+            <Picker selectedValue={templateId} onValueChange={onTemplateChange}>
+              {SMS_TEMPLATES.map((t) => (
+                <Picker.Item key={t.id} label={t.label} value={t.id} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.fieldLabel}>SMS message content</Text>
+          <View style={styles.messageContainer}>
+            <TextInput
+              style={styles.messageInput}
+              placeholder="Type your message…"
+              value={messageBody}
+              onChangeText={setMessageBody}
+              multiline
+              textAlignVertical="top"
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+          <View style={styles.counterContainer}>
+            <Text style={styles.counter}>
+              {charCount} characters · ~{smsSegments} SMS segment{smsSegments !== 1 ? 's' : ''} (160 chars each)
+            </Text>
+          </View>
+        </View>
+
+        {/* Recipients Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Recipients</Text>
+          
+          <Text style={styles.fieldLabel}>Send to</Text>
+          <View style={styles.pickerContainer}>
+            <Picker selectedValue={userType} onValueChange={setUserType}>
+              {USER_TYPES.map((u) => (
+                <Picker.Item key={u.value} label={u.label} value={u.value} />
+              ))}
+            </Picker>
+          </View>
+
+          <Text style={styles.fieldLabel}>Search (optional)</Text>
+          <View style={styles.searchContainer}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Name, mobile, code…"
+              value={search}
+              onChangeText={setSearch}
+              placeholderTextColor={colors.textMuted}
+            />
+          </View>
+
+          <View style={styles.actionButtonsRow}>
+            <TouchableOpacity style={styles.selectButton} onPress={selectAllVisible}>
+              <Text style={styles.selectButtonText}>Select all</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.clearButton} onPress={clearSelection}>
+              <Text style={styles.clearButtonText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loadingRecipients ? (
+            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
+          ) : recipients.length === 0 ? (
+            <Text style={styles.emptyText}>No one in this list yet. Adjust search or add farmers / centers with mobile numbers.</Text>
+          ) : (
+            recipients.map((item) => {
+              const idStr = String(item.id);
+              const checked = selectedIds.has(idStr);
+              return (
+                <TouchableOpacity
+                  key={idStr}
+                  style={[styles.recipientCard, checked && styles.recipientCardSelected]}
+                  onPress={() => toggleId(item.id)}
+                  activeOpacity={0.85}
+                >
+                  <View style={[styles.checkbox, checked && styles.checkboxSelected]}>
+                    {checked && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <View style={styles.recipientInfo}>
+                    <Text style={styles.recipientName}>{item.label}</Text>
+                    <Text style={styles.recipientDetails}>
+                      {item.phone}
+                      {item.sublabel ? ` · ${item.sublabel}` : ''}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+          <Text style={styles.selectionHint}>Tap rows to select or deselect · Selected: {selectedIds.size}</Text>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity 
+            style={styles.previewButton} 
+            onPress={() => setPreviewOpen(true)} 
+            disabled={!fullMessage.trim()}
+          >
+            <Text style={styles.previewButtonText}>Preview SMS</Text>
           </TouchableOpacity>
-        </View>
-
-        {loadingRecipients ? (
-          <ActivityIndicator style={{ marginVertical: 16 }} color="#2563eb" />
-        ) : recipients.length === 0 ? (
-          <Text style={styles.empty}>No one in this list yet. Adjust search or add farmers / centers with mobile numbers.</Text>
-        ) : (
-          recipients.map((item) => {
-            const idStr = String(item.id);
-            const checked = selectedIds.has(idStr);
-            return (
-              <TouchableOpacity
-                key={idStr}
-                style={[styles.recipientRow, checked && styles.recipientRowOn]}
-                onPress={() => toggleId(item.id)}
-                activeOpacity={0.85}
-              >
-                <View style={[styles.checkbox, checked && styles.checkboxOn]} />
-                <View style={styles.recipientText}>
-                  <Text style={styles.recipientLabel}>{item.label}</Text>
-                  <Text style={styles.recipientSub}>
-                    {item.phone}
-                    {item.sublabel ? ` · ${item.sublabel}` : ''}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-        <Text style={styles.hint}>Tap rows to select or deselect · Selected: {selectedIds.size}</Text>
-
-        <Text style={styles.section}>Message details</Text>
-        <Text style={styles.fieldLabel}>Message title</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Short title (optional, shown first in SMS)"
-          value={messageTitle}
-          onChangeText={setMessageTitle}
-          placeholderTextColor="#94a3b8"
-        />
-
-        <Text style={styles.fieldLabel}>Template</Text>
-        <View style={styles.pickerWrap}>
-          <Picker selectedValue={templateId} onValueChange={onTemplateChange}>
-            {SMS_TEMPLATES.map((t) => (
-              <Picker.Item key={t.id} label={t.label} value={t.id} />
-            ))}
-          </Picker>
-        </View>
-
-        <Text style={styles.fieldLabel}>SMS message content</Text>
-        <TextInput
-          style={[styles.input, styles.textarea]}
-          placeholder="Type your message…"
-          value={messageBody}
-          onChangeText={setMessageBody}
-          multiline
-          textAlignVertical="top"
-          placeholderTextColor="#94a3b8"
-        />
-        <View style={styles.counterRow}>
-          <Text style={styles.counter}>
-            {charCount} characters · ~{smsSegments} SMS segment{smsSegments !== 1 ? 's' : ''} (160 chars each)
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.previewBtn} onPress={() => setPreviewOpen(true)} disabled={!fullMessage.trim()}>
-            <Text style={styles.previewBtnText}>Preview SMS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sendBtn} onPress={onSend} disabled={sending || !canSend()}>
-            {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.sendBtnText}>Send SMS</Text>}
+          <TouchableOpacity 
+            style={styles.sendButton} 
+            onPress={onSend} 
+            disabled={sending || !canSend()}
+          >
+            {sending ? (
+              <ActivityIndicator color={colors.surface} />
+            ) : (
+              <Text style={styles.sendButtonText}>Send SMS</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -302,7 +335,7 @@ const SendSmsScreen = ({ navigation }) => {
             <ScrollView style={styles.modalScroll}>
               <Text style={styles.modalBody}>{fullMessage || '—'}</Text>
             </ScrollView>
-            <TouchableOpacity style={styles.modalClose} onPress={() => setPreviewOpen(false)}>
+            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setPreviewOpen(false)}>
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -313,115 +346,311 @@ const SendSmsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f1f5f9' },
-  scroll: { paddingHorizontal: 16, paddingBottom: 40 },
-  backLink: { alignSelf: 'flex-start', marginBottom: 8, paddingVertical: 4 },
-  backLinkText: { color: '#2563eb', fontWeight: '700', fontSize: 15 },
-  heading: { fontSize: 24, fontWeight: '800', color: '#0f172a', marginBottom: 8 },
-  intro: { color: '#64748b', fontSize: 14, lineHeight: 21, marginBottom: 20 },
-  section: { fontSize: 17, fontWeight: '700', color: '#0f172a', marginTop: 8, marginBottom: 10 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6, marginTop: 10 },
-  pickerWrap: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+  root: { 
+    flex: 1, 
+    backgroundColor: colors.bg 
+  },
+  scroll: { 
+    paddingHorizontal: spacing.lg, 
+    paddingBottom: 40 
+  },
+  
+  // Header Section
+  headerSection: {
+    marginBottom: spacing.lg
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  backButtonText: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: typography.h3
+  },
+  headerContent: {
+    marginLeft: spacing.sm
+  },
+  heading: { 
+    fontSize: typography.h1, 
+    fontWeight: '800', 
+    color: colors.text, 
+    marginBottom: spacing.xs 
+  },
+  subtitle: { 
+    color: colors.textMuted, 
+    fontSize: typography.body, 
+    lineHeight: 21 
+  },
+  
+  // Section Cards
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.card
+  },
+  sectionTitle: { 
+    fontSize: typography.h3, 
+    fontWeight: '700', 
+    color: colors.text, 
+    marginBottom: spacing.lg 
+  },
+  fieldLabel: { 
+    fontSize: typography.small, 
+    fontWeight: '600', 
+    color: colors.text, 
+    marginBottom: spacing.sm, 
+    marginTop: spacing.md 
+  },
+  
+  // Picker and Input Styles
+  pickerContainer: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    overflow: 'hidden'
+    borderColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: spacing.md
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#0f172a'
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontSize: typography.body,
+    color: colors.text,
+    marginBottom: spacing.md
   },
-  textarea: { minHeight: 120, marginTop: 0 },
-  rowBtns: { flexDirection: 'row', marginTop: 12, marginBottom: 8 },
-  smallBtn: {
-    flex: 1,
-    backgroundColor: '#2563eb',
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center'
-  },
-  smallBtnLeft: { marginRight: 8 },
-  smallBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  smallBtnGhost: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#cbd5e1' },
-  smallBtnGhostText: { color: '#475569', fontWeight: '700', fontSize: 13 },
-  recipientRow: {
+  
+  // Search Section
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0'
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md
   },
-  recipientRowOn: { borderColor: '#2563eb', backgroundColor: '#eff6ff' },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#94a3b8',
-    marginRight: 12
+  searchIcon: {
+    fontSize: 18,
+    marginRight: spacing.sm,
+    color: colors.textMuted
   },
-  checkboxOn: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
-  recipientText: { flex: 1 },
-  recipientLabel: { fontWeight: '700', color: '#0f172a', fontSize: 15 },
-  recipientSub: { color: '#64748b', fontSize: 13, marginTop: 2 },
-  empty: { textAlign: 'center', color: '#94a3b8', paddingVertical: 20 },
-  hint: { fontSize: 12, color: '#64748b', marginTop: 8, marginBottom: 8 },
-  counterRow: { marginTop: 6, marginBottom: 16 },
-  counter: { fontSize: 12, color: '#64748b' },
-  actions: { flexDirection: 'row', marginTop: 8 },
-  previewBtn: {
+  searchInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#2563eb',
-    borderRadius: 14,
-    paddingVertical: 14,
+    fontSize: typography.body,
+    color: colors.text,
+    paddingVertical: spacing.md
+  },
+  
+  // Action Buttons Row
+  actionButtonsRow: { 
+    flexDirection: 'row', 
+    marginTop: spacing.md, 
+    marginBottom: spacing.lg,
+    gap: spacing.md
+  },
+  selectButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
     alignItems: 'center',
-    marginRight: 10
+    ...shadows.small
   },
-  previewBtnText: { color: '#2563eb', fontWeight: '700' },
-  sendBtn: {
+  selectButtonText: { 
+    color: colors.surface, 
+    fontWeight: '700', 
+    fontSize: typography.small 
+  },
+  clearButton: { 
     flex: 1,
-    backgroundColor: '#16a34a',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center'
-  },
-  sendBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
-    justifyContent: 'center',
-    padding: 24
-  },
-  modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 18,
-    maxHeight: '70%'
-  },
-  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 12, color: '#0f172a' },
-  modalScroll: { maxHeight: 320 },
-  modalBody: { fontSize: 15, color: '#334155', lineHeight: 22 },
-  modalClose: {
-    marginTop: 16,
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    paddingVertical: 12,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
     alignItems: 'center'
   },
-  modalCloseText: { color: '#fff', fontWeight: '700' }
+  clearButtonText: { 
+    color: colors.text, 
+    fontWeight: '700', 
+    fontSize: typography.small 
+  },
+  
+  // Recipient Cards
+  recipientCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  recipientCardSelected: { 
+    borderColor: colors.primary, 
+    backgroundColor: colors.successLight 
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+    marginRight: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  checkboxSelected: { 
+    backgroundColor: colors.primary, 
+    borderColor: colors.primary 
+  },
+  checkmark: {
+    color: colors.surface,
+    fontWeight: '700',
+    fontSize: 14
+  },
+  recipientInfo: { 
+    flex: 1 
+  },
+  recipientName: { 
+    fontWeight: '700', 
+    color: colors.text, 
+    fontSize: typography.body 
+  },
+  recipientDetails: { 
+    color: colors.textMuted, 
+    fontSize: typography.small, 
+    marginTop: spacing.xs 
+  },
+  emptyText: { 
+    textAlign: 'center', 
+    color: colors.textMuted, 
+    paddingVertical: spacing.xl,
+    fontSize: typography.body 
+  },
+  selectionHint: { 
+    fontSize: typography.caption, 
+    color: colors.textMuted, 
+    marginTop: spacing.md, 
+    marginBottom: spacing.sm 
+  },
+  
+  // Message Section
+  messageContainer: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.md
+  },
+  messageInput: {
+    fontSize: typography.body,
+    color: colors.text,
+    minHeight: 120,
+    textAlignVertical: 'top'
+  },
+  counterContainer: { 
+    marginTop: spacing.sm, 
+    marginBottom: spacing.md 
+  },
+  counter: { 
+    fontSize: typography.caption, 
+    color: colors.textMuted 
+  },
+  
+  // Main Action Buttons
+  actionButtonsContainer: { 
+    flexDirection: 'row', 
+    marginTop: spacing.lg,
+    gap: spacing.md
+  },
+  previewButton: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    ...shadows.small
+  },
+  previewButtonText: { 
+    color: colors.primary, 
+    fontWeight: '700',
+    fontSize: typography.body
+  },
+  sendButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.small
+  },
+  sendButtonText: { 
+    color: colors.surface, 
+    fontWeight: '800', 
+    fontSize: typography.body 
+  },
+  
+  // Modal Styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: spacing.lg
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    maxHeight: '70%',
+    ...shadows.medium
+  },
+  modalTitle: { 
+    fontSize: typography.h3, 
+    fontWeight: '800', 
+    marginBottom: spacing.md, 
+    color: colors.text 
+  },
+  modalScroll: { 
+    maxHeight: 320 
+  },
+  modalBody: { 
+    fontSize: typography.body, 
+    color: colors.text, 
+    lineHeight: 22 
+  },
+  modalCloseButton: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center'
+  },
+  modalCloseText: { 
+    color: colors.surface, 
+    fontWeight: '700' 
+  }
 });
 
 export default SendSmsScreen;
