@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "MilkP Dairy Management",
+    "slug": "milkp-dairy-management",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "sdkVersion": "49.0.0",
+    "platforms": ["ios", "android", "web"],
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true },
+    "extra": {}
+  }
+}

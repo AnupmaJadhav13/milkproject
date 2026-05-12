@@ -1,0 +1,180 @@
+import { StyleSheet } from 'react-native';
+import { colors, radius, spacing, typography, shadows } from '../../theme';
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    padding: spacing.lg,
+  },
+  title: {
+    fontSize: typography.h2,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  inputGroup: {
+    marginBottom: spacing.md,
+  },
+  label: {
+    fontSize: typography.small,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.xxs,
+    letterSpacing: 0.2,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: typography.body,
+    backgroundColor: colors.surface,
+    color: colors.text,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  picker: {
+    height: 50,
+  },
+  farmerSelector: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  farmerText: {
+    fontSize: typography.body,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  farmerDetailsContainer: {
+    backgroundColor: colors.primaryXLight,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.teal100,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  farmerDetailLabel: {
+    fontSize: typography.xs,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  farmerDetailValue: {
+    fontSize: typography.body,
+    color: colors.text,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  totalText: {
+    fontSize: typography.h3,
+    fontWeight: '800',
+    color: colors.success,
+    padding: spacing.md,
+    backgroundColor: colors.successLight,
+    borderRadius: radius.md,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: colors.success + '33',
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  dateText: {
+    fontSize: typography.body,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  submitButton: {
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    height: 52,
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  submitButtonText: {
+    color: colors.white,
+    fontSize: typography.body,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: typography.xs,
+    marginTop: spacing.xxs,
+    fontWeight: '500',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    padding: spacing.lg,
+  },
+  farmerItem: {
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
+  },
+  farmerCode: {
+    fontSize: typography.small,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  farmerName: {
+    fontSize: typography.body,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.2,
+  },
+  farmerMobile: {
+    fontSize: typography.small,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.xl,
+  },
+  closeButton: {
+    backgroundColor: colors.dangerLight,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  closeButtonText: {
+    color: colors.danger,
+    fontSize: typography.body,
+    fontWeight: '700',
+  },
+});
+
+export default styles;
