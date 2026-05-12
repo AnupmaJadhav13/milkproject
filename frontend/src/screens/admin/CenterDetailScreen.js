@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
-import { ArrowLeft, LogOut, Store, MapPin, Droplet, Users, CreditCard, House, Edit, Trash2, Salad, FlaskConical } from 'lucide-react-native';
+import { ArrowLeft, LogOut, Store, MapPin, Droplet, Users, CreditCard, House, Edit, Trash2, FlaskConical } from 'lucide-react-native';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
 
 const CenterDetailScreen = ({ navigation, route }) => {

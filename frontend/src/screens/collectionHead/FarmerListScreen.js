@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import { House, Store, Users, Salad, Phone, MapPin } from 'lucide-react-native';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import SearchBar from '../../components/SearchBar';
@@ -96,19 +97,21 @@ const CollectionHeadFarmerListScreen = ({ navigation }) => {
 
               {/* Farmer Details */}
               <View style={styles.farmerDetail}>
-                <Text style={styles.detailIcon}>📞</Text>
+                <Phone size={14} color={colors.textMuted} strokeWidth={2} />
                 <Text style={styles.detailText}>{farmer.mobileNumber}</Text>
               </View>
 
               <View style={styles.farmerDetail}>
-                <Text style={styles.detailIcon}>📍</Text>
+                <MapPin size={14} color={colors.textMuted} strokeWidth={2} />
                 <Text style={styles.detailText}>{farmer.village}</Text>
               </View>
 
               {/* Tags */}
               <View style={styles.tagsRow}>
                 <View style={styles.tag}>
-                  <Text style={styles.tagIcon}>🐄</Text>
+                  <Text style={styles.tagIcon}>
+                    {farmer.animalType === 'Buffalo' ? '🐃' : farmer.animalType === 'Cow' ? '🐄' : '🐄/🐃'}
+                  </Text>
                   <Text style={styles.tagText}>{farmer.animalType}</Text>
                 </View>
                 <View style={styles.tag}>
@@ -125,28 +128,28 @@ const CollectionHeadFarmerListScreen = ({ navigation }) => {
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🏠</Text>
+            <House size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Home</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🥛</Text>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Milk Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
           <View style={styles.navIconContainer}>
-            <Text style={styles.navIcon}>🌾</Text>
+            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
           <Text style={styles.navLabel}>Food Entry</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => {}}>
           <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Text style={styles.navIcon}>👥</Text>
+            <Users size={22} color={colors.surface} strokeWidth={2} />
           </View>
           <Text style={[styles.navLabel, styles.navLabelActive]}>Farmers</Text>
         </TouchableOpacity>
@@ -291,11 +294,8 @@ const styles = StyleSheet.create({
   farmerDetail: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: spacing.xs
-  },
-  detailIcon: {
-    fontSize: 14,
-    marginRight: 8
   },
   detailText: {
     fontSize: 13,
@@ -359,9 +359,6 @@ const styles = StyleSheet.create({
   },
   navIconActive: {
     backgroundColor: colors.primary
-  },
-  navIcon: {
-    fontSize: 20
   },
   navLabel: {
     fontSize: 11,

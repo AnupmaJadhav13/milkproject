@@ -125,22 +125,33 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
 
       {/* Bottom Nav */}
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        {[
-          { label: 'Home', nav: null, icon: House },
-          { label: 'Milk Entry', nav: 'MilkEntry', icon: Store },
-          { label: 'Food Entry', nav: 'FoodEntry', icon: Salad },
-          { label: 'Farmers', nav: 'CollectionHeadFarmers', icon: Users },
-        ].map((item, i) => {
-          const IconComponent = item.icon;
-          return (
-            <TouchableOpacity key={i} style={styles.navItem} onPress={() => item.nav && navigation.navigate(item.nav)}>
-              <View style={[styles.navPill, i === 0 && styles.navPillActive]}>
-                <IconComponent size={18} color={i === 0 ? colors.primary : colors.navInactive} strokeWidth={2.5} style={styles.navPillIcon} />
-                <Text style={[styles.navPillText, i === 0 && styles.navPillActiveText]}>{item.label}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <View style={[styles.navIconContainer, styles.navIconActive]}>
+            <House size={22} color={colors.surface} strokeWidth={2} />
+          </View>
+          <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
+          <View style={styles.navIconContainer}>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
+          </View>
+          <Text style={styles.navLabel}>Milk Entry</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
+          <View style={styles.navIconContainer}>
+            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
+          </View>
+          <Text style={styles.navLabel}>Food Entry</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
+          <View style={styles.navIconContainer}>
+            <Users size={22} color={colors.textMuted} strokeWidth={2} />
+          </View>
+          <Text style={styles.navLabel}>Farmers</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -205,14 +216,32 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: colors.surface, flexDirection: 'row',
     justifyContent: 'space-around', paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.medium,
   },
-  navItem: { flex: 1, alignItems: 'center', paddingVertical: spacing.xs },
-  navPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
-  navPillActive: { backgroundColor: colors.primaryXLight },
-  navPillIcon: { marginRight: 4 },
-  navPillText: { fontSize: typography.xs, color: colors.navInactive, fontWeight: '600' },
-  navPillActiveText: { fontSize: typography.xs, color: colors.primary, fontWeight: '700' },
+  navItem: { 
+    alignItems: 'center', 
+    paddingVertical: spacing.xs 
+  },
+  navIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  navIconActive: {
+    backgroundColor: colors.primary
+  },
+  navLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600'
+  },
+  navLabelActive: {
+    color: colors.primary
+  }
 });
 
 export default CollectionHeadHomeScreen;
