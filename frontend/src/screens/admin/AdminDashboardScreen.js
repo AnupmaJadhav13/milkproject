@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { House, Store, Users, CreditCard, LayoutGrid, Gift, MessageCircleMore } from 'lucide-react-native';
+import { House, Store, Users, CreditCard, LayoutGrid, Gift, MessageCircleMore, FileText } from 'lucide-react-native';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import { fetchFarmers } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -37,6 +37,7 @@ const AdminDashboardScreen = ({ navigation }) => {
     { label: 'Rate Chart', icon: LayoutGrid, nav: 'RateChart', bg: colors.teal50, text: colors.primary, border: true },
     { label: 'Annual Bonus', icon: Gift, nav: 'AnnualBonus', bg: colors.warningLight, text: colors.warning, textBorder: true },
     { label: 'Send SMS', icon: MessageCircleMore, nav: 'SendSms', bg: colors.infoLight, text: colors.info, textBorder: true },
+    { label: 'Reports', icon: FileText, nav: 'Reports', bg: colors.successLight, text: colors.success, textBorder: true },
   ];
 
   return (
@@ -176,6 +177,12 @@ const AdminDashboardScreen = ({ navigation }) => {
             <Users size={22} color={colors.textMuted} strokeWidth={2.5} />
           </View>
           <Text style={styles.navLabel}>Farmers</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Reports')}>
+          <View style={styles.navIconContainer}>
+            <FileText size={22} color={colors.textMuted} strokeWidth={2.5} />
+          </View>
+          <Text style={styles.navLabel}>Reports</Text>
         </TouchableOpacity>
       </View>
     </View>

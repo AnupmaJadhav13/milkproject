@@ -26,12 +26,22 @@ const milkSlice = createSlice({
     summary: {
       totalMilkLiters: 0,
       totalAmountInr: 0,
+      avgFat: 0,
+      avgSnf: 0,
+      avgRatePerLiter: 0,
       cowMilkLiters: 0,
       buffaloMilkLiters: 0,
       morningMilkLiters: 0,
-      eveningMilkLiters: 0
+      eveningMilkLiters: 0,
+      morningAmount: 0,
+      eveningAmount: 0,
+      cowAmount: 0,
+      buffaloAmount: 0,
+      totalEntries: 0
     },
     total: 0,
+    totalPages: 1,
+    currentPage: 1,
     status: 'idle',
     error: null
   },
@@ -60,12 +70,22 @@ const milkSlice = createSlice({
         state.summary = action.payload.summary || {
           totalMilkLiters: 0,
           totalAmountInr: 0,
+          avgFat: 0,
+          avgSnf: 0,
+          avgRatePerLiter: 0,
           cowMilkLiters: 0,
           buffaloMilkLiters: 0,
           morningMilkLiters: 0,
-          eveningMilkLiters: 0
+          eveningMilkLiters: 0,
+          morningAmount: 0,
+          eveningAmount: 0,
+          cowAmount: 0,
+          buffaloAmount: 0,
+          totalEntries: 0
         };
-        state.total = action.payload.total || 0;
+        state.total      = action.payload.total      || 0;
+        state.totalPages = action.payload.totalPages || 1;
+        state.currentPage= action.payload.currentPage|| 1;
       })
       .addCase(fetchMilkEntries.rejected, (state, action) => {
         state.status = 'failed';

@@ -118,47 +118,74 @@ const getMilkEntries = asyncHandler(async (req, res) => {
     centerId,
     farmerId,
     farmerCode,
+    search,          // NEW: search by farmer name OR code
     date,
     shift,
     animalType,
     collectionHeadName,
     page = 1,
-    limit = 30
+    limit = 50
   } = req.query;
   const userRole = req.user.role;
+  const mongoose = require('mongoose');
   const filter = {};
 
   if (userRole === 'collection_head') {
     filter.collectionCenterId = req.user.assignedCenter || req.user._id;
   } else if (centerId) {
-    // Convert string to ObjectId for proper matching
-    const mongoose = require('mongoose');
     filter.collectionCenterId = new mongoose.Types.ObjectId(centerId);
   }
 
   if (farmerId) {
-    const mongoose = require('mongoose');
     filter.farmerId = new mongoose.Types.ObjectId(farmerId);
   }
+
+  // farmerCode exact/partial match
   if (farmerCode) {
     filter.farmerCode = new RegExp(String(farmerCode).trim(), 'i');
   }
-  if (shift) filter.shift = shift;
-  if (animalType) filter.animalType = animalType;
+
+  // Generic search: match farmerCode OR farmer name via lookup
+  // We handle name search by first finding matching farmer IDs
+  if (search && search.trim()) {
+    const term = String(search).trim();
+    const matchingFarmers = await Farmer.find({
+      $or: [
+        { fullName:   new RegExp(term, 'i') },
+        { farmerCode: new RegExp(term, 'i') }
+      ]
+    }).select('_id').lean();
+
+    const farmerIds = matchingFarmers.map(f => f._id);
+
+    if (farmerIds.length > 0) {
+      filter.$or = [
+        { farmerId:   { $in: farmerIds } },
+        { farmerCode: new RegExp(term, 'i') }
+      ];
+    } else {
+      // No matching farmers — return empty
+      filter.farmerId = new mongoose.Types.ObjectId('000000000000000000000000');
+    }
+  }
+
+  if (shift)       filter.shift      = shift;
+  if (animalType)  filter.animalType = animalType;
   if (collectionHeadName) filter.collectionHeadName = new RegExp(String(collectionHeadName).trim(), 'i');
+
   if (date) {
     const { start, end } = asDayRange(date);
     filter.date = { $gte: start, $lt: end };
   }
 
-  const pageNo = Number(page) || 1;
-  const pageSize = Number(limit) || 30;
+  const pageNo   = Math.max(1, Number(page)  || 1);
+  const pageSize = Math.min(100, Number(limit) || 50);
 
-  // Run all queries in parallel for better performance
+  // Run all queries in parallel
   const [entries, total, stats] = await Promise.all([
     MilkCollection.find(filter)
-      .populate('farmerId', 'fullName mobileNumber farmerCode')
-      .populate('collectionCenterId', 'name centerCode')
+      .populate('farmerId',          'fullName mobileNumber farmerCode')
+      .populate('collectionCenterId','name centerCode')
       .sort({ date: -1, createdAt: -1 })
       .skip((pageNo - 1) * pageSize)
       .limit(pageSize)
@@ -169,25 +196,45 @@ const getMilkEntries = asyncHandler(async (req, res) => {
       {
         $group: {
           _id: null,
-          totalMilkLiters: { $sum: '$quantityLiters' },
-          totalAmountInr: { $sum: '$amountInr' },
-          cowMilkLiters: { $sum: { $cond: [{ $eq: ['$animalType', 'Cow'] }, '$quantityLiters', 0] } },
+          totalMilkLiters:   { $sum: '$quantityLiters' },
+          totalAmountInr:    { $sum: '$amountInr' },
+          avgFat:            { $avg: '$fat' },
+          avgSnf:            { $avg: '$snf' },
+          avgRatePerLiter:   { $avg: '$ratePerLiter' },
+          cowMilkLiters:     { $sum: { $cond: [{ $eq: ['$animalType', 'Cow']     }, '$quantityLiters', 0] } },
           buffaloMilkLiters: { $sum: { $cond: [{ $eq: ['$animalType', 'Buffalo'] }, '$quantityLiters', 0] } },
-          morningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Morning'] }, '$quantityLiters', 0] } },
-          eveningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Evening'] }, '$quantityLiters', 0] } }
+          morningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Morning']      }, '$quantityLiters', 0] } },
+          eveningMilkLiters: { $sum: { $cond: [{ $eq: ['$shift', 'Evening']      }, '$quantityLiters', 0] } },
+          morningAmount:     { $sum: { $cond: [{ $eq: ['$shift', 'Morning']      }, '$amountInr',      0] } },
+          eveningAmount:     { $sum: { $cond: [{ $eq: ['$shift', 'Evening']      }, '$amountInr',      0] } },
+          cowAmount:         { $sum: { $cond: [{ $eq: ['$animalType', 'Cow']     }, '$amountInr',      0] } },
+          buffaloAmount:     { $sum: { $cond: [{ $eq: ['$animalType', 'Buffalo'] }, '$amountInr',      0] } },
+          totalEntries:      { $sum: 1 }
         }
       }
     ])
   ]);
 
   const summary = stats[0] || {
-    totalMilkLiters: 0,
-    totalAmountInr: 0,
-    cowMilkLiters: 0,
-    buffaloMilkLiters: 0,
-    morningMilkLiters: 0,
-    eveningMilkLiters: 0
+    totalMilkLiters: 0, totalAmountInr: 0,
+    avgFat: 0, avgSnf: 0, avgRatePerLiter: 0,
+    cowMilkLiters: 0, buffaloMilkLiters: 0,
+    morningMilkLiters: 0, eveningMilkLiters: 0,
+    morningAmount: 0, eveningAmount: 0,
+    cowAmount: 0, buffaloAmount: 0,
+    totalEntries: 0
   };
+
+  // Round floats for clean response
+  summary.totalMilkLiters   = Number((summary.totalMilkLiters   || 0).toFixed(2));
+  summary.totalAmountInr    = Number((summary.totalAmountInr    || 0).toFixed(2));
+  summary.avgFat            = Number((summary.avgFat            || 0).toFixed(2));
+  summary.avgSnf            = Number((summary.avgSnf            || 0).toFixed(2));
+  summary.avgRatePerLiter   = Number((summary.avgRatePerLiter   || 0).toFixed(2));
+  summary.cowMilkLiters     = Number((summary.cowMilkLiters     || 0).toFixed(2));
+  summary.buffaloMilkLiters = Number((summary.buffaloMilkLiters || 0).toFixed(2));
+  summary.morningMilkLiters = Number((summary.morningMilkLiters || 0).toFixed(2));
+  summary.eveningMilkLiters = Number((summary.eveningMilkLiters || 0).toFixed(2));
 
   res.json({
     entries,

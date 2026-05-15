@@ -1,618 +1,553 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View, Text, FlatList, TouchableOpacity, TextInput,
+  StyleSheet, ActivityIndicator, RefreshControl
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Store, House, CreditCard, Users, LogOut, Search, Droplet } from 'lucide-react-native';
+import {
+  House, Store, CreditCard, Users, Search,
+  ChevronLeft, Calendar, SlidersHorizontal, X
+} from 'lucide-react-native';
 import { fetchMilkEntries } from '../../redux/slices/milkSlice';
 import { fetchCenters } from '../../redux/slices/centerSlice';
-import LoadingIndicator from '../../components/LoadingIndicator';
-import { colors, radius, spacing, shadows } from '../../theme';
+import { colors, radius, spacing, typography, shadows } from '../../theme';
 
+// ─── helpers ─────────────────────────────────────────────────────────────────
+const fmt   = (n, d = 2) => Number(n || 0).toFixed(d);
+const fmtINR = (n)       => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const fmtDate = (iso)    => iso
+  ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  : '—';
+
+const AVATAR_COLORS = ['#2C7A6E','#7c3aed','#ec4899','#f59e0b','#10b981','#06b6d4','#ef4444','#8b5cf6'];
+const avatarColor = (i) => AVATAR_COLORS[i % AVATAR_COLORS.length];
+const initials = (name) => {
+  if (!name) return '?';
+  const p = name.trim().split(' ');
+  return p.length >= 2 ? (p[0][0] + p[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+};
+
+// ─── StatBox ─────────────────────────────────────────────────────────────────
+const StatBox = ({ label, value, sub, accent }) => (
+  <View style={[st.statBox, accent && { borderLeftWidth: 3, borderLeftColor: accent }]}>
+    <Text style={st.statLabel}>{label}</Text>
+    <Text style={[st.statValue, accent && { color: accent }]}>{value}</Text>
+    {sub ? <Text style={st.statSub}>{sub}</Text> : null}
+  </View>
+);
+const st = StyleSheet.create({
+  statBox:   { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, padding: 12, ...shadows.xs, borderWidth: 1, borderColor: colors.divider },
+  statLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
+  statValue: { fontSize: 18, fontWeight: '800', color: colors.text },
+  statSub:   { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+});
+
+// ─── RecordCard ───────────────────────────────────────────────────────────────
+const RecordCard = ({ item, index }) => {
+  const qty    = Number(item.quantityLiters || 0);
+  const rate   = Number(item.ratePerLiter   || 0);
+  const amount = Number(item.amountInr      || 0);
+  // Verify: amount should equal qty * rate (within rounding)
+  const computed = Number((qty * rate).toFixed(2));
+  const mismatch = Math.abs(computed - amount) > 0.05;
+
+  const isMorning = item.shift === 'Morning';
+  const isCow     = item.animalType === 'Cow';
+
+  return (
+    <View style={rc.card}>
+      {/* Top row: avatar + name + date + shift badge */}
+      <View style={rc.topRow}>
+        <View style={[rc.avatar, { backgroundColor: avatarColor(index) }]}>
+          <Text style={rc.avatarText}>{initials(item.farmerId?.fullName || item.farmerCode)}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={rc.farmerName} numberOfLines={1}>
+            {item.farmerId?.fullName || '—'}
+          </Text>
+          <Text style={rc.farmerMeta}>
+            {item.farmerCode}
+            {item.collectionCenterId?.name ? ` · ${item.collectionCenterId.name}` : ''}
+          </Text>
+        </View>
+        <View style={rc.badgesCol}>
+          <View style={[rc.shiftBadge, { backgroundColor: isMorning ? '#fef3c7' : '#eff6ff' }]}>
+            <Text style={[rc.shiftText, { color: isMorning ? '#92400e' : '#1d4ed8' }]}>
+              {isMorning ? '🌅 Morning' : '🌙 Evening'}
+            </Text>
+          </View>
+          <View style={[rc.animalBadge, { backgroundColor: isCow ? '#ecfdf5' : '#f5f3ff' }]}>
+            <Text style={[rc.animalText, { color: isCow ? '#065f46' : '#5b21b6' }]}>
+              {isCow ? '🐄 Cow' : '🐃 Buffalo'}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Date row */}
+      <Text style={rc.dateRow}>
+        📅 {fmtDate(item.date)}
+      </Text>
+
+      {/* Metrics grid */}
+      <View style={rc.metricsGrid}>
+        <View style={rc.metricItem}>
+          <Text style={rc.metricLabel}>Quantity</Text>
+          <Text style={rc.metricValue}>{fmt(qty, 2)} L</Text>
+        </View>
+        <View style={rc.metricItem}>
+          <Text style={rc.metricLabel}>FAT</Text>
+          <Text style={[rc.metricValue, { color: '#f59e0b' }]}>{fmt(item.fat, 1)}</Text>
+        </View>
+        <View style={rc.metricItem}>
+          <Text style={rc.metricLabel}>SNF</Text>
+          <Text style={[rc.metricValue, { color: colors.info }]}>{fmt(item.snf, 1)}</Text>
+        </View>
+        <View style={rc.metricItem}>
+          <Text style={rc.metricLabel}>Rate/L</Text>
+          <Text style={rc.metricValue}>{fmtINR(rate)}</Text>
+        </View>
+      </View>
+
+      {/* Amount row */}
+      <View style={rc.amountRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={rc.amountFormula}>
+            {fmt(qty, 2)} L × {fmtINR(rate)}/L
+          </Text>
+          {mismatch && (
+            <Text style={rc.mismatchWarn}>⚠ Stored amount differs from computed</Text>
+          )}
+        </View>
+        <Text style={rc.amountValue}>{fmtINR(amount)}</Text>
+      </View>
+    </View>
+  );
+};
+
+const rc = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface, borderRadius: radius.lg,
+    padding: spacing.md, marginBottom: 10,
+    ...shadows.card, borderWidth: 1, borderColor: colors.divider,
+  },
+  topRow:      { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
+  avatar:      { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  avatarText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
+  farmerName:  { fontSize: 15, fontWeight: '700', color: colors.text },
+  farmerMeta:  { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  badgesCol:   { alignItems: 'flex-end', gap: 4 },
+  shiftBadge:  { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  shiftText:   { fontSize: 10, fontWeight: '700' },
+  animalBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  animalText:  { fontSize: 10, fontWeight: '700' },
+  dateRow:     { fontSize: 11, color: colors.textMuted, marginBottom: 10, fontWeight: '500' },
+  metricsGrid: {
+    flexDirection: 'row', backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.sm, padding: 8, gap: 4, marginBottom: 10,
+  },
+  metricItem:  { flex: 1, alignItems: 'center' },
+  metricLabel: { fontSize: 9, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase' },
+  metricValue: { fontSize: 14, fontWeight: '800', color: colors.text, marginTop: 2 },
+  amountRow:   {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.successLight, borderRadius: radius.sm, padding: 10,
+  },
+  amountFormula: { fontSize: 11, color: colors.success, fontWeight: '600' },
+  mismatchWarn:  { fontSize: 10, color: colors.danger, marginTop: 2 },
+  amountValue:   { fontSize: 18, fontWeight: '900', color: colors.success },
+});
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 const CollectionRecordsScreen = ({ route, navigation }) => {
-  const insets = useSafeAreaInsets();
+  const insets   = useSafeAreaInsets();
   const dispatch = useDispatch();
-  const token = useSelector((state) => state.auth.token);
-  const { user } = useSelector((state) => state.auth);
-  const entries = useSelector((state) => state.milk.entries);
-  const summary = useSelector((state) => state.milk.summary);
-  const status = useSelector((state) => state.milk.status);
-  const centers = useSelector((state) => state.centers.list);
+  const token    = useSelector((s) => s.auth.token);
+  const { user } = useSelector((s) => s.auth);
+  const entries    = useSelector((s) => s.milk.entries);
+  const summary    = useSelector((s) => s.milk.summary);
+  const total      = useSelector((s) => s.milk.total);
+  const totalPages = useSelector((s) => s.milk.totalPages);
+  const milkStatus = useSelector((s) => s.milk.status);
+  const centers    = useSelector((s) => s.centers.list);
+
   const initialCenter = route?.params?.centerId || '';
-  const [filters, setFilters] = useState({
-    centerId: initialCenter,
-    date: new Date().toISOString().split('T')[0],
-    shift: '',
-    animalType: '',
-    farmerCode: ''
-  });
-  const [searchInput, setSearchInput] = useState('');
+
+  const [search,      setSearch]      = useState('');
+  const [centerId,    setCenterId]    = useState(initialCenter);
+  const [date,        setDate]        = useState(new Date().toISOString().split('T')[0]);
+  const [shift,       setShift]       = useState('');
+  const [animalType,  setAnimalType]  = useState('');
+  const [page,        setPage]        = useState(1);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [refreshing,  setRefreshing]  = useState(false);
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
     if (token) dispatch(fetchCenters(token));
   }, [dispatch, token]);
 
-  // Debounce farmer code search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchInput !== filters.farmerCode) {
-        setFilters((prev) => ({ ...prev, farmerCode: searchInput }));
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  useEffect(() => {
+  const load = useCallback((pg = 1) => {
     if (!token) return;
-    const params = {};
-    if (filters.centerId) params.centerId = filters.centerId;
-    if (filters.date) params.date = filters.date;
-    if (filters.shift) params.shift = filters.shift;
-    if (filters.animalType) params.animalType = filters.animalType;
-    if (filters.farmerCode && filters.farmerCode.trim()) params.farmerCode = filters.farmerCode.trim();
+    const params = { page: pg, limit: 50 };
+    if (centerId)        params.centerId   = centerId;
+    if (date)            params.date       = date;
+    if (shift)           params.shift      = shift;
+    if (animalType)      params.animalType = animalType;
+    if (debouncedSearch) params.search     = debouncedSearch;
     dispatch(fetchMilkEntries({ token, params }));
-  }, [dispatch, token, filters.centerId, filters.date, filters.shift, filters.animalType, filters.farmerCode]);
+    setPage(pg);
+  }, [token, centerId, date, shift, animalType, debouncedSearch, dispatch]);
 
-  const getInitials = (name) => {
-    if (!name) return '?';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
+  useEffect(() => { load(1); }, [load]);
+
+  const clearFilters = () => {
+    setSearch(''); setDebouncedSearch('');
+    setCenterId(''); setDate(new Date().toISOString().split('T')[0]);
+    setShift(''); setAnimalType('');
   };
 
-  const getAvatarColor = (index) => {
-    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
-    return colors[index % colors.length];
-  };
+  const isLoading = milkStatus === 'loading';
 
-  if (status === 'loading' && entries.length === 0) return <LoadingIndicator />;
+  // ── Summary stats ──
+  const s = summary || {};
+  const totalLiters  = Number(s.totalMilkLiters   || 0);
+  const totalAmount  = Number(s.totalAmountInr     || 0);
+  const avgFat       = Number(s.avgFat             || 0);
+  const avgSnf       = Number(s.avgSnf             || 0);
+  const avgRate      = Number(s.avgRatePerLiter     || 0);
+  const morningL     = Number(s.morningMilkLiters  || 0);
+  const eveningL     = Number(s.eveningMilkLiters  || 0);
+  const cowL         = Number(s.cowMilkLiters      || 0);
+  const buffaloL     = Number(s.buffaloMilkLiters  || 0);
+
+  const activeFilters = [centerId, shift, animalType].filter(Boolean).length;
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity 
-              style={styles.avatarButton} 
-              onPress={() => navigation.navigate('AdminProfile')}
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'A'}</Text>
-              </View>
-            </TouchableOpacity>
-            <Text style={styles.brandText}>Sarvasvaa Milk</Text>
-          </View>
-          <TouchableOpacity style={styles.logoutIcon}>
-            <LogOut size={18} color={colors.text} strokeWidth={2} />
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <ChevronLeft size={20} color={colors.primary} strokeWidth={2.5} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.brandText}>Sarvasvaa Milk</Text>
+          <Text style={styles.headerTitle}>Collection Records</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.filterToggleBtn, activeFilters > 0 && { backgroundColor: colors.primary }]}
+          onPress={() => setShowFilters(v => !v)}
+        >
+          <SlidersHorizontal size={16} color={activeFilters > 0 ? '#fff' : colors.primary} strokeWidth={2.5} />
+          {activeFilters > 0 && (
+            <View style={styles.filterBadge}><Text style={styles.filterBadgeText}>{activeFilters}</Text></View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Search bar ── */}
+      <View style={styles.searchBar}>
+        <Search size={15} color={colors.textMuted} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search farmer name or code..."
+          placeholderTextColor={colors.textMuted}
+          returnKeyType="search"
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <X size={15} color={colors.textMuted} />
           </TouchableOpacity>
-        </View>
-
-        {/* Title & Subtitle */}
-        <Text style={styles.title}>Collection Records</Text>
-        <Text style={styles.subtitle}>Manage and track daily milk intake.</Text>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchIconWrapper}>
-            <Search size={18} color={colors.textMuted} />
-          </View>
-          <TextInput
-            style={styles.searchInput}
-            value={searchInput}
-            onChangeText={setSearchInput}
-            placeholder="Search by farmer name or code..."
-            placeholderTextColor={colors.textMuted}
-          />
-        </View>
-
-        {/* Filter Section */}
-        <View style={styles.filtersSection}>
-          <Text style={styles.filtersSectionTitle}>Filters</Text>
-          <TouchableOpacity 
-            style={styles.clearFiltersButton}
-            onPress={() => setFilters({ centerId: '', date: new Date().toISOString().split('T')[0], shift: '', animalType: '', farmerCode: '' })}
-          >
-            <Text style={styles.clearFiltersText}>Clear All</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Filter Cards */}
-        <View style={styles.filterCards}>
-          {/* Center Filter */}
-          <View style={styles.filterCard}>
-            <Text style={styles.filterLabel}>Collection Center</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={filters.centerId}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, centerId: value }))}
-                style={styles.picker}
-              >
-                <Picker.Item label="All Centers" value="" />
-                {centers.map((c) => (
-                  <Picker.Item key={c._id} label={c.name} value={c._id} />
-                ))}
-              </Picker>
-            </View>
-          </View>
-
-          {/* Date Filter */}
-          <View style={styles.filterCard}>
-            <Text style={styles.filterLabel}>Date</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={styles.dateButtonText}>
-                {filters.date ? new Date(filters.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Select Date'}
-              </Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={filters.date ? new Date(filters.date) : new Date()}
-                mode="date"
-                display="default"
-                onChange={(_, date) => {
-                  setShowDatePicker(false);
-                  if (date) {
-                    setFilters((prev) => ({ ...prev, date: date.toISOString().split('T')[0] }));
-                  }
-                }}
-              />
-            )}
-          </View>
-
-          {/* Shift Filter */}
-          <View style={styles.filterCard}>
-            <Text style={styles.filterLabel}>Shift</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={filters.shift}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, shift: value }))}
-                style={styles.picker}
-              >
-                <Picker.Item label="All Shifts" value="" />
-                <Picker.Item label="Morning" value="Morning" />
-                <Picker.Item label="Evening" value="Evening" />
-              </Picker>
-            </View>
-          </View>
-
-          {/* Animal Type Filter */}
-          <View style={styles.filterCard}>
-            <Text style={styles.filterLabel}>Animal Type</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={filters.animalType}
-                onValueChange={(value) => setFilters((prev) => ({ ...prev, animalType: value }))}
-                style={styles.picker}
-              >
-                <Picker.Item label="All Types" value="" />
-                <Picker.Item label="Cow" value="Cow" />
-                <Picker.Item label="Buffalo" value="Buffalo" />
-              </Picker>
-            </View>
-          </View>
-        </View>
-
-        {/* Summary Cards */}
-        <View style={styles.summaryCards}>
-          <View style={styles.summaryCardLarge}>
-            <View style={styles.summaryIconContainer}>
-              <Store size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.summaryLabel}>Total Milk</Text>
-            <Text style={styles.summaryValue}>{Number(summary?.totalMilkLiters || 0).toFixed(0)} L</Text>
-          </View>
-
-          <View style={styles.summaryCardSmall}>
-            <View style={styles.summaryIconContainer}>
-              <Droplet size={24} color={colors.primary} />
-            </View>
-            <Text style={styles.summarySmallLabel}>Cow / Buffalo</Text>
-            <Text style={styles.summarySmallValue}>
-              {Number(summary?.cowMilkLiters || 0).toFixed(0)}L / {Number(summary?.buffaloMilkLiters || 0).toFixed(0)}L
-            </Text>
-          </View>
-        </View>
-
-        {/* Recent Records Section */}
-        <Text style={styles.sectionTitle}>Recent Records</Text>
-
-        {entries.length === 0 ? (
-          <Text style={styles.emptyText}>No collection records found.</Text>
-        ) : (
-          entries.map((item, index) => (
-            <View key={item._id} style={styles.recordCard}>
-              {/* Record Header */}
-              <View style={styles.recordHeader}>
-                <View style={styles.recordHeaderLeft}>
-                  <View style={[styles.recordAvatar, { backgroundColor: getAvatarColor(index) }]}>
-                    <Text style={styles.recordAvatarText}>
-                      {getInitials(item.farmerId?.fullName || item.farmerCode)}
-                    </Text>
-                  </View>
-                  <View style={styles.recordHeaderInfo}>
-                    <Text style={styles.recordFarmerCode}>
-                      {item.animalType === 'Buffalo' ? '🐃' : '🐄'} {item.farmerCode} • {item.collectionCenterId?.name || 'Center'} • {item.shift}
-                    </Text>
-                    <Text style={styles.recordFarmerName}>{item.farmerId?.fullName || 'Unknown'}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Record Details */}
-              <View style={styles.recordDetails}>
-                <View style={styles.recordDetailItem}>
-                  <Text style={styles.recordDetailLabel}>Quantity</Text>
-                  <Text style={styles.recordDetailValue}>{Number(item.quantityLiters).toFixed(1)} L</Text>
-                </View>
-                <View style={styles.recordDetailItem}>
-                  <Text style={styles.recordDetailLabel}>FAT / SNF</Text>
-                  <Text style={styles.recordDetailValue}>{item.fat} / {item.snf}</Text>
-                </View>
-                <View style={styles.recordDetailItem}>
-                  <Text style={styles.recordDetailLabel}>Amount</Text>
-                  <Text style={[styles.recordDetailValue, { color: colors.success }]}>
-                    ₹{Number(item.amountInr || 0).toLocaleString('en-IN')}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))
         )}
-      </ScrollView>
+      </View>
 
-      {/* Bottom Navigation */}
+      {/* ── Date row (always visible) ── */}
+      <View style={styles.dateRow}>
+        <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)}>
+          <Calendar size={14} color={colors.primary} />
+          <Text style={styles.dateBtnText}>
+            {date ? fmtDate(date) : 'Select Date'}
+          </Text>
+        </TouchableOpacity>
+        {date && (
+          <TouchableOpacity style={styles.clearDateBtn} onPress={() => setDate('')}>
+            <X size={12} color={colors.textMuted} />
+            <Text style={styles.clearDateText}>Clear date</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={date ? new Date(date) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(_, d) => {
+            setShowDatePicker(false);
+            if (d) setDate(d.toISOString().split('T')[0]);
+          }}
+        />
+      )}
+
+      {/* ── Collapsible filters ── */}
+      {showFilters && (
+        <View style={styles.filtersPanel}>
+          {/* Center */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Center</Text>
+            <View style={styles.pickerWrap}>
+              <Picker selectedValue={centerId} onValueChange={setCenterId} style={styles.picker}>
+                <Picker.Item label="All Centers" value="" />
+                {centers.map(c => <Picker.Item key={c._id} label={c.name} value={c._id} />)}
+              </Picker>
+            </View>
+          </View>
+          {/* Shift chips */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Shift</Text>
+            <View style={styles.chipRow}>
+              {['', 'Morning', 'Evening'].map(v => (
+                <TouchableOpacity
+                  key={v}
+                  style={[styles.chip, shift === v && styles.chipActive]}
+                  onPress={() => setShift(v)}
+                >
+                  <Text style={[styles.chipText, shift === v && styles.chipTextActive]}>
+                    {v || 'All'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          {/* Animal chips */}
+          <View style={styles.filterRow}>
+            <Text style={styles.filterLabel}>Animal</Text>
+            <View style={styles.chipRow}>
+              {['', 'Cow', 'Buffalo'].map(v => (
+                <TouchableOpacity
+                  key={v}
+                  style={[styles.chip, animalType === v && styles.chipActive]}
+                  onPress={() => setAnimalType(v)}
+                >
+                  <Text style={[styles.chipText, animalType === v && styles.chipTextActive]}>
+                    {v || 'All'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <TouchableOpacity style={styles.clearAllBtn} onPress={clearFilters}>
+            <Text style={styles.clearAllText}>Clear All Filters</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Summary stats grid ── */}
+      {!isLoading && (
+        <View style={styles.statsSection}>
+          {/* Row 1 */}
+          <View style={styles.statsRow}>
+            <StatBox label="Total Milk"   value={`${fmt(totalLiters, 1)} L`} sub={`${total} entries`} accent={colors.primary} />
+            <StatBox label="Total Amount" value={fmtINR(totalAmount)} accent={colors.success} />
+          </View>
+          {/* Row 2 */}
+          <View style={styles.statsRow}>
+            <StatBox label="Avg FAT"  value={fmt(avgFat, 2)}  sub="%" accent="#f59e0b" />
+            <StatBox label="Avg SNF"  value={fmt(avgSnf, 2)}  sub="%" accent={colors.info} />
+            <StatBox label="Avg Rate" value={fmtINR(avgRate)} sub="/L" />
+          </View>
+          {/* Row 3 */}
+          <View style={styles.statsRow}>
+            <StatBox label="🌅 Morning" value={`${fmt(morningL, 1)} L`} />
+            <StatBox label="🌙 Evening" value={`${fmt(eveningL, 1)} L`} />
+            <StatBox label="🐄 Cow"     value={`${fmt(cowL, 1)} L`} />
+            <StatBox label="🐃 Buffalo" value={`${fmt(buffaloL, 1)} L`} />
+          </View>
+        </View>
+      )}
+
+      {/* ── Records count ── */}
+      <View style={styles.recordsHeader}>
+        <Text style={styles.recordsTitle}>
+          Records {total > 0 ? `(${total})` : ''}
+        </Text>
+        {total > entries.length && (
+          <Text style={styles.recordsSubtitle}>Showing {entries.length} of {total}</Text>
+        )}
+      </View>
+
+      {/* ── List ── */}
+      {isLoading && entries.length === 0 ? (
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} size="large" />
+      ) : (
+        <FlatList
+          data={entries}
+          keyExtractor={(i) => i._id}
+          renderItem={({ item, index }) => <RecordCard item={item} index={index} />}
+          contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); load(1); setRefreshing(false); }}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyIcon}>🥛</Text>
+              <Text style={styles.emptyTitle}>No records found</Text>
+              <Text style={styles.emptySub}>Try changing the date or clearing filters</Text>
+            </View>
+          }
+          ListFooterComponent={
+            page < totalPages ? (
+              <TouchableOpacity style={styles.loadMoreBtn} onPress={() => load(page + 1)}>
+                {isLoading
+                  ? <ActivityIndicator color={colors.primary} size="small" />
+                  : <Text style={styles.loadMoreText}>Load More</Text>
+                }
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      )}
+
+      {/* ── Bottom Nav ── */}
       <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} />
-          </View>
-          <Text style={styles.navLabel}>Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Store size={22} color={colors.surface} />
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Collections</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
-          <View style={styles.navIconContainer}>
-            <CreditCard size={22} color={colors.textMuted} />
-          </View>
-          <Text style={styles.navLabel}>Payments</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
-          <View style={styles.navIconContainer}>
-            <Users size={22} color={colors.textMuted} />
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
+        {[
+          { label: 'Dashboard',   icon: House,     nav: 'AdminDashboard' },
+          { label: 'Collections', icon: Store,     nav: null },
+          { label: 'Payments',    icon: CreditCard,nav: 'AllPays' },
+          { label: 'Farmers',     icon: Users,     nav: 'FarmerList' },
+        ].map(({ label, icon: Icon, nav }) => {
+          const active = nav === null;
+          return (
+            <TouchableOpacity key={label} style={styles.navItem} onPress={() => nav && navigation.navigate(nav)}>
+              <View style={[styles.navIcon, active && styles.navIconActive]}>
+                <Icon size={22} color={active ? '#fff' : colors.textMuted} strokeWidth={2.5} />
+              </View>
+              <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg
-  },
-  scrollView: {
-    flex: 1
-  },
-  content: {
-    padding: spacing.lg
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
+
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    backgroundColor: colors.surface, ...shadows.small,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center'
+  backBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: colors.primaryXLight,
+    justifyContent: 'center', alignItems: 'center', marginRight: spacing.sm,
   },
-  avatarButton: {
-    marginRight: spacing.sm
+  brandText:   { fontSize: 11, fontWeight: '600', color: colors.textMuted },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+  filterToggleBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: colors.primaryXLight,
+    justifyContent: 'center', alignItems: 'center',
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center'
+  filterBadge: {
+    position: 'absolute', top: -4, right: -4,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: colors.danger, justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.surface
+  filterBadgeText: { fontSize: 9, color: '#fff', fontWeight: '800' },
+
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: spacing.md, marginTop: spacing.sm,
+    backgroundColor: colors.surface, borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
+    borderWidth: 1, borderColor: colors.border, ...shadows.xs,
   },
-  brandText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text
+  searchInput: { flex: 1, fontSize: 14, color: colors.text },
+
+  dateRow: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: spacing.md, marginTop: 8, gap: 10,
   },
-  logoutIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.small
+  dateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.primaryXLight, borderRadius: radius.sm,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: colors.teal100,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: spacing.sm
+  dateBtnText: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  clearDateBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  clearDateText: { fontSize: 12, color: colors.textMuted },
+
+  filtersPanel: {
+    marginHorizontal: spacing.md, marginTop: 8,
+    backgroundColor: colors.surface, borderRadius: radius.md,
+    padding: spacing.md, ...shadows.card,
+    borderWidth: 1, borderColor: colors.border,
   },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 4,
-    marginBottom: spacing.md
+  filterRow:  { marginBottom: 12 },
+  filterLabel:{ fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase' },
+  pickerWrap: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surfaceMuted },
+  picker:     { height: 44, color: colors.text },
+  chipRow:    { flexDirection: 'row', gap: 8 },
+  chip:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: radius.full, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText:   { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  chipTextActive: { color: '#fff' },
+  clearAllBtn:{ alignSelf: 'flex-end', paddingVertical: 6, paddingHorizontal: 12 },
+  clearAllText:{ fontSize: 13, color: colors.danger, fontWeight: '600' },
+
+  statsSection: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+  statsRow:     { flexDirection: 'row', gap: 8, marginBottom: 8 },
+
+  recordsHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: spacing.md, paddingVertical: 8,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border
+  recordsTitle:    { fontSize: 15, fontWeight: '800', color: colors.text },
+  recordsSubtitle: { fontSize: 12, color: colors.textMuted },
+
+  emptyBox:  { alignItems: 'center', paddingTop: 60 },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyTitle:{ fontSize: 16, fontWeight: '700', color: colors.text },
+  emptySub:  { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+
+  loadMoreBtn: {
+    margin: spacing.md, backgroundColor: colors.primaryXLight,
+    borderRadius: radius.md, paddingVertical: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.teal100,
   },
-  searchIconWrapper: {
-    marginRight: spacing.xs
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    fontSize: 15,
-    color: colors.text
-  },
-  filtersSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm
-  },
-  filtersSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text
-  },
-  clearFiltersButton: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs
-  },
-  clearFiltersText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600'
-  },
-  filterCards: {
-    marginBottom: spacing.md
-  },
-  filterCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadows.small
-  },
-  filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.darkGray,
-    marginBottom: spacing.xs
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-    overflow: 'hidden'
-  },
-  picker: {
-    height: 44,
-    color: colors.text
-  },
-  dateButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    backgroundColor: colors.surface
-  },
-  dateButtonText: {
-    fontSize: 15,
-    color: colors.text
-  },
-  summaryCards: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg
-  },
-  summaryCardLarge: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    ...shadows.card
-  },
-  summaryIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.lightBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xs
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 4
-  },
-  summaryValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 4
-  },
-  summaryCardSmall: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    justifyContent: 'center',
-    ...shadows.card
-  },
-  summarySmallLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 6
-  },
-  summarySmallValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: spacing.md
-  },
-  recordCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadows.card
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm
-  },
-  recordHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1
-  },
-  recordAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm
-  },
-  recordAvatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.surface
-  },
-  recordHeaderInfo: {
-    flex: 1
-  },
-  recordFarmerCode: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 2
-  },
-  recordFarmerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text
-  },
-  recordDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border
-  },
-  recordDetailItem: {
-    flex: 1,
-    alignItems: 'center'
-  },
-  recordDetailLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginBottom: 4
-  },
-  recordDetailValue: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.textMuted,
-    marginTop: 40,
-    fontSize: 15
-  },
+  loadMoreText: { fontSize: 14, fontWeight: '700', color: colors.primary },
+
   bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.medium
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: colors.surface, flexDirection: 'row',
+    justifyContent: 'space-around', paddingTop: spacing.sm,
+    paddingHorizontal: spacing.sm, borderTopWidth: 1,
+    borderTopColor: colors.divider, ...shadows.medium,
   },
-  navItem: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs
-  },
-  navIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4
-  },
-  navIconActive: {
-    backgroundColor: colors.primary
-  },
-  navLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
-  },
-  navLabelActive: {
-    color: colors.primary
-  }
+  navItem:      { alignItems: 'center', paddingVertical: spacing.xs },
+  navIcon:      { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  navIconActive:{ backgroundColor: colors.primary },
+  navLabel:     { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+  navLabelActive:{ color: colors.primary },
 });
 
 export default CollectionRecordsScreen;

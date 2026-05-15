@@ -48,35 +48,82 @@ const addAdvance = asyncHandler(async (req, res) => {
     throw new Error('Farmer not found');
   }
 
-  // Calculate running remaining = sum of previous active advances + this new one
-  const existingActive = await Advance.aggregate([
-    { $match: { farmerId: farmer._id, status: 'Active' } },
-    { $group: { _id: null, total: { $sum: '$remainingAmount' } } }
-  ]);
-  const existingBalance = existingActive[0]?.total || 0;
-  const remainingAmount = existingBalance + Number(advanceAmount);
+  // Each advance record tracks its own remainingAmount independently.
+  // Total remaining for the farmer = sum of all active advance remainingAmounts.
+  const newAmount = Number(advanceAmount);
 
   const advance = await Advance.create({
     farmerCode: farmer.farmerCode,
     farmerId: farmer._id,
     collectionCenterId: farmer.assignedCenter._id,
-    advanceAmount: Number(advanceAmount),
-    remainingAmount: Number(advanceAmount),
+    advanceAmount: newAmount,
+    remainingAmount: newAmount,   // starts equal to advanceAmount
     advanceDate: new Date(advanceDate),
     paymentMethod,
     notes
   });
 
+  // Total remaining across all active advances (for SMS)
+  const allActive = await Advance.aggregate([
+    { $match: { farmerId: farmer._id, status: 'Active' } },
+    { $group: { _id: null, total: { $sum: '$remainingAmount' } } }
+  ]);
+  const totalRemaining = allActive[0]?.total || newAmount;
+
   // SMS
   const dateStr = new Date(advanceDate).toLocaleDateString('en-IN');
   await sendAdvanceSMS(farmer.mobileNumber, {
-    advanceAmount: Number(advanceAmount),
-    remainingAmount,
+    advanceAmount: newAmount,
+    remainingAmount: totalRemaining,
     advanceDate: dateStr,
     centerName: farmer.assignedCenter?.name || 'Collection Center'
   });
 
   res.status(201).json({ success: true, data: advance });
+});
+
+// @desc  Add extra amount to an existing advance record
+// @route POST /api/advances/:id/add-amount
+const addAmountToAdvance = asyncHandler(async (req, res) => {
+  const advance = await Advance.findById(req.params.id).populate('farmerId');
+  if (!advance) {
+    res.status(404);
+    throw new Error('Advance record not found');
+  }
+  if (advance.status === 'Settled') {
+    res.status(400);
+    throw new Error('Cannot add amount to a settled advance. Create a new advance instead.');
+  }
+
+  const { extraAmount, notes } = req.body;
+  const extra = Number(extraAmount);
+  if (!extra || extra <= 0) {
+    res.status(400);
+    throw new Error('extraAmount must be a positive number');
+  }
+
+  advance.advanceAmount   += extra;
+  advance.remainingAmount += extra;
+  if (notes) advance.notes = notes;
+  await advance.save();
+
+  // Total remaining across all active advances (for SMS)
+  const allActive = await Advance.aggregate([
+    { $match: { farmerId: advance.farmerId._id, status: 'Active' } },
+    { $group: { _id: null, total: { $sum: '$remainingAmount' } } }
+  ]);
+  const totalRemaining = allActive[0]?.total || advance.remainingAmount;
+
+  const farmer = advance.farmerId;
+  const dateStr = new Date().toLocaleDateString('en-IN');
+  await sendAdvanceSMS(farmer.mobileNumber, {
+    advanceAmount: extra,
+    remainingAmount: totalRemaining,
+    advanceDate: dateStr,
+    centerName: 'Collection Center'
+  });
+
+  res.json({ success: true, data: advance });
 });
 
 // @desc  Get advances (admin: all / by farmer / by center; head: own center only)
@@ -151,4 +198,4 @@ const deleteAdvance = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Advance deleted' });
 });
 
-module.exports = { addAdvance, getAdvances, getFarmerAdvanceDetails, updateAdvance, deleteAdvance };
+module.exports = { addAdvance, addAmountToAdvance, getAdvances, getFarmerAdvanceDetails, updateAdvance, deleteAdvance };

@@ -14,24 +14,34 @@ const AdvanceScreen = ({ centerId, centerName }) => {
   const { token, user } = useSelector((s) => s.auth);
   const isAdmin = user?.role === ROLE_ADMIN;
 
-  const [advances, setAdvances] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [farmerSearch, setFarmerSearch] = useState('');
+  const [advances, setAdvances]           = useState([]);
+  const [loading, setLoading]             = useState(false);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [submitting, setSubmitting]       = useState(false);
+
+  // ── Add new advance modal ──
+  const [showAddModal, setShowAddModal]   = useState(false);
+  const [farmerSearch, setFarmerSearch]   = useState('');
   const [farmerResults, setFarmerResults] = useState([]);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [farmerSearchLoading, setFarmerSearchLoading] = useState(false);
-
-  const [form, setForm] = useState({
+  const [addForm, setAddForm] = useState({
     advanceAmount: '',
     advanceDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'Cash',
     notes: ''
   });
+
+  // ── Add Amount to existing advance modal ──
+  const [showAddAmountModal, setShowAddAmountModal] = useState(false);
+  const [addAmountTarget, setAddAmountTarget]       = useState(null);
+  const [extraAmount, setExtraAmount]               = useState('');
+  const [extraNotes, setExtraNotes]                 = useState('');
+
+  // ── Summary totals ──
+  const totalGiven     = advances.reduce((s, a) => s + (a.advanceAmount || 0), 0);
+  const totalRemaining = advances.filter(a => a.status === 'Active').reduce((s, a) => s + (a.remainingAmount || 0), 0);
+  const totalSettled   = advances.filter(a => a.status === 'Settled').length;
 
   const loadAdvances = useCallback(async () => {
     setLoading(true);
@@ -49,6 +59,7 @@ const AdvanceScreen = ({ centerId, centerName }) => {
 
   useEffect(() => { loadAdvances(); }, [loadAdvances]);
 
+  // ── Farmer search ──
   const searchFarmers = async (query) => {
     setFarmerSearch(query);
     if (query.length < 2) { setFarmerResults([]); return; }
@@ -68,22 +79,25 @@ const AdvanceScreen = ({ centerId, centerName }) => {
     setFarmerResults([]);
   };
 
-  const resetForm = () => {
-    setForm({ advanceAmount: '', advanceDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', notes: '' });
+  const resetAddForm = () => {
+    setAddForm({ advanceAmount: '', advanceDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', notes: '' });
     setSelectedFarmer(null);
     setFarmerSearch('');
     setFarmerResults([]);
   };
 
-  const handleSubmit = async () => {
+  // ── Submit new advance ──
+  const handleAddSubmit = async () => {
     if (!selectedFarmer) { Alert.alert('Validation', 'Please select a farmer'); return; }
-    if (!form.advanceAmount || isNaN(Number(form.advanceAmount))) { Alert.alert('Validation', 'Enter valid advance amount'); return; }
+    if (!addForm.advanceAmount || isNaN(Number(addForm.advanceAmount)) || Number(addForm.advanceAmount) <= 0) {
+      Alert.alert('Validation', 'Enter a valid advance amount'); return;
+    }
     setSubmitting(true);
     try {
-      await advanceApi.add({ farmerId: selectedFarmer._id, ...form }, token);
-      Alert.alert('Success', 'Advance payment added & SMS sent to farmer');
-      setShowForm(false);
-      resetForm();
+      await advanceApi.add({ farmerId: selectedFarmer._id, ...addForm }, token);
+      Alert.alert('Success', 'Advance added & SMS sent to farmer');
+      setShowAddModal(false);
+      resetAddForm();
       loadAdvances();
     } catch (e) {
       Alert.alert('Error', e.message);
@@ -91,8 +105,32 @@ const AdvanceScreen = ({ centerId, centerName }) => {
     setSubmitting(false);
   };
 
+  // ── Add extra amount to existing advance ──
+  const openAddAmount = (item) => {
+    setAddAmountTarget(item);
+    setExtraAmount('');
+    setExtraNotes('');
+    setShowAddAmountModal(true);
+  };
+
+  const handleAddAmount = async () => {
+    const amt = Number(extraAmount);
+    if (!amt || amt <= 0) { Alert.alert('Validation', 'Enter a valid amount to add'); return; }
+    setSubmitting(true);
+    try {
+      await advanceApi.addAmount(addAmountTarget._id, { extraAmount: amt, notes: extraNotes }, token);
+      Alert.alert('Success', `₹${amt.toLocaleString('en-IN')} added to advance. SMS sent.`);
+      setShowAddAmountModal(false);
+      loadAdvances();
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+    setSubmitting(false);
+  };
+
+  // ── Delete ──
   const handleDelete = (id) => {
-    Alert.alert('Delete Advance', 'Are you sure you want to delete this advance record?', [
+    Alert.alert('Delete Advance', 'Are you sure you want to delete this record?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
@@ -105,63 +143,71 @@ const AdvanceScreen = ({ centerId, centerName }) => {
     ]);
   };
 
-  const openEdit = (item) => {
-    setEditTarget(item);
-    setForm({
-      advanceAmount: String(item.advanceAmount),
-      advanceDate: item.advanceDate?.split('T')[0] || '',
-      paymentMethod: item.paymentMethod,
-      notes: item.notes || ''
-    });
-    setShowEditModal(true);
-  };
-
-  const handleEditSave = async () => {
-    setSubmitting(true);
-    try {
-      await advanceApi.update(editTarget._id, form, token);
-      setShowEditModal(false);
-      loadAdvances();
-    } catch (e) {
-      Alert.alert('Error', e.message);
-    }
-    setSubmitting(false);
-  };
-
+  // ── Render card ──
   const renderAdvance = ({ item }) => {
-    const statusColor = item.status === 'Active' ? colors.primary : colors.success;
+    const isActive  = item.status === 'Active';
+    const statusClr = isActive ? colors.primary : colors.success;
+    const pct       = item.advanceAmount > 0
+      ? Math.round(((item.advanceAmount - item.remainingAmount) / item.advanceAmount) * 100)
+      : 100;
+
     return (
       <View style={styles.card}>
-        <View style={styles.cardRow}>
-          <Text style={styles.farmerName}>{item.farmerId?.fullName || '—'}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>{item.status}</Text>
+        {/* Header */}
+        <View style={styles.cardHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.farmerName}>{item.farmerId?.fullName || '—'}</Text>
+            <Text style={styles.cardMeta}>
+              {item.farmerId?.farmerCode || item.farmerCode}
+              {' · '}
+              {item.collectionCenterId?.name || centerName}
+            </Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusClr + '18' }]}>
+            <Text style={[styles.statusText, { color: statusClr }]}>{item.status}</Text>
           </View>
         </View>
-        <Text style={styles.cardCode}>Code: {item.farmerId?.farmerCode || item.farmerCode}</Text>
-        <Text style={styles.cardCode}>Center: {item.collectionCenterId?.name || centerName}</Text>
 
+        {/* Amount boxes */}
         <View style={styles.amountRow}>
           <View style={styles.amountBox}>
-            <Text style={styles.amountLabel}>Advance Given</Text>
-            <Text style={styles.amountValue}>₹{item.advanceAmount?.toLocaleString('en-IN')}</Text>
+            <Text style={styles.amountLabel}>Total Given</Text>
+            <Text style={styles.amountValue}>₹{(item.advanceAmount || 0).toLocaleString('en-IN')}</Text>
           </View>
-          <View style={[styles.amountBox, { backgroundColor: '#fef3c7' }]}>
-            <Text style={[styles.amountLabel, { color: '#92400e' }]}>Remaining</Text>
-            <Text style={[styles.amountValue, { color: '#92400e' }]}>₹{item.remainingAmount?.toLocaleString('en-IN')}</Text>
+          <View style={[styles.amountBox, { backgroundColor: isActive ? '#fef3c7' : colors.successLight }]}>
+            <Text style={[styles.amountLabel, { color: isActive ? '#92400e' : colors.success }]}>Remaining</Text>
+            <Text style={[styles.amountValue, { color: isActive ? '#92400e' : colors.success }]}>
+              ₹{(item.remainingAmount || 0).toLocaleString('en-IN')}
+            </Text>
+          </View>
+          <View style={[styles.amountBox, { backgroundColor: colors.primaryXLight }]}>
+            <Text style={[styles.amountLabel, { color: colors.primary }]}>Recovered</Text>
+            <Text style={[styles.amountValue, { color: colors.primary }]}>
+              ₹{((item.advanceAmount || 0) - (item.remainingAmount || 0)).toLocaleString('en-IN')}
+            </Text>
           </View>
         </View>
 
+        {/* Progress bar */}
+        <View style={styles.progressBg}>
+          <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: pct === 100 ? colors.success : colors.primary }]} />
+        </View>
+        <Text style={styles.progressLabel}>{pct}% recovered</Text>
+
+        {/* Meta */}
         <Text style={styles.meta}>
           {new Date(item.advanceDate).toLocaleDateString('en-IN')} · {item.paymentMethod}
         </Text>
         {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
 
+        {/* Actions */}
         {isAdmin && (
           <View style={styles.cardActions}>
-            <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(item)}>
-              <Text style={styles.editBtnText}>Edit</Text>
-            </TouchableOpacity>
+            {isActive && (
+              <TouchableOpacity style={styles.addAmtBtn} onPress={() => openAddAmount(item)}>
+                <Text style={styles.addAmtBtnText}>+ Add Amount</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item._id)}>
               <Text style={styles.deleteBtnText}>Delete</Text>
             </TouchableOpacity>
@@ -173,10 +219,26 @@ const AdvanceScreen = ({ centerId, centerName }) => {
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Summary strip */}
+      <View style={styles.summaryStrip}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Total Given</Text>
+          <Text style={styles.summaryValue}>₹{totalGiven.toLocaleString('en-IN')}</Text>
+        </View>
+        <View style={[styles.summaryItem, styles.summaryDivider]}>
+          <Text style={styles.summaryLabel}>Outstanding</Text>
+          <Text style={[styles.summaryValue, { color: colors.danger }]}>₹{totalRemaining.toLocaleString('en-IN')}</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryLabel}>Settled</Text>
+          <Text style={[styles.summaryValue, { color: colors.success }]}>{totalSettled}</Text>
+        </View>
+      </View>
+
       {/* Add button */}
       {isAdmin && (
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
-          <Text style={styles.addBtnText}>+ Add Advance Payment</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
+          <Text style={styles.addBtnText}>+ New Advance Payment</Text>
         </TouchableOpacity>
       )}
 
@@ -188,17 +250,22 @@ const AdvanceScreen = ({ centerId, centerName }) => {
           keyExtractor={(i) => i._id}
           renderItem={renderAdvance}
           contentContainerStyle={{ padding: spacing.md, paddingBottom: 100 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadAdvances().finally(() => setRefreshing(false)); }} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); loadAdvances().finally(() => setRefreshing(false)); }}
+            />
+          }
           ListEmptyComponent={<Text style={styles.empty}>No advance records found.</Text>}
         />
       )}
 
-      {/* Add Advance Modal */}
-      <Modal visible={showForm} animationType="slide" transparent>
+      {/* ── Add New Advance Modal ── */}
+      <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>Add Advance Payment</Text>
+              <Text style={styles.modalTitle}>New Advance Payment</Text>
 
               <Text style={styles.fieldLabel}>Search Farmer *</Text>
               <TextInput
@@ -219,9 +286,9 @@ const AdvanceScreen = ({ centerId, centerName }) => {
                 </View>
               )}
               {selectedFarmer && (
-                <View style={styles.selectedFarmerBox}>
-                  <Text style={styles.selectedFarmerText}>✓ {selectedFarmer.fullName}</Text>
-                  <Text style={styles.selectedFarmerSub}>{selectedFarmer.mobileNumber} · {selectedFarmer.farmerCode}</Text>
+                <View style={styles.selectedBox}>
+                  <Text style={styles.selectedText}>✓ {selectedFarmer.fullName}</Text>
+                  <Text style={styles.selectedSub}>{selectedFarmer.mobileNumber} · {selectedFarmer.farmerCode}</Text>
                 </View>
               )}
 
@@ -230,17 +297,17 @@ const AdvanceScreen = ({ centerId, centerName }) => {
                 style={styles.input}
                 placeholder="Enter amount"
                 keyboardType="numeric"
-                value={form.advanceAmount}
-                onChangeText={(v) => setForm({ ...form, advanceAmount: v })}
+                value={addForm.advanceAmount}
+                onChangeText={(v) => setAddForm({ ...addForm, advanceAmount: v })}
                 placeholderTextColor={colors.textMuted}
               />
 
-              <Text style={styles.fieldLabel}>Advance Date *</Text>
+              <Text style={styles.fieldLabel}>Date *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="YYYY-MM-DD"
-                value={form.advanceDate}
-                onChangeText={(v) => setForm({ ...form, advanceDate: v })}
+                value={addForm.advanceDate}
+                onChangeText={(v) => setAddForm({ ...addForm, advanceDate: v })}
                 placeholderTextColor={colors.textMuted}
               />
 
@@ -249,10 +316,10 @@ const AdvanceScreen = ({ centerId, centerName }) => {
                 {PAYMENT_METHODS.map((m) => (
                   <TouchableOpacity
                     key={m}
-                    style={[styles.methodBtn, form.paymentMethod === m && styles.methodBtnActive]}
-                    onPress={() => setForm({ ...form, paymentMethod: m })}
+                    style={[styles.methodBtn, addForm.paymentMethod === m && styles.methodBtnActive]}
+                    onPress={() => setAddForm({ ...addForm, paymentMethod: m })}
                   >
-                    <Text style={[styles.methodBtnText, form.paymentMethod === m && styles.methodBtnTextActive]}>{m}</Text>
+                    <Text style={[styles.methodBtnText, addForm.paymentMethod === m && styles.methodBtnTextActive]}>{m}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -262,16 +329,16 @@ const AdvanceScreen = ({ centerId, centerName }) => {
                 style={[styles.input, { height: 72 }]}
                 placeholder="Optional notes..."
                 multiline
-                value={form.notes}
-                onChangeText={(v) => setForm({ ...form, notes: v })}
+                value={addForm.notes}
+                onChangeText={(v) => setAddForm({ ...addForm, notes: v })}
                 placeholderTextColor={colors.textMuted}
               />
 
               <View style={styles.modalBtns}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowForm(false); resetForm(); }}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowAddModal(false); resetAddForm(); }}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
+                <TouchableOpacity style={styles.submitBtn} onPress={handleAddSubmit} disabled={submitting}>
                   {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Add & Notify</Text>}
                 </TouchableOpacity>
               </View>
@@ -280,31 +347,68 @@ const AdvanceScreen = ({ centerId, centerName }) => {
         </View>
       </Modal>
 
-      {/* Edit Modal */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
+      {/* ── Add Amount to Existing Advance Modal ── */}
+      <Modal visible={showAddAmountModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Edit Advance</Text>
-            <Text style={styles.fieldLabel}>Advance Amount (₹)</Text>
-            <TextInput style={styles.input} keyboardType="numeric" value={form.advanceAmount} onChangeText={(v) => setForm({ ...form, advanceAmount: v })} />
-            <Text style={styles.fieldLabel}>Advance Date</Text>
-            <TextInput style={styles.input} value={form.advanceDate} onChangeText={(v) => setForm({ ...form, advanceDate: v })} />
-            <Text style={styles.fieldLabel}>Payment Method</Text>
-            <View style={styles.methodRow}>
-              {PAYMENT_METHODS.map((m) => (
-                <TouchableOpacity key={m} style={[styles.methodBtn, form.paymentMethod === m && styles.methodBtnActive]} onPress={() => setForm({ ...form, paymentMethod: m })}>
-                  <Text style={[styles.methodBtnText, form.paymentMethod === m && styles.methodBtnTextActive]}>{m}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.fieldLabel}>Notes</Text>
-            <TextInput style={[styles.input, { height: 60 }]} multiline value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} />
+            <Text style={styles.modalTitle}>Add Amount to Advance</Text>
+
+            {addAmountTarget && (
+              <View style={styles.targetInfoBox}>
+                <Text style={styles.targetName}>{addAmountTarget.farmerId?.fullName}</Text>
+                <View style={styles.targetAmtRow}>
+                  <View style={styles.targetAmtItem}>
+                    <Text style={styles.targetAmtLabel}>Current Total</Text>
+                    <Text style={styles.targetAmtValue}>₹{(addAmountTarget.advanceAmount || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={styles.targetAmtItem}>
+                    <Text style={styles.targetAmtLabel}>Remaining</Text>
+                    <Text style={[styles.targetAmtValue, { color: '#92400e' }]}>
+                      ₹{(addAmountTarget.remainingAmount || 0).toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <Text style={styles.fieldLabel}>Amount to Add (₹) *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 500"
+              keyboardType="numeric"
+              value={extraAmount}
+              onChangeText={setExtraAmount}
+              placeholderTextColor={colors.textMuted}
+              autoFocus
+            />
+
+            {/* Live preview */}
+            {extraAmount && !isNaN(Number(extraAmount)) && Number(extraAmount) > 0 && addAmountTarget && (
+              <View style={styles.previewBox}>
+                <Text style={styles.previewText}>
+                  New Total: ₹{((addAmountTarget.advanceAmount || 0) + Number(extraAmount)).toLocaleString('en-IN')}
+                  {'  ·  '}
+                  New Remaining: ₹{((addAmountTarget.remainingAmount || 0) + Number(extraAmount)).toLocaleString('en-IN')}
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.fieldLabel}>Notes (optional)</Text>
+            <TextInput
+              style={[styles.input, { height: 60 }]}
+              placeholder="Reason for adding amount..."
+              multiline
+              value={extraNotes}
+              onChangeText={setExtraNotes}
+              placeholderTextColor={colors.textMuted}
+            />
+
             <View style={styles.modalBtns}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditModal(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddAmountModal(false)}>
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitBtn} onPress={handleEditSave} disabled={submitting}>
-                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Save</Text>}
+              <TouchableOpacity style={styles.submitBtn} onPress={handleAddAmount} disabled={submitting}>
+                {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Add Amount</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -315,56 +419,67 @@ const AdvanceScreen = ({ centerId, centerName }) => {
 };
 
 const styles = StyleSheet.create({
-  addBtn: {
-    margin: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: 13,
-    alignItems: 'center'
-  },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: 12,
+  summaryStrip: {
+    flexDirection: 'row', backgroundColor: colors.surface,
+    marginHorizontal: spacing.md, marginTop: spacing.md,
+    borderRadius: radius.md, padding: spacing.md,
     ...shadows.card
   },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  farmerName: { fontSize: 16, fontWeight: '700', color: colors.text, flex: 1 },
-  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  cardCode: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  amountRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
+  summaryItem:    { flex: 1, alignItems: 'center' },
+  summaryDivider: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.divider },
+  summaryLabel:   { fontSize: 11, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase' },
+  summaryValue:   { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 3 },
+
+  addBtn: {
+    margin: spacing.md, backgroundColor: colors.primary,
+    borderRadius: radius.md, paddingVertical: 13, alignItems: 'center'
+  },
+  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  card: {
+    backgroundColor: colors.surface, borderRadius: radius.md,
+    padding: spacing.md, marginBottom: 12, ...shadows.card
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  farmerName:  { fontSize: 16, fontWeight: '700', color: colors.text },
+  cardMeta:    { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginLeft: 8 },
+  statusText:  { fontSize: 12, fontWeight: '700' },
+
+  amountRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   amountBox: {
     flex: 1, backgroundColor: '#eff6ff', borderRadius: radius.sm,
-    padding: 10, alignItems: 'center'
+    padding: 9, alignItems: 'center'
   },
-  amountLabel: { fontSize: 11, color: colors.primary, fontWeight: '600' },
-  amountValue: { fontSize: 17, fontWeight: '800', color: colors.primary, marginTop: 2 },
-  meta: { fontSize: 12, color: colors.textMuted, marginTop: 8 },
-  notes: { fontSize: 13, color: colors.textMuted, marginTop: 4, fontStyle: 'italic' },
-  cardActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  editBtn: {
-    flex: 1, backgroundColor: colors.primary + '20', borderRadius: radius.sm,
-    paddingVertical: 8, alignItems: 'center'
+  amountLabel: { fontSize: 10, color: colors.primary, fontWeight: '600', textTransform: 'uppercase' },
+  amountValue: { fontSize: 14, fontWeight: '800', color: colors.primary, marginTop: 2 },
+
+  progressBg:   { height: 5, backgroundColor: colors.divider, borderRadius: 3, marginBottom: 4 },
+  progressFill: { height: 5, borderRadius: 3 },
+  progressLabel:{ fontSize: 10, color: colors.textMuted, marginBottom: 6 },
+
+  meta:  { fontSize: 12, color: colors.textMuted },
+  notes: { fontSize: 12, color: colors.textMuted, marginTop: 3, fontStyle: 'italic' },
+
+  cardActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  addAmtBtn: {
+    flex: 2, backgroundColor: colors.primary + '18', borderRadius: radius.sm,
+    paddingVertical: 9, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.primary + '40'
   },
-  editBtnText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  addAmtBtnText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
   deleteBtn: {
-    flex: 1, backgroundColor: colors.danger + '15', borderRadius: radius.sm,
-    paddingVertical: 8, alignItems: 'center'
+    flex: 1, backgroundColor: colors.danger + '12', borderRadius: radius.sm,
+    paddingVertical: 9, alignItems: 'center'
   },
   deleteBtnText: { color: colors.danger, fontWeight: '700', fontSize: 13 },
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 60, fontSize: 15 },
 
-  // Modal
+  // Modal shared
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   modalContainer: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    padding: spacing.lg,
-    maxHeight: '90%'
+    backgroundColor: colors.surface, borderTopLeftRadius: 22,
+    borderTopRightRadius: 22, padding: spacing.lg, maxHeight: '90%'
   },
   modalTitle: { fontSize: typography.h3, fontWeight: '800', color: colors.text, marginBottom: spacing.md },
   fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: 4, marginTop: 10 },
@@ -375,24 +490,20 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     backgroundColor: colors.surface, borderRadius: radius.sm,
-    borderWidth: 1, borderColor: colors.border, marginTop: 2, zIndex: 100
+    borderWidth: 1, borderColor: colors.border, marginTop: 2
   },
   dropdownItem: { paddingHorizontal: spacing.md, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   dropdownText: { fontSize: 14, color: colors.text },
-  selectedFarmerBox: {
-    backgroundColor: '#ecfdf5', borderRadius: radius.sm,
-    padding: 10, marginTop: 6
-  },
-  selectedFarmerText: { color: colors.success, fontWeight: '700', fontSize: 14 },
-  selectedFarmerSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  selectedBox: { backgroundColor: '#ecfdf5', borderRadius: radius.sm, padding: 10, marginTop: 6 },
+  selectedText: { color: colors.success, fontWeight: '700', fontSize: 14 },
+  selectedSub:  { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   methodRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
   methodBtn: {
-    flex: 1, borderRadius: radius.sm, paddingVertical: 9,
-    alignItems: 'center', backgroundColor: colors.surfaceMuted,
-    borderWidth: 1, borderColor: colors.border
+    flex: 1, borderRadius: radius.sm, paddingVertical: 9, alignItems: 'center',
+    backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border
   },
-  methodBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  methodBtnText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  methodBtnActive:     { backgroundColor: colors.primary, borderColor: colors.primary },
+  methodBtnText:       { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   methodBtnTextActive: { color: '#fff' },
   modalBtns: { flexDirection: 'row', gap: 10, marginTop: 20, marginBottom: 8 },
   cancelBtn: {
@@ -404,7 +515,23 @@ const styles = StyleSheet.create({
     flex: 2, borderRadius: radius.sm, paddingVertical: 13,
     alignItems: 'center', backgroundColor: colors.primary
   },
-  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 }
+  submitBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  // Add-amount modal extras
+  targetInfoBox: {
+    backgroundColor: colors.primaryXLight, borderRadius: radius.sm,
+    padding: 12, marginBottom: 8
+  },
+  targetName:    { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  targetAmtRow:  { flexDirection: 'row', gap: 10 },
+  targetAmtItem: { flex: 1, alignItems: 'center' },
+  targetAmtLabel:{ fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+  targetAmtValue:{ fontSize: 16, fontWeight: '800', color: colors.primary, marginTop: 2 },
+  previewBox: {
+    backgroundColor: colors.successLight, borderRadius: radius.sm,
+    padding: 10, marginTop: 6
+  },
+  previewText: { fontSize: 12, color: colors.success, fontWeight: '700', textAlign: 'center' }
 });
 
 export default AdvanceScreen;

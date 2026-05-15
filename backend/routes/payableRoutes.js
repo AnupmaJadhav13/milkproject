@@ -15,7 +15,9 @@ router.post('/generate', protect, authorizeRoles('admin'), generatePayable);
 router.get('/', protect, getPayables);
 router.get('/farmer/:farmerId', protect, getFarmerPayableDetails);
 router.get('/center/:centerId/report', protect, getCenterPayableReport);
+// Support both /mark-paid and /clear for backward compatibility
 router.put('/:id/mark-paid', protect, authorizeRoles('admin'), markPayableAsPaid);
+router.put('/:id/clear', protect, authorizeRoles('admin'), markPayableAsPaid);
 router.delete('/:id', protect, authorizeRoles('admin'), deletePayable);
 
 module.exports = router;

@@ -25,6 +25,7 @@ import FoodHistoryScreen from '../screens/collectionHead/FoodHistoryScreen';
 import MilkEntryScreen from '../screens/collectionHead/MilkEntryScreen';
 import { ROLE_ADMIN, ROLE_COLLECTION_HEAD } from '../constants/roles';
 import AllPaysScreen from '../screens/admin/AllPaysScreen';
+import ReportsScreen from '../screens/admin/ReportsScreen';
 const Stack = createNativeStackNavigator();
 
 const AppNavigator = () => {
@@ -54,6 +55,7 @@ const AppNavigator = () => {
           <Stack.Screen name="SendSms" component={SendSmsScreen} />
           <Stack.Screen name="CollectionRecords" component={CollectionRecordsScreen} />
           <Stack.Screen name="AllPays" component={AllPaysScreen} />
+          <Stack.Screen name="Reports" component={ReportsScreen} />
         </>
       ) : (
         <>
