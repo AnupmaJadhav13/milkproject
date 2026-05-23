@@ -5,6 +5,7 @@ const MilkCollection = require('../models/MilkCollection');
 const FoodRecord = require('../models/FoodRecord');
 const Farmer = require('../models/Farmer');
 const mongoose = require('mongoose');
+const { sendPaymentDoneNotification } = require('../services/notificationService');
 
 // ---------- helpers ----------
 const getWeeklyBreakdown = (records) => {
@@ -299,6 +300,17 @@ const markPayableAsPaid = asyncHandler(async (req, res) => {
   const updated = await Payable.findById(payable._id)
     .populate('farmerId', 'fullName mobileNumber farmerCode')
     .populate('collectionCenterId', 'name centerCode');
+
+  // Send payment confirmation in-app notification (async, non-blocking)
+  const farmerDoc = updated.farmerId;
+  if (farmerDoc?._id) {
+    sendPaymentDoneNotification(farmerDoc._id, {
+      farmerName: farmerDoc.fullName,
+      amount:     payable.finalPayableAmount.toFixed(2),
+      date:       new Date().toLocaleDateString('en-IN'),
+      cycle:      payable.paymentCycle || `${payable.month}/${payable.year}`
+    });
+  }
 
   res.json({ success: true, data: updated });
 });

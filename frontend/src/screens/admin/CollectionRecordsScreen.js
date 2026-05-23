@@ -46,7 +46,7 @@ const st = StyleSheet.create({
 });
 
 // ─── RecordCard ───────────────────────────────────────────────────────────────
-const RecordCard = ({ item, index }) => {
+const RecordCard = ({ item, index, onPress }) => {
   const qty    = Number(item.quantityLiters || 0);
   const rate   = Number(item.ratePerLiter   || 0);
   const amount = Number(item.amountInr      || 0);
@@ -58,7 +58,7 @@ const RecordCard = ({ item, index }) => {
   const isCow     = item.animalType === 'Cow';
 
   return (
-    <View style={rc.card}>
+    <TouchableOpacity style={rc.card} activeOpacity={0.9} onPress={onPress}>
       {/* Top row: avatar + name + date + shift badge */}
       <View style={rc.topRow}>
         <View style={[rc.avatar, { backgroundColor: avatarColor(index) }]}>
@@ -124,7 +124,7 @@ const RecordCard = ({ item, index }) => {
         </View>
         <Text style={rc.amountValue}>{fmtINR(amount)}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -395,7 +395,13 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
         <FlatList
           data={entries}
           keyExtractor={(i) => i._id}
-          renderItem={({ item, index }) => <RecordCard item={item} index={index} />}
+          renderItem={({ item, index }) => (
+            <RecordCard
+              item={item}
+              index={index}
+              onPress={() => navigation.navigate('CollectionDetail', { collection: item })}
+            />
+          )}
           contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 100 }}
           refreshControl={
             <RefreshControl

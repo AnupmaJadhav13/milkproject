@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const FoodRecord = require('../models/FoodRecord');
 const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
-const { sendSMS } = require('../services/smsService');
+const { sendFoodRecordNotification } = require('../services/notificationService');
 
 // @desc    Create a new food record
 // @route   POST /api/food
@@ -59,21 +59,16 @@ const createFoodRecord = asyncHandler(async (req, res) => {
     date: date || new Date()
   });
 
-  // Send SMS notification
-  try {
-    await sendSMS(farmer.mobileNumber, {
-      farmerName: farmer.fullName,
-      quantity,
-      unit,
-      foodType,
-      rate,
-      totalAmount,
-      centerName: collectionCenter.name || 'Your Collection Center'
-    });
-  } catch (smsError) {
-    console.error('SMS sending failed:', smsError);
-    // Don't fail the request if SMS fails
-  }
+  // Send in-app notification (async, non-blocking)
+  sendFoodRecordNotification(farmer._id, {
+    farmerName: farmer.fullName,
+    foodName:   `${foodType}${brandName ? ' (' + brandName + ')' : ''}`,
+    qty:        quantity,
+    unit,
+    rate,
+    amount:     totalAmount,
+    date:       new Date(date || new Date()).toLocaleDateString('en-IN')
+  });
 
   res.status(201).json(foodRecord);
 });

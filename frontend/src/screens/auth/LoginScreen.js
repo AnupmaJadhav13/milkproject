@@ -56,10 +56,11 @@ const LoginScreen = () => {
                       value={values.username}
                       onChangeText={handleChange('username')}
                       onBlur={handleBlur('username')}
-                      placeholder="Enter your username"
+                      placeholder="Username or mobile number"
                       style={styles.input}
                       placeholderTextColor={colors.textDisabled}
                       autoCapitalize="none"
+                      keyboardType="default"
                     />
                   </View>
                   {touched.username && errors.username ? (
@@ -109,7 +110,7 @@ const LoginScreen = () => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Need help? </Text>
+          <Text style={styles.footerText}>Farmer? Use your mobile number · </Text>
           <TouchableOpacity>
             <Text style={styles.footerLink}>Contact Support</Text>
           </TouchableOpacity>

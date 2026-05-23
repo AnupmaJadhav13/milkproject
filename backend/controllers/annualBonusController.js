@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const MilkCollection = require('../models/MilkCollection');
 const Farmer = require('../models/Farmer');
-const { sendBonusEligibleSMS } = require('../services/smsService');
+const { sendBonusNotification } = require('../services/notificationService');
 
 const LAKH_TARGET = 100000;
 const MIN_SPAN_DAYS = 365;
@@ -87,18 +87,11 @@ const notifyAnnualBonus = asyncHandler(async (req, res) => {
       try {
         const farmer = await Farmer.findById(row.farmerId).populate('assignedCenter', 'name');
         if (!farmer) continue;
-        const ok = await sendBonusEligibleSMS(farmer.mobileNumber, {
+        sendBonusNotification(farmer._id, {
           farmerName: farmer.fullName,
           centerName: farmer.assignedCenter?.name || 'Your collection center',
           totalInr: row.totalInr
         });
-        if (!ok) {
-          errors.push({
-            farmerId: row.farmerId,
-            message: 'SMS not configured (FAST2SMS_API_KEY). Farmer not marked as notified.'
-          });
-          continue;
-        }
         farmer.annualBonusNotifiedAt = new Date();
         await farmer.save();
         sent.push({ farmerId: farmer._id, farmerCode: farmer.farmerCode });

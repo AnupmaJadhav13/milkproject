@@ -71,13 +71,43 @@ export const milkApi = {
   getAll: (token, params) => api.get('/milk', { headers: { Authorization: `Bearer ${token}` }, params })
 };
 
-export const smsApi = {
+export const notificationApi = {
+  // Admin
   getRecipients: (token, params) =>
-    api.get('/admin/sms/recipients', {
-      headers: { Authorization: `Bearer ${token}` },
-      params
-    }),
-  send: (data, token) => api.post('/admin/sms/send', data, { headers: { Authorization: `Bearer ${token}` } })
+    api.get('/notifications/admin/recipients', { headers: { Authorization: `Bearer ${token}` }, params }),
+  send: (data, token) =>
+    api.post('/notifications/admin/send', data, { headers: { Authorization: `Bearer ${token}` } }),
+  getAll: (token, params) =>
+    api.get('/notifications/admin/all', { headers: { Authorization: `Bearer ${token}` }, params }),
+  // Farmer
+  getMy: (token, params) =>
+    api.get('/notifications/my', { headers: { Authorization: `Bearer ${token}` }, params }),
+  getUnreadCount: (token) =>
+    api.get('/notifications/my/unread-count', { headers: { Authorization: `Bearer ${token}` } }),
+  markRead: (token, notificationId) =>
+    api.put(`/notifications/my/${notificationId}/read`, {}, { headers: { Authorization: `Bearer ${token}` } }),
+  markAllRead: (token) =>
+    api.put('/notifications/my/all/read', {}, { headers: { Authorization: `Bearer ${token}` } })
+};
+
+export const farmerDashboardApi = {
+  getProfile: (token) =>
+    api.get('/farmer-dashboard/profile', { headers: { Authorization: `Bearer ${token}` } }),
+  getMilk: (token, params) =>
+    api.get('/farmer-dashboard/milk', { headers: { Authorization: `Bearer ${token}` }, params }),
+  getFood: (token, params) =>
+    api.get('/farmer-dashboard/food', { headers: { Authorization: `Bearer ${token}` }, params }),
+  getReport: (token, params) =>
+    api.get('/farmer-dashboard/report', { headers: { Authorization: `Bearer ${token}` }, params })
+};
+
+export const farmerAuthApi = {
+  setPassword: (data, token) =>
+    api.post('/auth/farmer-password', data, { headers: { Authorization: `Bearer ${token}` } }),
+  toggleLogin: (farmerId, data, token) =>
+    api.put(`/auth/farmer-login/${farmerId}`, data, { headers: { Authorization: `Bearer ${token}` } }),
+  enableAll: (token) =>
+    api.post('/auth/farmer-login/enable-all', {}, { headers: { Authorization: `Bearer ${token}` } })
 };
 
 export const foodApi = {

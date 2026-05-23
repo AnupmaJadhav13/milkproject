@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, ScrollView } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { Picker } from '@react-native-picker/picker';
@@ -115,7 +115,11 @@ const FoodReportsScreen = ({ navigation, route }) => {
   const totalRecords = filteredRecords.length;
 
   const renderRecordItem = ({ item }) => (
-    <View style={styles.recordCard}>
+    <TouchableOpacity
+      style={styles.recordCard}
+      activeOpacity={0.9}
+      onPress={() => navigation.navigate('FoodDetail', { foodRecord: item })}
+    >
       <View style={styles.recordHeader}>
         <Text style={styles.farmerName}>{item.farmerId?.fullName}</Text>
         <Text style={styles.centerName}>{item.collectionCenterId?.name}</Text>
@@ -129,7 +133,7 @@ const FoodReportsScreen = ({ navigation, route }) => {
         <Text>Status: {item.paymentStatus}</Text>
         <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (status === 'loading') {

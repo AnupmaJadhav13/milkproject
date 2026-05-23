@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
+const { sendFarmerRegistrationNotification } = require('../services/notificationService');
 
 const getNextFarmerCode = async () => {
   const latestFarmer = await Farmer.findOne({ farmerCode: { $exists: true, $ne: null } })
@@ -59,6 +60,13 @@ const createFarmer = asyncHandler(async (req, res) => {
     animalType,
     status: status || 'Active',
     photo
+  });
+
+  // Send in-app registration notification asynchronously (non-blocking)
+  sendFarmerRegistrationNotification(farmer._id, {
+    farmerName: fullName,
+    farmerCode,
+    centerName: center.name
   });
 
   res.status(201).json(farmer);

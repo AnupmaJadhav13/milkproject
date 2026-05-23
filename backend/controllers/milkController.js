@@ -3,7 +3,7 @@ const MilkCollection = require('../models/MilkCollection');
 const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
 const RateChartSettings = require('../models/RateChartSettings');
-const { sendMilkCollectionSMS } = require('../services/smsService');
+const { sendMilkCollectionNotification } = require('../services/notificationService');
 
 const asDayRange = (dateValue) => {
   const d = new Date(dateValue || new Date());
@@ -97,17 +97,19 @@ const createMilkEntry = asyncHandler(async (req, res) => {
     .populate('collectionCenterId', 'name centerCode');
 
   try {
-    await sendMilkCollectionSMS(farmer.mobileNumber, {
-      quantityLiters: Number(quantityLiters).toFixed(2),
+    sendMilkCollectionNotification(farmer._id, {
+      farmerName:  farmer.fullName,
+      date:        new Date(start).toLocaleDateString('en-IN'),
+      shift,
       animalType,
-      fat: Number(fat).toFixed(1),
-      snf: Number(snf).toFixed(1),
-      ratePerLiter: ratePerLiter.toFixed(2),
-      totalAmount: totalAmount.toFixed(2),
-      centerName: center?.name || 'Collection Center'
+      liters:      Number(quantityLiters).toFixed(2),
+      fat:         Number(fat).toFixed(1),
+      snf:         Number(snf).toFixed(1),
+      rate:        ratePerLiter.toFixed(2),
+      amount:      totalAmount.toFixed(2)
     });
   } catch (error) {
-    console.warn('Milk collection SMS failed:', error.message);
+    console.warn('Milk collection notification dispatch failed:', error.message);
   }
 
   res.status(201).json(populated);

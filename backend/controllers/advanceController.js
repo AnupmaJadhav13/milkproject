@@ -2,35 +2,7 @@ const asyncHandler = require('express-async-handler');
 const Advance = require('../models/Advance');
 const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
-const { normalizeIndianMobile } = require('../services/smsService');
-const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
-const FAST2SMS_SENDER_ID = process.env.FAST2SMS_SENDER_ID || 'FSTSMS';
-const FAST2SMS_ROUTE = process.env.FAST2SMS_ROUTE || 'v3';
-
-// ---------- helpers ----------
-const sendAdvanceSMS = async (mobile, data) => {
-  if (!FAST2SMS_API_KEY) return;
-  const phone = normalizeIndianMobile(mobile);
-  if (!phone) return;
-  const message =
-    `Dear Farmer,\nYou received advance payment of ₹${data.advanceAmount} on ${data.advanceDate}.\n\nRemaining Advance Balance: ₹${data.remainingAmount}\n\nCollection Center: ${data.centerName}`;
-  try {
-    await fetch('https://www.fast2sms.com/dev/bulkV2', {
-      method: 'POST',
-      headers: { Authorization: FAST2SMS_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        route: FAST2SMS_ROUTE,
-        sender_id: FAST2SMS_SENDER_ID,
-        message,
-        language: 'english',
-        flash: 0,
-        numbers: phone
-      })
-    });
-  } catch (e) {
-    console.warn('Advance SMS failed:', e.message);
-  }
-};
+const { sendAdvanceNotification } = require('../services/notificationService');
 
 // @desc  Add advance payment (Admin only)
 // @route POST /api/advances
@@ -70,13 +42,13 @@ const addAdvance = asyncHandler(async (req, res) => {
   ]);
   const totalRemaining = allActive[0]?.total || newAmount;
 
-  // SMS
+  // In-app notification — fire-and-forget with Marathi template
   const dateStr = new Date(advanceDate).toLocaleDateString('en-IN');
-  await sendAdvanceSMS(farmer.mobileNumber, {
+  sendAdvanceNotification(farmer._id, {
+    farmerName:    farmer.fullName,
     advanceAmount: newAmount,
-    remainingAmount: totalRemaining,
-    advanceDate: dateStr,
-    centerName: farmer.assignedCenter?.name || 'Collection Center'
+    remaining:     totalRemaining,
+    date:          dateStr
   });
 
   res.status(201).json({ success: true, data: advance });
@@ -114,13 +86,14 @@ const addAmountToAdvance = asyncHandler(async (req, res) => {
   ]);
   const totalRemaining = allActive[0]?.total || advance.remainingAmount;
 
+  // In-app notification — fire-and-forget with Marathi template
   const farmer = advance.farmerId;
   const dateStr = new Date().toLocaleDateString('en-IN');
-  await sendAdvanceSMS(farmer.mobileNumber, {
+  sendAdvanceNotification(farmer._id, {
+    farmerName:    farmer.fullName,
     advanceAmount: extra,
-    remainingAmount: totalRemaining,
-    advanceDate: dateStr,
-    centerName: 'Collection Center'
+    remaining:     totalRemaining,
+    date:          dateStr
   });
 
   res.json({ success: true, data: advance });

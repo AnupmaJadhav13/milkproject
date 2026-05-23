@@ -7,6 +7,8 @@ import farmerReducer from './slices/farmerSlice';
 import foodReducer from './slices/foodSlice';
 import milkReducer from './slices/milkSlice';
 import reportReducer from './slices/reportSlice';
+import notificationReducer from './slices/notificationSlice';
+import farmerDashboardReducer from './slices/farmerDashboardSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -14,7 +16,9 @@ const rootReducer = combineReducers({
   farmers: farmerReducer,
   food: foodReducer,
   milk: milkReducer,
-  reports: reportReducer
+  reports: reportReducer,
+  notifications: notificationReducer,
+  farmerDashboard: farmerDashboardReducer
 });
 
 const persistConfig = {
@@ -28,9 +32,7 @@ const persistedReducer = persistReducer(persistConfig, rootReducer);
 const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false
-    })
+    getDefaultMiddleware({ serializableCheck: false })
 });
 
 export const persistor = persistStore(store);

@@ -106,7 +106,12 @@ const CenterListScreen = ({ navigation }) => {
           <Text style={styles.emptyText}>No centers found. Use Add to create one.</Text>
         ) : (
           filteredCenters.map((center) => (
-            <View key={center._id} style={styles.centerCard}>
+            <TouchableOpacity
+              key={center._id}
+              style={styles.centerCard}
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate('CenterDetail', { center })}
+            >
               {/* Center Header */}
               <View style={styles.centerHeader}>
                 <Text style={styles.centerName}>{center.name}</Text>
@@ -144,7 +149,7 @@ const CenterListScreen = ({ navigation }) => {
                   <Text style={styles.deleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -159,10 +164,10 @@ const CenterListScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Store size={22} color={colors.surface} strokeWidth={2} />
+          <View style={styles.navIconContainer}>
+            <Store size={22} color={colors.textMuted} strokeWidth={2} />
           </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Collections</Text>
+          <Text style={styles.navLabel}>Collections</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>

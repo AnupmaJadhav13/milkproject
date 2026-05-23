@@ -42,8 +42,8 @@ const AnnualBonusScreen = () => {
       const { data } = await annualBonusApi.notify(token);
       Toast.show({
         type: 'success',
-        text1: 'Notifications',
-        text2: `Sent: ${data.sentCount || 0}. Check SMS configuration if some failed.`
+        text1: 'Notifications Sent',
+        text2: `Sent to ${data.sentCount || 0} eligible farmer(s).`
       });
       await load();
     } catch (e) {
@@ -75,7 +75,7 @@ const AnnualBonusScreen = () => {
         {notifying ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.notifyText}>Notify eligible farmers (SMS)</Text>
+          <Text style={styles.notifyText}>Send Notifications to Eligible Farmers</Text>
         )}
       </TouchableOpacity>
 
@@ -95,7 +95,7 @@ const AnnualBonusScreen = () => {
               Span: {item.spanDays} days · {new Date(item.firstDate).toLocaleDateString()} → {new Date(item.lastDate).toLocaleDateString()}
             </Text>
             <Text style={[styles.badge, item.notified ? styles.badgeOk : styles.badgePending]}>
-              {item.notified ? `SMS sent ${item.notifiedAt ? new Date(item.notifiedAt).toLocaleDateString() : ''}` : 'Pending notification'}
+              {item.notified ? `Notified ${item.notifiedAt ? new Date(item.notifiedAt).toLocaleDateString() : ''}` : 'Pending notification'}
             </Text>
           </View>
         )}

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { House, Store, Users, CreditCard, LayoutGrid, Gift, MessageCircleMore, FileText } from 'lucide-react-native';
+import { House, Store, Users, CreditCard, LayoutGrid, Gift, MessageCircleMore, FileText, Droplets, Salad } from 'lucide-react-native';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import { fetchFarmers } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -36,8 +36,9 @@ const AdminDashboardScreen = ({ navigation }) => {
     { label: 'Manage Centers', icon: Store, nav: 'CenterList', bg: colors.primary, text: colors.white },
     { label: 'Rate Chart', icon: LayoutGrid, nav: 'RateChart', bg: colors.teal50, text: colors.primary, border: true },
     { label: 'Annual Bonus', icon: Gift, nav: 'AnnualBonus', bg: colors.warningLight, text: colors.warning, textBorder: true },
-    { label: 'Send SMS', icon: MessageCircleMore, nav: 'SendSms', bg: colors.infoLight, text: colors.info, textBorder: true },
+    { label: 'Notifications', icon: MessageCircleMore, nav: 'SendNotification', bg: colors.infoLight, text: colors.info, textBorder: true },
     { label: 'Reports', icon: FileText, nav: 'Reports', bg: colors.successLight, text: colors.success, textBorder: true },
+    { label: 'Farmer Login', icon: Users, nav: 'FarmerLoginManagement', bg: colors.primaryXLight, text: colors.primary, border: true },
   ];
 
   return (
@@ -119,7 +120,7 @@ const AdminDashboardScreen = ({ navigation }) => {
           })}
         </View>
 
-        {/* Center List Preview */}
+        {/* Collection Centers Preview */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Collection Centers</Text>
           <TouchableOpacity onPress={() => navigation.navigate('CenterList')}>
@@ -150,6 +151,128 @@ const AdminDashboardScreen = ({ navigation }) => {
             <Text style={styles.emptySubtext}>Add a collection center to get started</Text>
           </View>
         )}
+
+        {/* Farmers Preview */}
+        <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
+          <Text style={styles.sectionTitle}>Farmers</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('FarmerList')}>
+            <Text style={styles.viewAllText}>View All →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {farmers.slice(0, 3).map((farmer, index) => (
+          <TouchableOpacity
+            style={styles.centerRow}
+            key={farmer._id}
+            onPress={() => navigation.navigate('FarmerDetail', { farmer })}
+          >
+            <View style={[styles.centerIconBox, { backgroundColor: colors.statSage }]}>
+              <Users size={16} color={colors.primary} strokeWidth={2.5} />
+            </View>
+            <View style={styles.centerInfo}>
+              <Text style={styles.centerName}>{farmer.fullName}</Text>
+              <Text style={styles.centerAddress} numberOfLines={1}>
+                {farmer.farmerCode}{farmer.assignedCenter?.name ? ` · ${farmer.assignedCenter.name}` : ''}
+              </Text>
+            </View>
+            <View style={[styles.statusDot, farmer.status === 'Active' ? styles.statusDotActive : styles.statusDotInactive]} />
+          </TouchableOpacity>
+        ))}
+
+        {farmers.length === 0 && (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No farmers added yet</Text>
+            <Text style={styles.emptySubtext}>Add farmers to get started</Text>
+          </View>
+        )}
+
+        {/* Collections Preview */}
+        <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
+          <Text style={styles.sectionTitle}>Milk Collections</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('CollectionRecords')}>
+            <Text style={styles.viewAllText}>View All →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.centerRow, { justifyContent: 'space-between' }]}
+          onPress={() => navigation.navigate('CollectionRecords')}
+        >
+          <View style={styles.centerIconBox}>
+            <Droplets size={16} color={colors.primary} strokeWidth={2.5} />
+          </View>
+          <View style={styles.centerInfo}>
+            <Text style={styles.centerName}>Today's Collections</Text>
+            <Text style={styles.centerAddress}>View all milk collection records</Text>
+          </View>
+          <Text style={styles.viewAllText}>→</Text>
+        </TouchableOpacity>
+
+        {/* Food Records Preview */}
+        <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
+          <Text style={styles.sectionTitle}>Food Records</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('FoodReports')}>
+            <Text style={styles.viewAllText}>View All →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.centerRow, { justifyContent: 'space-between' }]}
+          onPress={() => navigation.navigate('FoodReports')}
+        >
+          <View style={[styles.centerIconBox, { backgroundColor: colors.warningLight }]}>
+            <Salad size={16} color={colors.warning} strokeWidth={2.5} />
+          </View>
+          <View style={styles.centerInfo}>
+            <Text style={styles.centerName}>All Food Records</Text>
+            <Text style={styles.centerAddress}>View feed and fodder purchase records</Text>
+          </View>
+          <Text style={styles.viewAllText}>→</Text>
+        </TouchableOpacity>
+
+        {/* Payments Preview */}
+        <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
+          <Text style={styles.sectionTitle}>Payments</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('AllPays')}>
+            <Text style={styles.viewAllText}>View All →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.centerRow, { justifyContent: 'space-between' }]}
+          onPress={() => navigation.navigate('AllPays')}
+        >
+          <View style={[styles.centerIconBox, { backgroundColor: colors.successLight }]}>
+            <CreditCard size={16} color={colors.success} strokeWidth={2.5} />
+          </View>
+          <View style={styles.centerInfo}>
+            <Text style={styles.centerName}>All Payments</Text>
+            <Text style={styles.centerAddress}>Advance and payable records</Text>
+          </View>
+          <Text style={styles.viewAllText}>→</Text>
+        </TouchableOpacity>
+
+        {/* Reports Preview */}
+        <View style={[styles.sectionHeader, { marginTop: spacing.lg }]}>
+          <Text style={styles.sectionTitle}>Reports</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Reports')}>
+            <Text style={styles.viewAllText}>View All →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.centerRow, { justifyContent: 'space-between' }]}
+          onPress={() => navigation.navigate('Reports')}
+        >
+          <View style={[styles.centerIconBox, { backgroundColor: colors.infoLight }]}>
+            <FileText size={16} color={colors.info} strokeWidth={2.5} />
+          </View>
+          <View style={styles.centerInfo}>
+            <Text style={styles.centerName}>All Reports</Text>
+            <Text style={styles.centerAddress}>Center and farmer analytics</Text>
+          </View>
+          <Text style={styles.viewAllText}>→</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Bottom Nav */}

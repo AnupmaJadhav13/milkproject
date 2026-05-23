@@ -106,6 +106,14 @@ const FarmerListScreen = ({ navigation, route }) => {
           {selectedCenterId ? `Manage farmers for ${selectedCenterName}` : 'Manage and track your dairy farmers'}
         </Text>
 
+        {/* Farmer Login Management Button */}
+        <TouchableOpacity
+          style={styles.loginMgmtBtn}
+          onPress={() => navigation.navigate('FarmerLoginManagement')}
+        >
+          <Text style={styles.loginMgmtBtnText}>🔐 Farmer Login Management</Text>
+        </TouchableOpacity>
+
         {/* Add Farmer Button - Only show when coming from a center */}
         {selectedCenterId && (
           <TouchableOpacity
@@ -144,7 +152,12 @@ const FarmerListScreen = ({ navigation, route }) => {
           <Text style={styles.emptyText}>No farmers match your search or filter.</Text>
         ) : (
           filtered.map((farmer, index) => (
-            <View key={farmer._id} style={styles.farmerCard}>
+            <TouchableOpacity
+              key={farmer._id}
+              style={styles.farmerCard}
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate('FarmerDetail', { farmer })}
+            >
               {/* Farmer Header */}
               <View style={styles.farmerHeader}>
                 <View style={styles.farmerHeaderLeft}>
@@ -202,7 +215,7 @@ const FarmerListScreen = ({ navigation, route }) => {
                   <Trash2 size={16} color={colors.danger} strokeWidth={2} />
                 </TouchableOpacity>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -498,6 +511,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.danger
+  },
+  loginMgmtBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryXLight,
+    borderRadius: radius.lg,
+    paddingVertical: 12,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.teal100,
+  },
+  loginMgmtBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
   },
   emptyText: {
     marginTop: 24,
