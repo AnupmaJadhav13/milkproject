@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { ChevronLeft } from 'lucide-react-native';
@@ -12,8 +12,6 @@ const AllPaysScreen = ({ route, navigation }) => {
   const user = useSelector((s) => s.auth.user);
   const [activeTab, setActiveTab] = useState('advance');
 
-  // centerId is always the collection head's own center — resolved inside child screens
-  // centerName: prefer route param, fall back to user name
   const centerName = route?.params?.centerName || user?.name || 'My Center';
 
   return (
@@ -24,10 +22,15 @@ const AllPaysScreen = ({ route, navigation }) => {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <ChevronLeft size={20} color={colors.text} strokeWidth={2.5} />
           </TouchableOpacity>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={styles.brandText}>Sarvasvaa Milk</Text>
-          </View>
-          {/* spacer to balance back button */}
+
+          {/* Logo in center */}
+          <Image
+            source={require('../../assets/images/sarvaalogo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+
+          {/* Spacer to balance back button */}
           <View style={{ width: 36 }} />
         </View>
 
@@ -91,10 +94,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  brandText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
+  logoImage: {
+    width: 110,
+    height: 40,
   },
   title: {
     fontSize: 28,
