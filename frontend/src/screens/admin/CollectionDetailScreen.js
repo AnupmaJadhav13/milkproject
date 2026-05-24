@@ -26,7 +26,7 @@ const CollectionDetailScreen = ({ navigation, route }) => {
           <Text style={styles.title}>Collection Details</Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <View style={styles.iconBox}>
             <Droplets size={24} color={colors.primary} strokeWidth={2.5} />

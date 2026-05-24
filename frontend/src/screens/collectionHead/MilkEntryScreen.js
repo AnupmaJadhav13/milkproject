@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Platform, RefreshControl } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
@@ -27,6 +29,8 @@ const MilkEntryScreen = ({ navigation }) => {
     snf: '',
     date: new Date().toISOString().slice(0, 10)
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (token && user?.assignedCenter) {
@@ -82,8 +86,19 @@ const MilkEntryScreen = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              dispatch(fetchMilkEntries({ token, params: { date: form.date } }));
+              setRefreshing(false);
+            }}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -93,9 +108,9 @@ const MilkEntryScreen = ({ navigation }) => {
             </View>
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <LogOut size={18} color={colors.danger} strokeWidth={2} />
-          </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+  <LogOut size={22} color={colors.danger} strokeWidth={2} />
+</TouchableOpacity>
         </View>
 
         <Text style={styles.title}>Daily Milk Collection</Text>
@@ -122,7 +137,29 @@ const MilkEntryScreen = ({ navigation }) => {
           ) : null}
 
           <Text style={styles.label}>Date</Text>
-          <TextInput style={styles.input} value={form.date} onChangeText={(value) => setForm((prev) => ({ ...prev, date: value }))} placeholder="YYYY-MM-DD" />
+          <TouchableOpacity
+            style={[styles.input, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Calendar size={14} color={colors.primary} />
+            <Text style={{ fontSize: 15, color: colors.text }}>
+              {form.date
+                ? new Date(form.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                : 'Select date'}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={form.date ? new Date(form.date) : new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              maximumDate={new Date()}
+              onChange={(_, d) => {
+                setShowDatePicker(false);
+                if (d) setForm((prev) => ({ ...prev, date: d.toISOString().slice(0, 10) }));
+              }}
+            />
+          )}
 
           <View style={styles.row}>
             <View style={styles.halfWidth}>
@@ -207,37 +244,6 @@ const MilkEntryScreen = ({ navigation }) => {
           ))
         )}
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Store size={22} color={colors.surface} strokeWidth={2} />
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Milk Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
-          <View style={styles.navIconContainer}>
-            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Food Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
-          <View style={styles.navIconContainer}>
-            <Users size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };

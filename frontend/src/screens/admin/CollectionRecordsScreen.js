@@ -23,12 +23,6 @@ const fmtDate = (iso)    => iso
   : '—';
 
 const AVATAR_COLORS = ['#2C7A6E','#7c3aed','#ec4899','#f59e0b','#10b981','#06b6d4','#ef4444','#8b5cf6'];
-const avatarColor = (i) => AVATAR_COLORS[i % AVATAR_COLORS.length];
-const initials = (name) => {
-  if (!name) return '?';
-  const p = name.trim().split(' ');
-  return p.length >= 2 ? (p[0][0] + p[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
-};
 
 // ─── StatBox ─────────────────────────────────────────────────────────────────
 const StatBox = ({ label, value, sub, accent }) => (
@@ -45,120 +39,58 @@ const st = StyleSheet.create({
   statSub:   { fontSize: 10, color: colors.textMuted, marginTop: 2 },
 });
 
-// ─── RecordCard ───────────────────────────────────────────────────────────────
+// ─── RecordCard — compact list style matching reference image ────────────────
 const RecordCard = ({ item, index, onPress }) => {
   const qty    = Number(item.quantityLiters || 0);
   const rate   = Number(item.ratePerLiter   || 0);
   const amount = Number(item.amountInr      || 0);
-  // Verify: amount should equal qty * rate (within rounding)
-  const computed = Number((qty * rate).toFixed(2));
-  const mismatch = Math.abs(computed - amount) > 0.05;
-
   const isMorning = item.shift === 'Morning';
   const isCow     = item.animalType === 'Cow';
 
   return (
-    <TouchableOpacity style={rc.card} activeOpacity={0.9} onPress={onPress}>
-      {/* Top row: avatar + name + date + shift badge */}
-      <View style={rc.topRow}>
-        <View style={[rc.avatar, { backgroundColor: avatarColor(index) }]}>
-          <Text style={rc.avatarText}>{initials(item.farmerId?.fullName || item.farmerCode)}</Text>
+    <TouchableOpacity style={rc.row} activeOpacity={0.85} onPress={onPress}>
+      {/* Left: serial number */}
+      <Text style={rc.serial}>{index + 1}</Text>
+
+      {/* Center: name + meta */}
+      <View style={rc.center}>
+        <Text style={rc.name} numberOfLines={1}>{item.farmerId?.fullName || item.farmerCode || '—'}</Text>
+        <View style={rc.metaRow}>
+          <Text style={rc.shiftIcon}>{isMorning ? '🌅' : '🌙'}</Text>
+          <Text style={rc.animalIcon}>{isCow ? '🐄' : '🐃'}</Text>
+          <Text style={rc.meta}>FAT: {fmt(item.fat, 1)} | SNF: {fmt(item.snf, 1)}</Text>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={rc.farmerName} numberOfLines={1}>
-            {item.farmerId?.fullName || '—'}
-          </Text>
-          <Text style={rc.farmerMeta}>
-            {item.farmerCode}
-            {item.collectionCenterId?.name ? ` · ${item.collectionCenterId.name}` : ''}
-          </Text>
-        </View>
-        <View style={rc.badgesCol}>
-          <View style={[rc.shiftBadge, { backgroundColor: isMorning ? '#fef3c7' : '#eff6ff' }]}>
-            <Text style={[rc.shiftText, { color: isMorning ? '#92400e' : '#1d4ed8' }]}>
-              {isMorning ? '🌅 Morning' : '🌙 Evening'}
-            </Text>
-          </View>
-          <View style={[rc.animalBadge, { backgroundColor: isCow ? '#ecfdf5' : '#f5f3ff' }]}>
-            <Text style={[rc.animalText, { color: isCow ? '#065f46' : '#5b21b6' }]}>
-              {isCow ? '🐄 Cow' : '🐃 Buffalo'}
-            </Text>
-          </View>
-        </View>
+        <Text style={rc.formula}>{fmt(rate, 2)} × {fmt(qty, 2)}L</Text>
       </View>
 
-      {/* Date row */}
-      <Text style={rc.dateRow}>
-        📅 {fmtDate(item.date)}
-      </Text>
-
-      {/* Metrics grid */}
-      <View style={rc.metricsGrid}>
-        <View style={rc.metricItem}>
-          <Text style={rc.metricLabel}>Quantity</Text>
-          <Text style={rc.metricValue}>{fmt(qty, 2)} L</Text>
-        </View>
-        <View style={rc.metricItem}>
-          <Text style={rc.metricLabel}>FAT</Text>
-          <Text style={[rc.metricValue, { color: '#f59e0b' }]}>{fmt(item.fat, 1)}</Text>
-        </View>
-        <View style={rc.metricItem}>
-          <Text style={rc.metricLabel}>SNF</Text>
-          <Text style={[rc.metricValue, { color: colors.info }]}>{fmt(item.snf, 1)}</Text>
-        </View>
-        <View style={rc.metricItem}>
-          <Text style={rc.metricLabel}>Rate/L</Text>
-          <Text style={rc.metricValue}>{fmtINR(rate)}</Text>
-        </View>
-      </View>
-
-      {/* Amount row */}
-      <View style={rc.amountRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={rc.amountFormula}>
-            {fmt(qty, 2)} L × {fmtINR(rate)}/L
-          </Text>
-          {mismatch && (
-            <Text style={rc.mismatchWarn}>⚠ Stored amount differs from computed</Text>
-          )}
-        </View>
-        <Text style={rc.amountValue}>{fmtINR(amount)}</Text>
+      {/* Right: amount */}
+      <View style={rc.right}>
+        <Text style={rc.amount}>{fmt(amount, 2)}₹</Text>
       </View>
     </TouchableOpacity>
   );
 };
 
 const rc = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface, borderRadius: radius.lg,
-    padding: spacing.md, marginBottom: 10,
-    ...shadows.card, borderWidth: 1, borderColor: colors.divider,
-  },
-  topRow:      { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 },
-  avatar:      { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  avatarText:  { fontSize: 15, fontWeight: '800', color: '#fff' },
-  farmerName:  { fontSize: 15, fontWeight: '700', color: colors.text },
-  farmerMeta:  { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  badgesCol:   { alignItems: 'flex-end', gap: 4 },
-  shiftBadge:  { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  shiftText:   { fontSize: 10, fontWeight: '700' },
-  animalBadge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  animalText:  { fontSize: 10, fontWeight: '700' },
-  dateRow:     { fontSize: 11, color: colors.textMuted, marginBottom: 10, fontWeight: '500' },
-  metricsGrid: {
-    flexDirection: 'row', backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.sm, padding: 8, gap: 4, marginBottom: 10,
-  },
-  metricItem:  { flex: 1, alignItems: 'center' },
-  metricLabel: { fontSize: 9, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase' },
-  metricValue: { fontSize: 14, fontWeight: '800', color: colors.text, marginTop: 2 },
-  amountRow:   {
+  row: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.successLight, borderRadius: radius.sm, padding: 10,
+    paddingVertical: 12, paddingHorizontal: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.divider,
+    backgroundColor: colors.surface,
   },
-  amountFormula: { fontSize: 11, color: colors.success, fontWeight: '600' },
-  mismatchWarn:  { fontSize: 10, color: colors.danger, marginTop: 2 },
-  amountValue:   { fontSize: 18, fontWeight: '900', color: colors.success },
+  serial: {
+    width: 28, fontSize: 13, fontWeight: '700',
+    color: colors.textMuted, textAlign: 'center',
+  },
+  center: { flex: 1, paddingHorizontal: 6 },
+  name: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 1 },
+  shiftIcon: { fontSize: 12 },
+  animalIcon: { fontSize: 12 },
+  meta: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+  formula: { fontSize: 11, color: colors.primary, fontWeight: '600' },
+  right: { alignItems: 'flex-end', minWidth: 80 },
+  amount: { fontSize: 16, fontWeight: '800', color: colors.primary },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -257,14 +189,17 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
 
       {/* ── Search bar ── */}
       <View style={styles.searchBar}>
-        <Search size={15} color={colors.textMuted} />
+        <Search size={15} color={colors.primary} />
         <TextInput
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
           placeholder="Search farmer name or code..."
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.textDisabled}
           returnKeyType="search"
+          autoCorrect={false}
+          autoCapitalize="none"
+          underlineColorAndroid="transparent"
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch('')}>
@@ -294,6 +229,7 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
           value={date ? new Date(date) : new Date()}
           mode="date"
           display="default"
+          maximumDate={new Date()}
           onChange={(_, d) => {
             setShowDatePicker(false);
             if (d) setDate(d.toISOString().split('T')[0]);
@@ -354,29 +290,7 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* ── Summary stats grid ── */}
-      {!isLoading && (
-        <View style={styles.statsSection}>
-          {/* Row 1 */}
-          <View style={styles.statsRow}>
-            <StatBox label="Total Milk"   value={`${fmt(totalLiters, 1)} L`} sub={`${total} entries`} accent={colors.primary} />
-            <StatBox label="Total Amount" value={fmtINR(totalAmount)} accent={colors.success} />
-          </View>
-          {/* Row 2 */}
-          <View style={styles.statsRow}>
-            <StatBox label="Avg FAT"  value={fmt(avgFat, 2)}  sub="%" accent="#f59e0b" />
-            <StatBox label="Avg SNF"  value={fmt(avgSnf, 2)}  sub="%" accent={colors.info} />
-            <StatBox label="Avg Rate" value={fmtINR(avgRate)} sub="/L" />
-          </View>
-          {/* Row 3 */}
-          <View style={styles.statsRow}>
-            <StatBox label="🌅 Morning" value={`${fmt(morningL, 1)} L`} />
-            <StatBox label="🌙 Evening" value={`${fmt(eveningL, 1)} L`} />
-            <StatBox label="🐄 Cow"     value={`${fmt(cowL, 1)} L`} />
-            <StatBox label="🐃 Buffalo" value={`${fmt(buffaloL, 1)} L`} />
-          </View>
-        </View>
-      )}
+      {/* ── Summary stats removed per design ── */}
 
       {/* ── Records count ── */}
       <View style={styles.recordsHeader}>
@@ -402,7 +316,8 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
               onPress={() => navigation.navigate('CollectionDetail', { collection: item })}
             />
           )}
-          contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -428,26 +343,6 @@ const CollectionRecordsScreen = ({ route, navigation }) => {
           }
         />
       )}
-
-      {/* ── Bottom Nav ── */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        {[
-          { label: 'Dashboard',   icon: House,     nav: 'AdminDashboard' },
-          { label: 'Collections', icon: Store,     nav: null },
-          { label: 'Payments',    icon: CreditCard,nav: 'AllPays' },
-          { label: 'Farmers',     icon: Users,     nav: 'FarmerList' },
-        ].map(({ label, icon: Icon, nav }) => {
-          const active = nav === null;
-          return (
-            <TouchableOpacity key={label} style={styles.navItem} onPress={() => nav && navigation.navigate(nav)}>
-              <View style={[styles.navIcon, active && styles.navIconActive]}>
-                <Icon size={22} color={active ? '#fff' : colors.textMuted} strokeWidth={2.5} />
-              </View>
-              <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
     </View>
   );
 };

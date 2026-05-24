@@ -5,7 +5,8 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -17,6 +18,7 @@ const AnnualBonusScreen = () => {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [notifying, setNotifying] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [payload, setPayload] = useState(null);
 
   const load = useCallback(async () => {
@@ -83,6 +85,9 @@ const AnnualBonusScreen = () => {
         data={list}
         keyExtractor={(item) => String(item.farmerId)}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }}
+        refreshing={refreshing}
         ListEmptyComponent={<Text style={styles.empty}>No eligible farmers yet. Add daily milk collection records to track progress.</Text>}
         renderItem={({ item }) => (
           <View style={styles.card}>

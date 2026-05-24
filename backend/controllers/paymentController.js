@@ -22,8 +22,8 @@ const getPayableCalculations = asyncHandler(async (req, res) => {
 
   // Build filter based on user role
   const farmerFilter = {};
-  if (req.user.role === 'collectionHead') {
-    farmerFilter.assignedCenter = req.user.centerId;
+  if (req.user.role === 'collection_head') {
+    farmerFilter.assignedCenter = req.user.assignedCenter;
   } else if (centerId) {
     farmerFilter.assignedCenter = centerId;
   }
@@ -251,8 +251,8 @@ const getActiveAdvances = asyncHandler(async (req, res) => {
   const { centerId } = req.query;
   const filter = { status: 'Active' };
 
-  if (req.user.role === 'collectionHead') {
-    filter.collectionCenterId = req.user.centerId;
+  if (req.user.role === 'collection_head') {
+    filter.collectionCenterId = req.user.assignedCenter;
   } else if (centerId) {
     filter.collectionCenterId = centerId;
   }
@@ -317,8 +317,8 @@ const getSettlementHistory = asyncHandler(async (req, res) => {
   const { centerId, farmerId, startDate, endDate } = req.query;
   const filter = {};
 
-  if (req.user.role === 'collectionHead') {
-    filter.collectionCenterId = req.user.centerId;
+  if (req.user.role === 'collection_head') {
+    filter.collectionCenterId = req.user.assignedCenter;
   } else if (centerId) {
     filter.collectionCenterId = centerId;
   }

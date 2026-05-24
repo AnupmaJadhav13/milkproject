@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, FlatList, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
@@ -27,12 +27,15 @@ const FoodEntryScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const formikRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const loadFarmers = useCallback(() => {
     if (token && user?.assignedCenter) {
       dispatch(fetchFarmersByCenter({ centerId: user.assignedCenter, token }));
     }
   }, [dispatch, token, user]);
+
+  useEffect(() => { loadFarmers(); }, [loadFarmers]);
 
   const filteredFarmers = farmers.filter(farmer =>
     farmer.farmerCode?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -42,6 +45,9 @@ const FoodEntryScreen = ({ navigation }) => {
     try {
       const data = {
         ...values,
+        animalType: 'Cow',
+        foodType: 'Other',
+        notes: '',
         date: selectedDate.toISOString()
       };
       await dispatch(createFoodRecord({ data, token })).unwrap();
@@ -77,10 +83,17 @@ const FoodEntryScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); loadFarmers(); setRefreshing(false); }}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -90,113 +103,70 @@ const FoodEntryScreen = ({ navigation }) => {
             </View>
             <Text style={styles.brandText}>Sarvasvaa Milk</Text>
           </View>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <LogOut size={18} color={colors.danger} strokeWidth={2} />
+          <TouchableOpacity
+            onPress={handleLogout}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <LogOut size={22} color={colors.danger} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
         <Text style={styles.title}>Add Food Record</Text>
-        <Text style={styles.subtitle}>Record food purchases for farmers</Text>
+        <Text style={styles.subtitle}>Record food purchases by farmers</Text>
 
-      <Formik
-        innerRef={formikRef}
-        initialValues={{
-          farmerId: '',
-          animalType: '',
-          foodType: '',
-          brandName: '',
-          quantity: '',
-          unit: '',
-          rate: '',
-          paymentStatus: 'Pending',
-          notes: ''
-        }}
-        validationSchema={foodSchema}
-        onSubmit={handleSubmit}
-      >
-        {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
-          <View style={styles.card}>
-            {/* Farmer Selection */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Farmer</Text>
-              <TouchableOpacity
-                style={styles.farmerSelector}
-                onPress={() => setFarmerModalVisible(true)}
-              >
-                <Text style={styles.farmerSelectorText}>
-                  {selectedFarmer ? `${selectedFarmer.farmerCode || 'N/A'} - ${selectedFarmer.fullName}` : 'Select Farmer'}
-                </Text>
-              </TouchableOpacity>
-              {touched.farmerId && errors.farmerId && (
-                <Text style={styles.errorText}>{errors.farmerId}</Text>
-              )}
-            </View>
-            {selectedFarmer && (
-              <View style={styles.farmerDetailsCard}>
-                <Text style={styles.farmerDetailLabel}>📱 {selectedFarmer.mobileNumber}</Text>
-              </View>
-            )}
+        <Formik
+          innerRef={formikRef}
+          initialValues={{
+            farmerId: '',
+            brandName: '',
+            quantity: '',
+            unit: '',
+            rate: '',
+            paymentStatus: 'Pending',
+          }}
+          validationSchema={foodSchema}
+          onSubmit={handleSubmit}
+        >
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
+            <View style={styles.card}>
 
-            {/* Animal Type */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Animal Type</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={values.animalType}
-                  onValueChange={(value) => setFieldValue('animalType', value)}
-                  style={styles.picker}
+              {/* Farmer Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Farmer</Text>
+                <TouchableOpacity
+                  style={styles.farmerSelector}
+                  onPress={() => setFarmerModalVisible(true)}
                 >
-                  <Picker.Item label="Select Animal Type" value="" />
-                  <Picker.Item label="Cow" value="Cow" />
-                  <Picker.Item label="Buffalo" value="Buffalo" />
-                </Picker>
+                  <Text style={styles.farmerSelectorText}>
+                    {selectedFarmer ? `${selectedFarmer.farmerCode || 'N/A'} - ${selectedFarmer.fullName}` : 'Select Farmer'}
+                  </Text>
+                </TouchableOpacity>
+                {touched.farmerId && errors.farmerId && (
+                  <Text style={styles.errorText}>{errors.farmerId}</Text>
+                )}
               </View>
-              {touched.animalType && errors.animalType && (
-                <Text style={styles.errorText}>{errors.animalType}</Text>
+              {selectedFarmer && (
+                <View style={styles.farmerDetailsCard}>
+                  <Text style={styles.farmerDetailLabel}>📱 {selectedFarmer.mobileNumber}</Text>
+                </View>
               )}
-            </View>
 
-            {/* Food Type */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Food Type</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={values.foodType}
-                  onValueChange={(value) => setFieldValue('foodType', value)}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Select Food Type" value="" />
-                  <Picker.Item label="Cattle Feed" value="Cattle Feed" />
-                  <Picker.Item label="Buffalo Feed" value="Buffalo Feed" />
-                  <Picker.Item label="Mineral Mix" value="Mineral Mix" />
-                  <Picker.Item label="Dry Fodder" value="Dry Fodder" />
-                  <Picker.Item label="Green Fodder" value="Green Fodder" />
-                  <Picker.Item label="Protein Mix" value="Protein Mix" />
-                  <Picker.Item label="Other" value="Other" />
-                </Picker>
+              {/* Brand Name */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Brand Name (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter brand name"
+                  value={values.brandName}
+                  onChangeText={handleChange('brandName')}
+                  onBlur={handleBlur('brandName')}
+                />
               </View>
-              {touched.foodType && errors.foodType && (
-                <Text style={styles.errorText}>{errors.foodType}</Text>
-              )}
-            </View>
 
-            {/* Brand Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Brand Name (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter brand name"
-                value={values.brandName}
-                onChangeText={handleChange('brandName')}
-                onBlur={handleBlur('brandName')}
-              />
-            </View>
-
-            <View style={styles.row}>
-              <View style={styles.halfWidth}>
-                {/* Quantity */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Quantity</Text>
+              {/* Quantity | Unit | Rate in one row */}
+              <View style={styles.row}>
+                <View style={[styles.thirdWidth, styles.inputGroup]}>
+                  <Text style={styles.label}>Qty</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="0"
@@ -209,11 +179,8 @@ const FoodEntryScreen = ({ navigation }) => {
                     <Text style={styles.errorText}>{errors.quantity}</Text>
                   )}
                 </View>
-              </View>
 
-              <View style={styles.halfWidth}>
-                {/* Unit */}
-                <View style={styles.inputGroup}>
+                <View style={[styles.thirdWidth, styles.inputGroup]}>
                   <Text style={styles.label}>Unit</Text>
                   <View style={styles.pickerContainer}>
                     <Picker
@@ -232,178 +199,135 @@ const FoodEntryScreen = ({ navigation }) => {
                     <Text style={styles.errorText}>{errors.unit}</Text>
                   )}
                 </View>
+
+                <View style={[styles.thirdWidth, styles.inputGroup]}>
+                  <Text style={styles.label}>Rate (₹)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0.00"
+                    keyboardType="numeric"
+                    value={values.rate}
+                    onChangeText={handleChange('rate')}
+                    onBlur={handleBlur('rate')}
+                  />
+                  {touched.rate && errors.rate && (
+                    <Text style={styles.errorText}>{errors.rate}</Text>
+                  )}
+                </View>
               </View>
-            </View>
 
-            {/* Rate */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Rate Per Unit (₹)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0.00"
-                keyboardType="numeric"
-                value={values.rate}
-                onChangeText={handleChange('rate')}
-                onBlur={handleBlur('rate')}
-              />
-              {touched.rate && errors.rate && (
-                <Text style={styles.errorText}>{errors.rate}</Text>
-              )}
-            </View>
-
-            {/* Total Amount */}
-            <View style={styles.calculationCard}>
-              <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabelBold}>Total Amount</Text>
-                <Text style={styles.calculationValueBold}>₹{calculateTotal(values.quantity, values.rate)}</Text>
+              {/* Total Amount */}
+              <View style={styles.calculationCard}>
+                <View style={styles.calculationRow}>
+                  <Text style={styles.calculationLabelBold}>Total Amount</Text>
+                  <Text style={styles.calculationValueBold}>₹{calculateTotal(values.quantity, values.rate)}</Text>
+                </View>
               </View>
-            </View>
 
-            {/* Date */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={styles.dateText}>{selectedDate.toDateString()}</Text>
-              </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="default"
-                  onChange={(event, date) => {
-                    setShowDatePicker(false);
-                    if (date) setSelectedDate(date);
-                  }}
-                />
-              )}
-            </View>
-
-            {/* Payment Status */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Payment Status</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={values.paymentStatus}
-                  onValueChange={(value) => setFieldValue('paymentStatus', value)}
-                  style={styles.picker}
+              {/* Date */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Date</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDatePicker(true)}
                 >
-                  <Picker.Item label="Pending" value="Pending" />
-                  <Picker.Item label="Paid" value="Paid" />
-                </Picker>
+                  <Text style={styles.dateText}>{selectedDate.toDateString()}</Text>
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={selectedDate}
+                    mode="date"
+                    display="default"
+                    maximumDate={new Date()}
+                    onChange={(event, date) => {
+                      setShowDatePicker(false);
+                      if (date) setSelectedDate(date);
+                    }}
+                  />
+                )}
               </View>
-            </View>
 
-            {/* Notes */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Notes (Optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Enter notes"
-                multiline
-                numberOfLines={3}
-                value={values.notes}
-                onChangeText={handleChange('notes')}
-                onBlur={handleBlur('notes')}
-              />
-            </View>
+              {/* Payment Status */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Payment Status</Text>
+                <View style={styles.pickerContainer}>
+                  <Picker
+                    selectedValue={values.paymentStatus}
+                    onValueChange={(value) => setFieldValue('paymentStatus', value)}
+                    style={styles.picker}
+                  >
+                    <Picker.Item label="Pending" value="Pending" />
+                    <Picker.Item label="Paid" value="Paid" />
+                  </Picker>
+                </View>
+              </View>
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmit}
-              disabled={foodStatus === 'loading'}
-            >
-              {foodStatus === 'loading' ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitButtonText}>✓ Submit Record</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-      </Formik>
-
-      {/* Farmer Selection Modal */}
-      <Modal
-        visible={farmerModalVisible}
-        animationType="slide"
-        onRequestClose={() => setFarmerModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Farmer</Text>
-            <TouchableOpacity onPress={() => setFarmerModalVisible(false)}>
-              <Text style={styles.modalClose}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <SearchBar
-            placeholder="Search by farmer code..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <FlatList
-            data={filteredFarmers}
-            keyExtractor={(item) => item._id}
-            renderItem={({ item }) => (
+              {/* Submit Button */}
               <TouchableOpacity
-                style={styles.farmerItem}
-                onPress={() => {
-                  setSelectedFarmer(item);
-                  if (formikRef.current) {
-                    formikRef.current.setFieldValue('farmerId', item._id);
-                  }
-                  setFarmerModalVisible(false);
-                }}
+                style={styles.submitButton}
+                onPress={handleSubmit}
+                disabled={foodStatus === 'loading'}
               >
-                <View style={styles.farmerItemAvatar}>
-                  <Text style={styles.farmerItemAvatarText}>{item.fullName?.charAt(0).toUpperCase() || 'F'}</Text>
-                </View>
-                <View style={styles.farmerItemInfo}>
-                  <Text style={styles.farmerCode}>{item.farmerCode || 'N/A'}</Text>
-                  <Text style={styles.farmerName}>{item.fullName}</Text>
-                  <Text style={styles.farmerMobile}>📱 {item.mobileNumber}</Text>
-                </View>
+                {foodStatus === 'loading' ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>✓ Submit Record</Text>
+                )}
               </TouchableOpacity>
-            )}
-            ListEmptyComponent={<Text style={styles.emptyText}>No farmers found</Text>}
-          />
-        </View>
-      </Modal>
+
+            </View>
+          )}
+        </Formik>
+
+        {/* Farmer Selection Modal */}
+        <Modal
+          visible={farmerModalVisible}
+          animationType="slide"
+          onRequestClose={() => setFarmerModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Farmer</Text>
+              <TouchableOpacity onPress={() => setFarmerModalVisible(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <SearchBar
+              placeholder="Search by farmer code..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            <FlatList
+              data={filteredFarmers}
+              keyExtractor={(item) => item._id}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.farmerItem}
+                  onPress={() => {
+                    setSelectedFarmer(item);
+                    if (formikRef.current) {
+                      formikRef.current.setFieldValue('farmerId', item._id);
+                    }
+                    setFarmerModalVisible(false);
+                  }}
+                >
+                  <View style={styles.farmerItemAvatar}>
+                    <Text style={styles.farmerItemAvatarText}>{item.fullName?.charAt(0).toUpperCase() || 'F'}</Text>
+                  </View>
+                  <View style={styles.farmerItemInfo}>
+                    <Text style={styles.farmerCode}>{item.farmerCode || 'N/A'}</Text>
+                    <Text style={styles.farmerName}>{item.fullName}</Text>
+                    <Text style={styles.farmerMobile}>📱 {item.mobileNumber}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.emptyText}>No farmers found</Text>}
+            />
+          </View>
+        </Modal>
+
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
-          <View style={styles.navIconContainer}>
-            <Store size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Milk Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Salad size={22} color={colors.surface} strokeWidth={2} />
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Food Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
-          <View style={styles.navIconContainer}>
-            <Users size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -447,16 +371,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.text
-  },
-  logoutButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: colors.dangerLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger
   },
   title: {
     fontSize: 28,
@@ -531,6 +445,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   halfWidth: {
+    flex: 1
+  },
+  thirdWidth: {
     flex: 1
   },
   calculationCard: {
@@ -656,43 +573,6 @@ const styles = StyleSheet.create({
     marginTop: 30,
     color: colors.textMuted
   },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.medium
-  },
-  navItem: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs
-  },
-  navIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4
-  },
-  navIconActive: {
-    backgroundColor: colors.primary
-  },
-  navLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
-  },
-  navLabelActive: {
-    color: colors.primary
-  }
-});
+});   
 
 export default FoodEntryScreen;

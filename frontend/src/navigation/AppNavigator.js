@@ -35,6 +35,7 @@ import CollectionHeadFarmerListScreen from '../screens/collectionHead/FarmerList
 import FoodEntryScreen from '../screens/collectionHead/FoodEntryScreen';
 import FoodHistoryScreen from '../screens/collectionHead/FoodHistoryScreen';
 import MilkEntryScreen from '../screens/collectionHead/MilkEntryScreen';
+import CollectionHeadAllPaysScreen from '../screens/collectionHead/AllPaysScreen';
 
 // Farmer
 import FarmerDashboardScreen from '../screens/farmer/FarmerDashboardScreen';
@@ -90,6 +91,7 @@ const AppNavigator = () => {
           <Stack.Screen name="FoodEntry" component={FoodEntryScreen} />
           <Stack.Screen name="FoodHistory" component={FoodHistoryScreen} />
           <Stack.Screen name="MilkEntry" component={MilkEntryScreen} />
+          <Stack.Screen name="AllPays" component={CollectionHeadAllPaysScreen} />
         </>
       ) : user.role === ROLE_FARMER ? (
         // ── Farmer ───────────────────────────────────────────────────────────

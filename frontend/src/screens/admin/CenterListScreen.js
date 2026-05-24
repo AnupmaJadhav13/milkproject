@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { House, Store, Users, CreditCard, Plus, MapPin, Trash2, SquarePen, LogOut } from 'lucide-react-native';
@@ -18,10 +18,19 @@ const CenterListScreen = ({ navigation }) => {
   const [search, setSearch] = useState('');
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (token) dispatch(fetchCenters(token));
   }, [dispatch, token]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
   const filteredCenters = list.filter((center) => {
     const centerName = center?.name?.toLowerCase() || '';
@@ -64,8 +73,9 @@ const CenterListScreen = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -153,37 +163,6 @@ const CenterListScreen = ({ navigation }) => {
           ))
         )}
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
-          <View style={styles.navIconContainer}>
-            <Store size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Collections</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
-          <View style={styles.navIconContainer}>
-            <CreditCard size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Payments</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
-          <View style={styles.navIconContainer}>
-            <Users size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
 
       <ConfirmDialog
         visible={confirmVisible}

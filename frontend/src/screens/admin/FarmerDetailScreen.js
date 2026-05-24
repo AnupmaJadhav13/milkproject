@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Phone, SquarePen } from 'lucide-react-native';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
@@ -14,6 +14,8 @@ const Field = ({ label, value }) => (
 const FarmerDetailScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const farmer = route?.params?.farmer || {};
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 600); }, []);
 
   const onCall = () => {
     const cleaned = String(farmer.mobileNumber || '').replace(/[^\d+]/g, '');
@@ -37,7 +39,8 @@ const FarmerDetailScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}>
         <View style={styles.card}>
           <Text style={styles.name}>{farmer.fullName || '-'}</Text>
           <Text style={styles.code}>{farmer.farmerCode || '-'}</Text>

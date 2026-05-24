@@ -248,6 +248,9 @@ const FoodReportsScreen = ({ navigation, route }) => {
         renderItem={renderRecordItem}
         ListEmptyComponent={<EmptyState message="No food records found" />}
         contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        onRefresh={loadData}
+        refreshing={status === 'loading'}
       />
     </View>
   );

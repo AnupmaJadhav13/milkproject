@@ -66,6 +66,16 @@ const generatePayable = asyncHandler(async (req, res) => {
     throw new Error('Farmer not found');
   }
 
+  // Collection head can only generate payables for farmers in their own center
+  if (req.user.role === 'collection_head') {
+    const farmerCenterId = farmer.assignedCenter?.toString();
+    const headCenterId   = req.user.assignedCenter?.toString();
+    if (farmerCenterId !== headCenterId) {
+      res.status(403);
+      throw new Error('You can only manage payables for farmers in your assigned center');
+    }
+  }
+
   // 1. Milk income for the date range
   const milkRecords = await MilkCollection.find({
     farmerId: new mongoose.Types.ObjectId(farmerId),
@@ -183,8 +193,8 @@ const getPayables = asyncHandler(async (req, res) => {
   const { centerId, farmerId, farmerCode, month, year, status } = req.query;
   const filter = {};
 
-  if (req.user.role === 'collectionHead') {
-    filter.collectionCenterId = req.user.centerId;
+  if (req.user.role === 'collection_head') {
+    filter.collectionCenterId = req.user.assignedCenter;
   } else {
     if (centerId) filter.collectionCenterId = centerId;
   }
@@ -221,7 +231,14 @@ const getFarmerPayableDetails = asyncHandler(async (req, res) => {
 // @route GET /api/payable/center/:centerId/report
 const getCenterPayableReport = asyncHandler(async (req, res) => {
   const { month, year } = req.query;
-  const filter = { collectionCenterId: req.params.centerId };
+
+  // Collection head can only view their own center's report
+  let targetCenterId = req.params.centerId;
+  if (req.user.role === 'collection_head') {
+    targetCenterId = req.user.assignedCenter?.toString();
+  }
+
+  const filter = { collectionCenterId: targetCenterId };
   if (month) filter.month = Number(month);
   if (year) filter.year = Number(year);
 
@@ -247,11 +264,22 @@ const getCenterPayableReport = asyncHandler(async (req, res) => {
 //        Marks food records as Paid only if food toggle was ON
 // @route PUT /api/payable/:id/mark-paid
 const markPayableAsPaid = asyncHandler(async (req, res) => {
-  const payable = await Payable.findById(req.params.id);
+  const payable = await Payable.findById(req.params.id).populate('collectionCenterId', '_id');
   if (!payable) {
     res.status(404);
     throw new Error('Payable record not found');
   }
+
+  // Collection head can only mark paid for their own center
+  if (req.user.role === 'collection_head') {
+    const payableCenterId = payable.collectionCenterId?._id?.toString() || payable.collectionCenterId?.toString();
+    const headCenterId    = req.user.assignedCenter?.toString();
+    if (payableCenterId !== headCenterId) {
+      res.status(403);
+      throw new Error('You can only manage payables for your assigned center');
+    }
+  }
+
   if (payable.paymentStatus === 'Paid') {
     res.status(400);
     throw new Error('This payable is already marked as Paid');

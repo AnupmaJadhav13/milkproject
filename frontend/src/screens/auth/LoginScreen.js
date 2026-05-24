@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import Toast from 'react-native-toast-message';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { loginSchema } from '../../validation/schemas';
 import { loginUser } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
@@ -11,6 +12,7 @@ import { colors, radius, spacing, typography, shadows } from '../../theme';
 const LoginScreen = () => {
   const dispatch = useDispatch();
   const { status, error } = useSelector((state) => state.auth);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -80,10 +82,16 @@ const LoginScreen = () => {
                       onChangeText={handleChange('password')}
                       onBlur={handleBlur('password')}
                       placeholder="Enter your password"
-                      secureTextEntry
+                      secureTextEntry={!showPassword}
                       style={styles.input}
                       placeholderTextColor={colors.textDisabled}
                     />
+                    <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.eyeBtn}>
+                      {showPassword
+                        ? <EyeOff size={18} color={colors.textMuted} strokeWidth={2} />
+                        : <Eye size={18} color={colors.textMuted} strokeWidth={2} />
+                      }
+                    </TouchableOpacity>
                   </View>
                   {touched.password && errors.password ? (
                     <Text style={styles.errorText}>{errors.password}</Text>
@@ -228,6 +236,9 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.text,
     height: 52,
+  },
+  eyeBtn: {
+    padding: 4,
   },
   errorText: {
     color: colors.danger,

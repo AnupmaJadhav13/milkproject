@@ -144,7 +144,7 @@ const SendNotificationScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <ChevronLeft size={22} color={colors.primary} strokeWidth={2.5} />
@@ -177,7 +177,24 @@ const SendNotificationScreen = ({ navigation }) => {
               placeholderTextColor={colors.textMuted}
             />
           </View>
+
+          <View style={styles.actionBtns}>
+          <TouchableOpacity style={styles.previewBtn} onPress={() => setPreviewOpen(true)} disabled={!fullMessage.trim()}>
+            <Bell size={16} color={colors.primary} strokeWidth={2.5} />
+            <Text style={styles.previewBtnText}>Preview</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.sendBtn, (!canSend || sending) && styles.sendBtnDisabled]} onPress={onSend} disabled={!canSend || sending}>
+            {sending ? <ActivityIndicator color={colors.white} /> : (
+              <>
+                <Send size={16} color={colors.white} strokeWidth={2.5} />
+                <Text style={styles.sendBtnText}>Send</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
+        </View>
+
+        
 
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Recipients</Text>
@@ -219,27 +236,14 @@ const SendNotificationScreen = ({ navigation }) => {
           <Text style={styles.selectionHint}>Selected: {selectedIds.size}</Text>
         </View>
 
-        <View style={styles.actionBtns}>
-          <TouchableOpacity style={styles.previewBtn} onPress={() => setPreviewOpen(true)} disabled={!fullMessage.trim()}>
-            <Bell size={16} color={colors.primary} strokeWidth={2.5} />
-            <Text style={styles.previewBtnText}>Preview</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.sendBtn, (!canSend || sending) && styles.sendBtnDisabled]} onPress={onSend} disabled={!canSend || sending}>
-            {sending ? <ActivityIndicator color={colors.white} /> : (
-              <>
-                <Send size={16} color={colors.white} strokeWidth={2.5} />
-                <Text style={styles.sendBtnText}>Send</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+        
       </ScrollView>
 
       <Modal visible={previewOpen} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Notification Preview</Text>
-            <ScrollView style={styles.modalScroll}>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.modalBody}>{fullMessage || '-'}</Text>
             </ScrollView>
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setPreviewOpen(false)}>

@@ -56,11 +56,11 @@ const addAmountRules = [
     .isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters')
 ];
 
-router.post('/',                protect, authorizeRoles('admin'), advanceRules, validateRequest, addAdvance);
-router.post('/:id/add-amount', protect, authorizeRoles('admin'), addAmountRules, validateRequest, addAmountToAdvance);
+router.post('/',                protect, authorizeRoles('admin', 'collection_head'), advanceRules, validateRequest, addAdvance);
+router.post('/:id/add-amount', protect, authorizeRoles('admin', 'collection_head'), addAmountRules, validateRequest, addAmountToAdvance);
 router.get('/',                 protect, getAdvances);
 router.get('/farmer/:farmerId', protect, getFarmerAdvanceDetails);
-router.put('/:id',              protect, authorizeRoles('admin'), updateAdvance);
-router.delete('/:id',           protect, authorizeRoles('admin'), deleteAdvance);
+router.put('/:id',              protect, authorizeRoles('admin', 'collection_head'), updateAdvance);
+router.delete('/:id',           protect, authorizeRoles('admin', 'collection_head'), deleteAdvance);
 
 module.exports = router;

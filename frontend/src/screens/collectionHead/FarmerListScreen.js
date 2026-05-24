@@ -1,12 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { House, Store, Users, Salad, Phone, MapPin } from 'lucide-react-native';
+import { Phone } from 'lucide-react-native';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import SearchBar from '../../components/SearchBar';
-import { colors, radius, spacing, shadows } from '../../theme';
+import { colors, radius, spacing, shadows, typography } from '../../theme';
+
+const AVATAR_PALETTES = [
+  { bg: '#E1F5EE', text: '#0F6E56' },
+  { bg: '#EEEDFE', text: '#534AB7' },
+  { bg: '#FAEEDA', text: '#854F0B' },
+  { bg: '#E6F1FB', text: '#185FA5' },
+  { bg: '#FBEAF0', text: '#993556' },
+  { bg: '#EAF3DE', text: '#3B6D11' },
+];
+
+const getInitials = (name = '') => {
+  const parts = name.trim().split(' ');
+  return parts.length >= 2
+    ? (parts[0][0] + parts[1][0]).toUpperCase()
+    : name.substring(0, 2).toUpperCase();
+};
+
+const getPalette = (index) => AVATAR_PALETTES[index % AVATAR_PALETTES.length];
+
+const animalLabel = (type) => {
+  if (type === 'Buffalo') return { emoji: '🐃', label: 'Buffalo' };
+  if (type === 'Cow') return { emoji: '🐄', label: 'Cow' };
+  return { emoji: '🐄/🐃', label: 'Both' };
+};
 
 const CollectionHeadFarmerListScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -15,359 +39,206 @@ const CollectionHeadFarmerListScreen = ({ navigation }) => {
   const user = useSelector((state) => state.auth.user);
   const { list, status } = useSelector((state) => state.farmers);
   const [search, setSearch] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (token && user?.assignedCenter) {
       dispatch(fetchFarmersByCenter({ centerId: user.assignedCenter, token }));
     }
   }, [dispatch, token, user]);
 
-  const filtered = list.filter((farmer) =>
-    [farmer.fullName, farmer.mobileNumber, farmer.farmerCode, farmer.village].some((field) => field?.toLowerCase().includes(search.toLowerCase()))
-  );
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const getInitials = (name) => {
-    if (!name) return '?';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
-  const getAvatarColor = (index) => {
-    const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
-    return colors[index % colors.length];
-  };
+  const filtered = [...list]
+    .sort((a, b) => (a.farmerCode || '').localeCompare(b.farmerCode || '', undefined, { numeric: true }))
+    .filter((farmer) =>
+      [farmer.fullName, farmer.mobileNumber, farmer.farmerCode, farmer.village].some(
+        (field) => field?.toLowerCase().includes(search.toLowerCase())
+      )
+    );
 
   if (status === 'loading') return <LoadingIndicator />;
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'C'}</Text>
+          <View style={styles.headerLeft}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'C'}</Text>
+            </View>
+            <Text style={styles.brandText}>{user?.name || 'Collection Head'}</Text>
           </View>
-          <Text style={styles.brandText}>Sarvasvaa Milk</Text>
+          <Image
+            source={require('../../assets/images/sarvaalogo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
-        {/* Title & Subtitle */}
         <Text style={styles.title}>Assigned Farmers</Text>
-        <Text style={styles.subtitle}>View all farmers assigned to your center</Text>
+      
 
-        {/* Search Bar */}
+        {/* Search */}
         <SearchBar value={search} onChange={setSearch} placeholder="Search by name, code, or mobile..." />
 
-        {/* Farmers Count */}
-        <View style={styles.countCard}>
-          <Text style={styles.countLabel}>Total Farmers</Text>
-          <Text style={styles.countValue}>{filtered.length}</Text>
-        </View>
+        {/* Empty */}
+        {filtered.length === 0 && (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyText}>No farmers found</Text>
+            <Text style={styles.emptySubtext}>Try a different search term</Text>
+          </View>
+        )}
 
-        {/* Farmers List */}
-        {filtered.length === 0 ? (
-          <Text style={styles.emptyText}>No farmers found matching your search.</Text>
-        ) : (
-          filtered.map((farmer, index) => (
-            <View key={farmer._id} style={styles.farmerCard}>
-              {/* Farmer Header */}
-              <View style={styles.farmerHeader}>
-                <View style={styles.farmerHeaderLeft}>
-                  <View style={[styles.farmerAvatar, { backgroundColor: getAvatarColor(index) }]}>
-                    <Text style={styles.farmerAvatarText}>{getInitials(farmer.fullName)}</Text>
-                  </View>
-                  <View style={styles.farmerHeaderInfo}>
-                    <Text style={styles.farmerName}>{farmer.fullName}</Text>
-                    <Text style={styles.farmerCode}>{farmer.farmerCode}</Text>
-                  </View>
+        {/* Farmer Cards */}
+        {filtered.map((farmer, index) => {
+          const palette = getPalette(index);
+          const initials = getInitials(farmer.fullName);
+          const isActive = farmer.status === 'Active';
+          const animal = animalLabel(farmer.animalType);
+
+          return (
+            <View key={farmer._id} style={styles.card}>
+
+              {/* Top: avatar + name/code + status */}
+              <View style={styles.cardTop}>
+                <View style={[styles.farmerAvatar, { backgroundColor: palette.bg }]}>
+                  <Text style={[styles.farmerAvatarText, { color: palette.text }]}>{initials}</Text>
                 </View>
-                <View style={[styles.statusBadge, farmer.status === 'Active' ? styles.statusBadgeActive : styles.statusBadgeInactive]}>
-                  <View style={[styles.statusDot, { backgroundColor: farmer.status === 'Active' ? colors.success : colors.textMuted }]} />
-                  <Text style={[styles.statusText, { color: farmer.status === 'Active' ? colors.success : colors.textMuted }]}>
+                <View style={styles.farmerInfo}>
+                  <Text style={styles.farmerName} numberOfLines={1}>{farmer.fullName}</Text>
+                  <Text style={styles.farmerCode}>{farmer.farmerCode}</Text>
+                </View>
+                <View style={[styles.statusBadge, isActive ? styles.statusActive : styles.statusInactive]}>
+                  <View style={[styles.statusDot, { backgroundColor: isActive ? '#1D9E75' : '#888780' }]} />
+                  <Text style={[styles.statusText, { color: isActive ? '#0F6E56' : '#5F5E5A' }]}>
                     {farmer.status}
                   </Text>
                 </View>
               </View>
 
-              {/* Farmer Details */}
-              <View style={styles.farmerDetail}>
-                <Phone size={14} color={colors.textMuted} strokeWidth={2} />
-                <Text style={styles.detailText}>{farmer.mobileNumber}</Text>
-              </View>
+              {/* Divider */}
+              <View style={styles.divider} />
 
-              <View style={styles.farmerDetail}>
-                <MapPin size={14} color={colors.textMuted} strokeWidth={2} />
-                <Text style={styles.detailText}>{farmer.village}</Text>
-              </View>
-
-              {/* Tags */}
-              <View style={styles.tagsRow}>
-                <View style={styles.tag}>
-                  <Text style={styles.tagIcon}>
-                    {farmer.animalType === 'Buffalo' ? '🐃' : farmer.animalType === 'Cow' ? '🐄' : '🐄/🐃'}
-                  </Text>
-                  <Text style={styles.tagText}>{farmer.animalType}</Text>
+              {/* Bottom: phone + animal tag */}
+              <View style={styles.cardBottom}>
+                <View style={styles.phoneRow}>
+                  <Phone size={13} color={colors.textMuted} strokeWidth={2} />
+                  <Text style={styles.phoneText}>{farmer.mobileNumber}</Text>
                 </View>
-                <View style={styles.tag}>
-                  <Text style={styles.tagIcon}>🏦</Text>
-                  <Text style={styles.tagText}>{farmer.bankName}</Text>
+                <View style={styles.animalTag}>
+                  <Text style={styles.animalEmoji}>{animal.emoji}</Text>
+                  <Text style={styles.animalLabel}>{animal.label}</Text>
                 </View>
               </View>
+
             </View>
-          ))
-        )}
+          );
+        })}
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadHome')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
-          <View style={styles.navIconContainer}>
-            <Store size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Milk Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
-          <View style={styles.navIconContainer}>
-            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Food Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Users size={22} color={colors.surface} strokeWidth={2} />
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg
-  },
-  scrollView: {
-    flex: 1
-  },
-  content: {
-    padding: spacing.lg
-  },
+  container: { flex: 1, backgroundColor: '#EBF4FB' },
+  scrollView: { flex: 1 },
+  content: { padding: spacing.lg },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.surface
-  },
-  brandText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: spacing.sm
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 4,
-    marginBottom: spacing.md
-  },
-  countCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    alignItems: 'center',
-    ...shadows.card
-  },
-  countLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 4
-  },
-  countValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.primary
-  },
-  farmerCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    ...shadows.card
-  },
-  farmerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm
-  },
-  farmerHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1
-  },
-  farmerAvatar: {
-    width: 44,
+  avatarText: { fontSize: 16, fontWeight: '700', color: colors.white },
+  brandText: { fontSize: 15, fontWeight: '700', color: colors.text },
+  logoImage: {
+    width: 110,
     height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm
   },
-  farmerAvatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.surface
-  },
-  farmerHeaderInfo: {
-    flex: 1
-  },
-  farmerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 2
-  },
-  farmerCode: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: '600'
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12
-  },
-  statusBadgeActive: {
-    backgroundColor: colors.successLight
-  },
-  statusBadgeInactive: {
-    backgroundColor: colors.lightGray
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 5
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  farmerDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: spacing.xs
-  },
-  detailText: {
-    fontSize: 13,
-    color: colors.textMuted,
-    flex: 1
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: spacing.xs
-  },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.lightGray,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginRight: 6,
-    marginBottom: 6
-  },
-  tagIcon: {
-    fontSize: 12,
-    marginRight: 4
-  },
-  tagText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
-  },
-  emptyText: {
-    color: colors.textMuted,
-    marginTop: 24,
-    textAlign: 'center'
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+
+  // Title
+  title: { fontSize: 24, fontWeight: '800', color: colors.text, marginTop: 12, marginBottom: 2, letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.md },
+
+  // Empty
+  emptyBox: { alignItems: 'center', paddingVertical: spacing.xl },
+  emptyText: { fontSize: typography.body, fontWeight: '700', color: colors.textSecondary },
+  emptySubtext: { fontSize: typography.small, color: colors.textMuted, marginTop: 4 },
+
+  // Card
+  card: {
     backgroundColor: colors.surface,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.medium
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    padding: spacing.md,
+    marginBottom: 10,
+    ...shadows.xs,
   },
-  navItem: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs
+
+  // Card top
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  farmerAvatar: {
+    width: 46, height: 46, borderRadius: 23,
+    justifyContent: 'center', alignItems: 'center', flexShrink: 0,
   },
-  navIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4
+  farmerAvatarText: { fontSize: 16, fontWeight: '700' },
+  farmerInfo: { flex: 1, minWidth: 0 },
+  farmerName: { fontSize: 15, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+  farmerCode: { fontSize: 12, color: colors.primary, fontWeight: '600', marginTop: 2 },
+
+  // Status badge
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, flexShrink: 0,
   },
-  navIconActive: {
-    backgroundColor: colors.primary
+  statusActive: { backgroundColor: '#E1F5EE' },
+  statusInactive: { backgroundColor: '#F1EFE8' },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 11, fontWeight: '600' },
+
+  // Divider
+  divider: { height: 1, backgroundColor: colors.divider, marginVertical: 10 },
+
+  // Card bottom
+  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  phoneText: { fontSize: 13, color: colors.textMuted },
+
+  // Animal tag
+  animalTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#E6F1FB',
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1, borderColor: '#B5D4F4',
   },
-  navLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
-  },
-  navLabelActive: {
-    color: colors.primary
-  }
+  animalEmoji: { fontSize: 13 },
+  animalLabel: { fontSize: 12, fontWeight: '600', color: '#0C447C' },
 });
 
 export default CollectionHeadFarmerListScreen;

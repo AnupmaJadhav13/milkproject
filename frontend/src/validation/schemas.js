@@ -67,7 +67,6 @@ export const farmerPasswordSchema = Yup.object().shape({
 const collectionHeadSchema = Yup.object().shape({
   fullName: Yup.string().optional(),
   mobileNumber: optionalIndianMobile,
-  alternativeMobileNumber: optionalIndianMobile,
   username: Yup.string().optional(),
   password: Yup.string().optional()
 });
@@ -89,12 +88,11 @@ export const centerSchema = Yup.object().shape({
 export const farmerSchema = Yup.object().shape({
   fullName: nonEmptyString('Farmer full name'),
   mobileNumber: indianMobile,
-  alternativeNumber: optionalIndianMobile,
-  address: nonEmptyString('Address'),
-  village: nonEmptyString('Village'),
-  bankName: nonEmptyString('Bank name'),
   ifscCode,
   accountNumber,
+  confirmAccountNumber: Yup.string()
+    .required('Please confirm account number')
+    .oneOf([Yup.ref('accountNumber')], 'Account numbers do not match'),
   accountHolderName: nonEmptyString('Account holder name'),
   assignedCenter: Yup.string().required('Assigned center is required'),
   animalType: Yup.string()
@@ -110,11 +108,11 @@ export const farmerSchema = Yup.object().shape({
 export const foodSchema = Yup.object().shape({
   farmerId: Yup.string().required('Farmer is required'),
   animalType: Yup.string()
-    .required('Animal type is required')
-    .oneOf(['Cow', 'Buffalo'], 'Select Cow or Buffalo'),
+    .oneOf(['Cow', 'Buffalo', ''], 'Select Cow or Buffalo')
+    .optional(),
   foodType: Yup.string()
-    .required('Food type is required')
-    .oneOf(['Cattle Feed', 'Buffalo Feed', 'Mineral Mix', 'Dry Fodder', 'Green Fodder', 'Protein Mix', 'Other'], 'Select a valid food type'),
+    .oneOf(['Cattle Feed', 'Buffalo Feed', 'Mineral Mix', 'Dry Fodder', 'Green Fodder', 'Protein Mix', 'Other', ''], 'Select a valid food type')
+    .optional(),
   quantity: Yup.number()
     .typeError('Quantity must be a number')
     .required('Quantity is required')

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Linking, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -23,15 +23,22 @@ const FarmerListScreen = ({ navigation, route }) => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (token) {
-        const params = selectedCenterId ? { centerId: selectedCenterId } : {};
-        dispatch(fetchFarmers({ token, params }));
-      }
-    }, [dispatch, token, selectedCenterId])
-  );
+  const loadData = useCallback(() => {
+    if (token) {
+      const params = selectedCenterId ? { centerId: selectedCenterId } : {};
+      dispatch(fetchFarmers({ token, params }));
+    }
+  }, [dispatch, token, selectedCenterId]);
+
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
   const filtered = list.filter((farmer) => {
     const matchesSearch = [farmer.fullName, farmer.mobileNumber, farmer.farmerCode, farmer.village]
@@ -79,8 +86,9 @@ const FarmerListScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -219,37 +227,6 @@ const FarmerListScreen = ({ navigation, route }) => {
           ))
         )}
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
-          <View style={styles.navIconContainer}>
-            <Store size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Collections</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
-          <View style={styles.navIconContainer}>
-            <CreditCard size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Payments</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <Users size={22} color={colors.surface} strokeWidth={2} />
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
 
       <ConfirmDialog
         visible={confirmVisible}

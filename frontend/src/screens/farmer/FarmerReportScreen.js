@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator, Alert, Platform, Linking
+  ScrollView, ActivityIndicator, Platform, Linking, RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FileText, Calendar, ChevronLeft, Share2 } from 'lucide-react-native';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import { fetchFarmerReport } from '../../redux/slices/farmerDashboardSlice';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
 import Toast from 'react-native-toast-message';
+import { generateFarmerSelfReportPDF, printAndSharePDF } from '../../utils/pdfGenerator';
 
 const fmt = (d) => d.toISOString().split('T')[0];
 const fmtDisplay = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -42,83 +41,6 @@ const FarmerReportScreen = ({ navigation }) => {
     dispatch(fetchFarmerReport({ token, params: { from: fmt(fromDate), to: fmt(toDate) } }));
   };
 
-  // ── Build HTML for PDF ────────────────────────────────────────────────────
-  const buildReportHTML = () => {
-    const rows = entries.map((e, i) => `
-      <tr style="background:${i % 2 === 0 ? '#F4F7F6' : '#fff'}">
-        <td>${fmtDisplay(e.date)}</td>
-        <td>${e.shift === 'Morning' ? 'सकाळ' : 'संध्याकाळ'}</td>
-        <td>${e.animalType === 'Cow' ? 'गाय' : 'म्हैस'}</td>
-        <td>${e.quantityLiters}</td>
-        <td>${e.fat}</td>
-        <td>${e.snf}</td>
-        <td>₹${e.ratePerLiter}</td>
-        <td><b>₹${Number(e.amountInr || 0).toFixed(2)}</b></td>
-      </tr>`).join('');
-
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; color: #1A2B28; font-size: 13px; }
-  .header { text-align: center; border-bottom: 3px solid #2C7A6E; padding-bottom: 14px; margin-bottom: 18px; }
-  .brand { font-size: 24px; font-weight: 800; color: #2C7A6E; letter-spacing: -0.5px; }
-  .subtitle { font-size: 13px; color: #7A9690; margin-top: 4px; }
-  .meta-box { background: #F4F7F6; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .meta-row { font-size: 12px; } .meta-row b { color: #2C7A6E; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-  th { background: #2C7A6E; color: white; padding: 9px 6px; text-align: center; font-size: 11px; }
-  td { border: 1px solid #D9E8E5; padding: 7px 6px; text-align: center; font-size: 11px; }
-  .summary-box { background: #E6F3F1; border-radius: 8px; padding: 14px; }
-  .summary-title { font-size: 14px; font-weight: 700; color: #2C7A6E; margin-bottom: 10px; }
-  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .summary-item { background: white; border-radius: 6px; padding: 10px; text-align: center; }
-  .summary-val { font-size: 16px; font-weight: 800; color: #2C7A6E; }
-  .summary-lbl { font-size: 10px; color: #7A9690; margin-top: 2px; }
-  .footer { text-align: center; margin-top: 20px; font-size: 10px; color: #7A9690; border-top: 1px solid #D9E8E5; padding-top: 10px; }
-</style>
-</head>
-<body>
-<div class="header">
-  <div class="brand">Sarvasvaa Milk</div>
-  <div class="subtitle">शेतकरी दूध संकलन अहवाल · Farmer Milk Collection Report</div>
-</div>
-<div class="meta-box">
-  <div class="meta-row"><b>शेतकरी:</b> ${user?.name || '—'}</div>
-  <div class="meta-row"><b>कोड:</b> ${user?.farmerCode || '—'}</div>
-  <div class="meta-row"><b>मोबाइल:</b> ${user?.phoneNumber || '—'}</div>
-  <div class="meta-row"><b>केंद्र:</b> ${user?.centerName || '—'}</div>
-  <div class="meta-row"><b>सुरुवात:</b> ${fmtDisplay(fromDate)}</div>
-  <div class="meta-row"><b>शेवट:</b> ${fmtDisplay(toDate)}</div>
-</div>
-<table>
-  <thead>
-    <tr>
-      <th>दिनांक</th><th>वेळ</th><th>प्राणी</th>
-      <th>दूध (L)</th><th>FAT</th><th>SNF</th><th>दर</th><th>रक्कम</th>
-    </tr>
-  </thead>
-  <tbody>${rows}</tbody>
-</table>
-<div class="summary-box">
-  <div class="summary-title">सारांश · Summary</div>
-  <div class="summary-grid">
-    <div class="summary-item"><div class="summary-val">${summary.totalMilkLiters || 0} L</div><div class="summary-lbl">एकूण दूध</div></div>
-    <div class="summary-item"><div class="summary-val">₹${summary.totalAmountInr || 0}</div><div class="summary-lbl">एकूण रक्कम</div></div>
-    <div class="summary-item"><div class="summary-val">${summary.avgFat || 0}</div><div class="summary-lbl">सरासरी FAT</div></div>
-    <div class="summary-item"><div class="summary-val">${summary.avgSnf || 0}</div><div class="summary-lbl">सरासरी SNF</div></div>
-    <div class="summary-item"><div class="summary-val">${summary.cowMilkLiters || 0} L</div><div class="summary-lbl">गाय दूध</div></div>
-    <div class="summary-item"><div class="summary-val">${summary.buffaloMilkLiters || 0} L</div><div class="summary-lbl">म्हैस दूध</div></div>
-    <div class="summary-item"><div class="summary-val">${summary.totalCollectionDays || 0}</div><div class="summary-lbl">संकलन दिवस</div></div>
-    <div class="summary-item"><div class="summary-val">${summary.totalEntries || 0}</div><div class="summary-lbl">एकूण नोंदी</div></div>
-  </div>
-</div>
-<div class="footer">Sarvasvaa Milk · Generated on ${new Date().toLocaleDateString('en-IN')} · ${user?.name || ''}</div>
-</body>
-</html>`;
-  };
-
   // ── PDF Export ────────────────────────────────────────────────────────────
   const generatePDF = async () => {
     if (entries.length === 0) {
@@ -127,12 +49,11 @@ const FarmerReportScreen = ({ navigation }) => {
     }
     setGenerating(true);
     try {
-      const { uri } = await Print.printToFileAsync({ html: buildReportHTML(), base64: false });
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'अहवाल शेअर करा' });
-      } else {
-        Alert.alert('PDF तयार झाला', `फाइल: ${uri}`);
+      const html = generateFarmerSelfReportPDF({ entries, summary, user, fromDate, toDate });
+      const farmerName = user?.name?.replace(/\s+/g, '_') || 'Farmer';
+      const result = await printAndSharePDF(html, `Milk_Report_${farmerName}_${fmt(fromDate)}_${fmt(toDate)}`);
+      if (!result.success) {
+        Toast.show({ type: 'error', text1: 'PDF तयार करणे अयशस्वी', text2: result.error });
       }
     } catch (err) {
       Toast.show({ type: 'error', text1: 'PDF तयार करणे अयशस्वी', text2: err.message });
@@ -202,7 +123,15 @@ const FarmerReportScreen = ({ navigation }) => {
         )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={reportStatus === 'loading'}
+            onRefresh={handleGenerate}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {/* Date Filter Card */}
         <View style={styles.filterCard}>
           <Text style={styles.filterTitle}>कालावधी निवडा · Select Period</Text>

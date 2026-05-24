@@ -13,7 +13,7 @@ const AdminProfileScreen = ({ navigation }) => {
   const handleLogout = () => { dispatch(logout()); };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]} showsVerticalScrollIndicator={false}>
       {/* Back */}
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
         <Text style={styles.backBtnText}>← Dashboard</Text>

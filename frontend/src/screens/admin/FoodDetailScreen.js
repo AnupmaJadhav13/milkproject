@@ -26,7 +26,7 @@ const FoodDetailScreen = ({ navigation, route }) => {
           <Text style={styles.title}>Food Details</Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <View style={styles.iconBox}>
             <Salad size={24} color={colors.primary} strokeWidth={2.5} />

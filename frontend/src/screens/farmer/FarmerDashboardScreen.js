@@ -45,7 +45,7 @@ const FarmerDashboardScreen = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
@@ -103,24 +103,6 @@ const FarmerDashboardScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: colors.primaryXLight }]}>
-            <Droplets size={18} color={colors.primary} strokeWidth={2.5} />
-            <Text style={styles.statValue}>{todaySummary.totalMilkLiters || 0}</Text>
-            <Text style={styles.statLabel}>Liters</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.successLight }]}>
-            <Text style={styles.statEmoji}>Rs</Text>
-            <Text style={styles.statValue}>{todaySummary.totalAmountInr || 0}</Text>
-            <Text style={styles.statLabel}>Amount</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.warningLight }]}>
-            <Text style={styles.statEmoji}>#</Text>
-            <Text style={styles.statValue}>{todaySummary.totalEntries || 0}</Text>
-            <Text style={styles.statLabel}>Records</Text>
-          </View>
-        </View>
-
         {todayEntries.length > 0 && todayEntries.slice(0, 2).map((entry) => (
           <View key={entry._id} style={styles.entryRow}>
             <View style={styles.entryIconBox}>
@@ -171,31 +153,6 @@ const FarmerDashboardScreen = ({ navigation }) => {
           })}
         </View>
       </ScrollView>
-
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        {[
-          { label: 'Home', icon: House, nav: null, active: true },
-          { label: 'Milk', icon: Droplets, nav: 'FarmerMilk' },
-          { label: 'Food', icon: Salad, nav: 'FarmerFood' },
-          { label: 'Reports', icon: FileText, nav: 'FarmerReport' },
-          { label: 'Alerts', icon: Bell, nav: 'FarmerNotifications', badge: unreadCount }
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <TouchableOpacity key={item.label} style={styles.navItem} onPress={() => item.nav && navigation.navigate(item.nav)}>
-              <View style={[styles.navIconBox, item.active && styles.navIconBoxActive]}>
-                <Icon size={20} color={item.active ? colors.white : colors.textMuted} strokeWidth={2} />
-                {item.badge > 0 && (
-                  <View style={styles.navBadge}>
-                    <Text style={styles.navBadgeText}>{item.badge > 9 ? '9+' : item.badge}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.navLabel, item.active && styles.navLabelActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
     </View>
   );
 };

@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  FlatList, Alert, ActivityIndicator, TextInput, Modal
+  FlatList, Alert, ActivityIndicator, TextInput, Modal, Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ChevronLeft, FileText, BarChart2, Share2, Search, Calendar } from 'lucide-react-native';
 import { fetchCenterReport, fetchFarmerReport, clearReports } from '../../redux/slices/reportSlice';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
@@ -16,23 +17,32 @@ const REPORT_TYPES = [
 ];
 
 // ─── Date Input ───────────────────────────────────────────────────────────────
-const DateInput = ({ label, value, onChange }) => (
-  <View style={styles.dateInputBox}>
-    <Text style={styles.fieldLabel}>{label}</Text>
-    <View style={styles.dateInputRow}>
-      <Calendar size={14} color={colors.primary} />
-      <TextInput
-        style={styles.dateInput}
-        value={value}
-        onChangeText={onChange}
-        placeholder="YYYY-MM-DD"
-        placeholderTextColor={colors.textMuted}
-        keyboardType="numeric"
-        maxLength={10}
-      />
+const DateInput = ({ label, value, onChange }) => {
+  const [show, setShow] = useState(false);
+  const today = new Date();
+  const dateObj = value ? new Date(value) : today;
+  const display = value
+    ? new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'Select date';
+  return (
+    <View style={styles.dateInputBox}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity style={styles.dateInputRow} onPress={() => setShow(true)}>
+        <Calendar size={14} color={colors.primary} />
+        <Text style={[styles.dateInput, { color: value ? colors.text : colors.textMuted }]}>{display}</Text>
+      </TouchableOpacity>
+      {show && (
+        <DateTimePicker
+          value={dateObj}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          maximumDate={today}
+          onChange={(_, d) => { setShow(false); if (d) onChange(d.toISOString().split('T')[0]); }}
+        />
+      )}
     </View>
-  </View>
-);
+  );
+};
 
 // ─── Summary Card ─────────────────────────────────────────────────────────────
 const SummaryCard = ({ label, value, color }) => (
@@ -110,12 +120,18 @@ const ReportsScreen = ({ navigation, route }) => {
     setSharing(true);
     try {
       let html;
+      let filename;
       if (reportType === 'center') {
-        html = await generateCenterReportPDF(data);
+        html = generateCenterReportPDF(data);
+        const cName = (selectedCenter?.name || 'Center').replace(/\s+/g, '_');
+        filename = `Milk_Collection_Report_${cName}_${fromDate}_${toDate}`;
       } else {
-        html = await generateFarmerReportPDF(data);
+        html = generateFarmerReportPDF(data);
+        const fName = (selectedFarmer?.fullName || 'Farmer').replace(/\s+/g, '_');
+        const fCode = selectedFarmer?.farmerCode || '';
+        filename = `Milk_Collection_Report_${fName}_${fCode}_${fromDate}_${toDate}`;
       }
-      const result = await printAndSharePDF(html, `${reportType}_report_${fromDate}_${toDate}`);
+      const result = await printAndSharePDF(html, filename);
       if (!result.success) {
         Alert.alert('Share Failed', result.error || 'Could not share report');
       }
@@ -260,6 +276,7 @@ const ReportsScreen = ({ navigation, route }) => {
             <FlatList
               data={filteredCenters}
               keyExtractor={(i) => i._id}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.pickerItem}
@@ -296,6 +313,7 @@ const ReportsScreen = ({ navigation, route }) => {
             <FlatList
               data={filteredFarmers}
               keyExtractor={(i) => i._id}
+              showsVerticalScrollIndicator={false}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.pickerItem}

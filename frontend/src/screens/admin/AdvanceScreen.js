@@ -1,18 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  FlatList, Modal, ScrollView, Alert, ActivityIndicator, RefreshControl
+  FlatList, Modal, ScrollView, Alert, ActivityIndicator, RefreshControl, Platform
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar } from 'lucide-react-native';
 import { useSelector } from 'react-redux';
 import { advanceApi, farmerApi } from '../../api/api';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
-import { ROLE_ADMIN } from '../../constants/roles';
+import { ROLE_ADMIN, ROLE_COLLECTION_HEAD } from '../../constants/roles';
 
 const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'UPI'];
 
-const AdvanceScreen = ({ centerId, centerName }) => {
+const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
   const { token, user } = useSelector((s) => s.auth);
   const isAdmin = user?.role === ROLE_ADMIN;
+  const isCollectionHead = user?.role === ROLE_COLLECTION_HEAD;
+  const canManage = isAdmin || isCollectionHead; // both can add/manage advances
+
+  // Normalise centerId — collection head always uses their own assignedCenter
+  const centerId = isCollectionHead
+    ? (typeof user?.assignedCenter === 'object'
+        ? user?.assignedCenter?._id?.toString() || user?.assignedCenter?.toString()
+        : user?.assignedCenter?.toString())
+    : (centerIdProp
+        ? (typeof centerIdProp === 'object'
+            ? centerIdProp?._id?.toString() || centerIdProp?.toString()
+            : centerIdProp)
+        : undefined);
 
   const [advances, setAdvances]           = useState([]);
   const [loading, setLoading]             = useState(false);
@@ -31,6 +46,7 @@ const AdvanceScreen = ({ centerId, centerName }) => {
     paymentMethod: 'Cash',
     notes: ''
   });
+  const [showAdvanceDatePicker, setShowAdvanceDatePicker] = useState(false);
 
   // ── Add Amount to existing advance modal ──
   const [showAddAmountModal, setShowAddAmountModal] = useState(false);
@@ -65,10 +81,24 @@ const AdvanceScreen = ({ centerId, centerName }) => {
     if (query.length < 2) { setFarmerResults([]); return; }
     setFarmerSearchLoading(true);
     try {
-      const params = { search: query };
-      if (centerId) params.centerId = centerId;
-      const res = await farmerApi.getAll(token, params);
-      setFarmerResults((res.data.data || res.data).slice(0, 8));
+      let farmers = [];
+      if (isCollectionHead && centerId) {
+        // Collection head: fetch all center farmers then filter client-side
+        const res = await farmerApi.getByCenter(centerId, token);
+        const all = res.data || [];
+        const q = query.toLowerCase();
+        farmers = all.filter(f =>
+          f.fullName?.toLowerCase().includes(q) ||
+          f.farmerCode?.toLowerCase().includes(q) ||
+          f.mobileNumber?.includes(q)
+        );
+      } else {
+        const params = { search: query };
+        if (centerId) params.centerId = centerId;
+        const res = await farmerApi.getAll(token, params);
+        farmers = res.data.data || res.data || [];
+      }
+      setFarmerResults(farmers.slice(0, 8));
     } catch { /* ignore */ }
     setFarmerSearchLoading(false);
   };
@@ -84,6 +114,7 @@ const AdvanceScreen = ({ centerId, centerName }) => {
     setSelectedFarmer(null);
     setFarmerSearch('');
     setFarmerResults([]);
+    setShowAdvanceDatePicker(false);
   };
 
   // ── Submit new advance ──
@@ -201,7 +232,7 @@ const AdvanceScreen = ({ centerId, centerName }) => {
         {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
 
         {/* Actions */}
-        {isAdmin && (
+        {canManage && (
           <View style={styles.cardActions}>
             {isActive && (
               <TouchableOpacity style={styles.addAmtBtn} onPress={() => openAddAmount(item)}>
@@ -219,46 +250,53 @@ const AdvanceScreen = ({ centerId, centerName }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Summary strip */}
-      <View style={styles.summaryStrip}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Total Given</Text>
-          <Text style={styles.summaryValue}>₹{totalGiven.toLocaleString('en-IN')}</Text>
-        </View>
-        <View style={[styles.summaryItem, styles.summaryDivider]}>
-          <Text style={styles.summaryLabel}>Outstanding</Text>
-          <Text style={[styles.summaryValue, { color: colors.danger }]}>₹{totalRemaining.toLocaleString('en-IN')}</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Settled</Text>
-          <Text style={[styles.summaryValue, { color: colors.success }]}>{totalSettled}</Text>
-        </View>
-      </View>
+      <FlatList
+        data={loading ? [] : advances}
+        keyExtractor={(i) => i._id}
+        renderItem={renderAdvance}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); loadAdvances().finally(() => setRefreshing(false)); }}
+          />
+        }
+        ListHeaderComponent={
+          <>
+            {/* Summary strip */}
+            <View style={styles.summaryStrip}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total Given</Text>
+                <Text style={styles.summaryValue}>₹{totalGiven.toLocaleString('en-IN')}</Text>
+              </View>
+              <View style={[styles.summaryItem, styles.summaryDivider]}>
+                <Text style={styles.summaryLabel}>Outstanding</Text>
+                <Text style={[styles.summaryValue, { color: colors.danger }]}>₹{totalRemaining.toLocaleString('en-IN')}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Settled</Text>
+                <Text style={[styles.summaryValue, { color: colors.success }]}>{totalSettled}</Text>
+              </View>
+            </View>
 
-      {/* Add button */}
-      {isAdmin && (
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
-          <Text style={styles.addBtnText}>+ New Advance Payment</Text>
-        </TouchableOpacity>
-      )}
+            {/* Add button */}
+            {canManage && (
+              <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
+                <Text style={styles.addBtnText}>+ New Advance Payment</Text>
+              </TouchableOpacity>
+            )}
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} size="large" />
-      ) : (
-        <FlatList
-          data={advances}
-          keyExtractor={(i) => i._id}
-          renderItem={renderAdvance}
-          contentContainerStyle={{ padding: spacing.md, paddingBottom: 100 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); loadAdvances().finally(() => setRefreshing(false)); }}
-            />
-          }
-          ListEmptyComponent={<Text style={styles.empty}>No advance records found.</Text>}
-        />
-      )}
+            {loading && (
+              <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} size="large" />
+            )}
+          </>
+        }
+        ListEmptyComponent={
+          !loading ? <Text style={styles.empty}>No advance records found.</Text> : null
+        }
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 100 }}
+      />
 
       {/* ── Add New Advance Modal ── */}
       <Modal visible={showAddModal} animationType="slide" transparent>
@@ -303,13 +341,29 @@ const AdvanceScreen = ({ centerId, centerName }) => {
               />
 
               <Text style={styles.fieldLabel}>Date *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                value={addForm.advanceDate}
-                onChangeText={(v) => setAddForm({ ...addForm, advanceDate: v })}
-                placeholderTextColor={colors.textMuted}
-              />
+              <TouchableOpacity
+                style={[styles.input, { flexDirection: 'row', alignItems: 'center', gap: 8 }]}
+                onPress={() => setShowAdvanceDatePicker(true)}
+              >
+                <Calendar size={14} color={colors.primary} />
+                <Text style={{ fontSize: 15, color: colors.text }}>
+                  {addForm.advanceDate
+                    ? new Date(addForm.advanceDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Select date'}
+                </Text>
+              </TouchableOpacity>
+              {showAdvanceDatePicker && (
+                <DateTimePicker
+                  value={addForm.advanceDate ? new Date(addForm.advanceDate) : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  maximumDate={new Date()}
+                  onChange={(_, d) => {
+                    setShowAdvanceDatePicker(false);
+                    if (d) setAddForm({ ...addForm, advanceDate: d.toISOString().split('T')[0] });
+                  }}
+                />
+              )}
 
               <Text style={styles.fieldLabel}>Payment Method *</Text>
               <View style={styles.methodRow}>
@@ -421,7 +475,7 @@ const AdvanceScreen = ({ centerId, centerName }) => {
 const styles = StyleSheet.create({
   summaryStrip: {
     flexDirection: 'row', backgroundColor: colors.surface,
-    marginHorizontal: spacing.md, marginTop: spacing.md,
+    marginTop: spacing.md,
     borderRadius: radius.md, padding: spacing.md,
     ...shadows.card
   },
@@ -431,7 +485,7 @@ const styles = StyleSheet.create({
   summaryValue:   { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 3 },
 
   addBtn: {
-    margin: spacing.md, backgroundColor: colors.primary,
+    marginTop: spacing.md, backgroundColor: colors.primary,
     borderRadius: radius.md, paddingVertical: 13, alignItems: 'center'
   },
   addBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

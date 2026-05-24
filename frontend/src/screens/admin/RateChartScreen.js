@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
@@ -55,6 +56,7 @@ const RateChartScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [settings, setSettings] = useState(null);
   const [baseInput, setBaseInput] = useState('');
   const [fatStepInput, setFatStepInput] = useState('');
@@ -137,8 +139,9 @@ const RateChartScreen = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -214,41 +217,7 @@ const RateChartScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Matrix Overview */}
-        <View style={styles.overviewCard}>
-          <View style={styles.overviewHeader}>
-            <LayoutGrid size={20} color={colors.primary} strokeWidth={2} />
-            <Text style={styles.overviewTitle}>Matrix Overview</Text>
-          </View>
-
-          <View style={styles.overviewGrid}>
-            <View style={styles.overviewItem}>
-              <Text style={styles.overviewLabel}>Min Fat</Text>
-              <Text style={styles.overviewValue}>{settings.fatMin}%</Text>
-            </View>
-            <View style={styles.overviewItem}>
-              <Text style={styles.overviewLabel}>Max Fat</Text>
-              <Text style={styles.overviewValue}>{settings.fatMax}%</Text>
-            </View>
-            <View style={styles.overviewItem}>
-              <Text style={styles.overviewLabel}>Min SNF</Text>
-              <Text style={styles.overviewValue}>{settings.snfMin}%</Text>
-            </View>
-            <View style={styles.overviewItem}>
-              <Text style={styles.overviewLabel}>Max SNF</Text>
-              <Text style={styles.overviewValue}>{settings.snfMax}%</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoBox}>
-            <Info size={16} color={colors.primary} strokeWidth={2} />
-            <Text style={styles.infoText}>
-              The matrix below displays computed rates per liter. Top row represents SNF % (Fixed), 
-              left column represents Fat % (Fixed). Values highlight the progressive increment based on your step configuration.
-            </Text>
-          </View>
-        </View>
-
+        
         {/* Generated Rate Matrix */}
         <View style={styles.matrixCard}>
           <View style={styles.matrixHeader}>
@@ -266,7 +235,7 @@ const RateChartScreen = ({ navigation }) => {
             </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator style={styles.matrixScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.matrixScroll}>
             <View>
               {/* Header Row */}
               <View style={styles.matrixRow}>
@@ -281,7 +250,7 @@ const RateChartScreen = ({ navigation }) => {
               </View>
 
               {/* Data Rows */}
-              <ScrollView style={styles.matrixDataScroll} nestedScrollEnabled>
+              <ScrollView style={styles.matrixDataScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
                 {matrix.rows.map((row) => (
                   <View key={row.fat} style={styles.matrixRow}>
                     <View style={[styles.matrixCell, styles.matrixRowHeaderCell]}>
@@ -303,37 +272,6 @@ const RateChartScreen = ({ navigation }) => {
           </Text>
         </View>
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AdminDashboard')}>
-          <View style={styles.navIconContainer}>
-            <House size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Dashboard</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionRecords')}>
-          <View style={styles.navIconContainer}>
-            <Store size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Collections</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('AllPays')}>
-          <View style={styles.navIconContainer}>
-            <CreditCard size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Payments</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FarmerList')}>
-          <View style={styles.navIconContainer}>
-            <Users size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };

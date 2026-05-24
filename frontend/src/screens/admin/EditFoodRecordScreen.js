@@ -24,7 +24,7 @@ const EditFoodRecordScreen = ({ route, navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Edit Food Record</Text>
       <Formik
         initialValues={{
@@ -148,6 +148,7 @@ const EditFoodRecordScreen = ({ route, navigation }) => {
                   value={values.date}
                   mode="date"
                   display="default"
+                  maximumDate={new Date()}
                   onChange={(event, date) => {
                     setFieldValue('showDatePicker', false);
                     if (date) setFieldValue('date', date);

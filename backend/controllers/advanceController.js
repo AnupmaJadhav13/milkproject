@@ -4,7 +4,7 @@ const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
 const { sendAdvanceNotification } = require('../services/notificationService');
 
-// @desc  Add advance payment (Admin only)
+// @desc  Add advance payment (Admin or Collection Head)
 // @route POST /api/advances
 const addAdvance = asyncHandler(async (req, res) => {
   const { farmerId, advanceAmount, advanceDate, paymentMethod, notes } = req.body;
@@ -18,6 +18,16 @@ const addAdvance = asyncHandler(async (req, res) => {
   if (!farmer) {
     res.status(404);
     throw new Error('Farmer not found');
+  }
+
+  // Collection head can only add advances for farmers in their own center
+  if (req.user.role === 'collection_head') {
+    const farmerCenterId = farmer.assignedCenter?._id?.toString() || farmer.assignedCenter?.toString();
+    const headCenterId   = req.user.assignedCenter?.toString();
+    if (farmerCenterId !== headCenterId) {
+      res.status(403);
+      throw new Error('You can only add advances for farmers in your assigned center');
+    }
   }
 
   // Each advance record tracks its own remainingAmount independently.
@@ -105,8 +115,8 @@ const getAdvances = asyncHandler(async (req, res) => {
   const { farmerId, centerId, farmerCode, month, year } = req.query;
   const filter = {};
 
-  if (req.user.role === 'collectionHead') {
-    filter.collectionCenterId = req.user.centerId;
+  if (req.user.role === 'collection_head') {
+    filter.collectionCenterId = req.user.assignedCenter;
   } else {
     if (centerId) filter.collectionCenterId = centerId;
   }

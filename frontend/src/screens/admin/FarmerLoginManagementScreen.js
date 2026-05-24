@@ -1,14 +1,8 @@
-/**
- * FarmerLoginManagementScreen.js
- * Admin screen to:
- *  - Set / update common farmer password
- *  - Enable / disable login for individual farmers
- *  - Enable login for ALL farmers at once
- */
+
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, FlatList, ActivityIndicator, Alert, Switch
+  ScrollView, FlatList, ActivityIndicator, Alert, Switch, RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -121,15 +115,7 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
     );
   };
 
-  const filtered = farmers.filter((f) => {
-    const q = search.toLowerCase();
-    return (
-      f.fullName?.toLowerCase().includes(q) ||
-      f.mobileNumber?.includes(q) ||
-      f.farmerCode?.toLowerCase().includes(q)
-    );
-  });
-
+  
   const enabledCount = farmers.filter((f) => f.loginEnabled).length;
 
   const renderFarmer = ({ item }) => (
@@ -188,25 +174,9 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadFarmers} tintColor={colors.primary} />}
       >
-        {/* Stats Bar */}
-        <View style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{farmers.length}</Text>
-            <Text style={styles.statLabel}>Total Farmers</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.success }]}>{enabledCount}</Text>
-            <Text style={styles.statLabel}>Login Enabled</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.danger }]}>{farmers.length - enabledCount}</Text>
-            <Text style={styles.statLabel}>Disabled</Text>
-          </View>
-        </View>
-
+      
         {/* Set Common Password Card */}
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
@@ -317,37 +287,31 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Individual Farmer Toggle */}
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <Users size={18} color={colors.primary} strokeWidth={2.5} />
-            <Text style={styles.cardTitle}>Individual Farmer Access</Text>
-          </View>
-          <Text style={styles.cardSubtitle}>Toggle login access per farmer</Text>
-
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search farmer by name, mobile, code..."
-            value={search}
-            onChangeText={setSearch}
-            placeholderTextColor={colors.textMuted}
-          />
-
-          {loading ? (
-            <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />
-          ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item._id}
-              renderItem={renderFarmer}
-              scrollEnabled={false}
-              ListEmptyComponent={
-                <Text style={styles.emptyText}>No farmers found</Text>
-              }
-            />
-          )}
-        </View>
+        {/* Individual Farmer Access — moved to standalone list below cards */}
       </ScrollView>
+
+      {/* Farmer list outside scroll card for cleaner look */}
+      <View style={{ flex: 1, paddingHorizontal: spacing.lg }}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search farmer by name, mobile, code..."
+          value={search}
+          onChangeText={setSearch}
+          placeholderTextColor={colors.textMuted}
+        />
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => item._id}
+            renderItem={renderFarmer}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            ListEmptyComponent={<Text style={styles.emptyText}>No farmers found</Text>}
+          />
+        )}
+      </View>
     </View>
   );
 };

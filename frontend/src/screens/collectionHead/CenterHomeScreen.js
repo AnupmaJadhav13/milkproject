@@ -1,12 +1,20 @@
-import { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, RefreshControl, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
-import { House, Store, Users, Salad, LogOut } from 'lucide-react-native';
+import { Store, Users, Salad, LogOut, Droplets, ClipboardList, CreditCard } from 'lucide-react-native';
 import { fetchFarmersByCenter } from '../../redux/slices/farmerSlice';
 import { logout } from '../../redux/slices/authSlice';
 import LoadingIndicator from '../../components/LoadingIndicator';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
+
+const menuItems = [
+  { label: 'Daily Milk\nEntry',  icon: Droplets,     nav: 'MilkEntry',             iconColor: '#1D9E75', iconBg: '#E1F5EE' },
+  { label: 'Add Food',           icon: Salad,         nav: 'FoodEntry',             iconColor: '#B87D1A', iconBg: '#FEF3DC' },
+  { label: 'Food History',       icon: ClipboardList, nav: 'FoodHistory',           iconColor: '#185FA5', iconBg: '#E6F1FB' },
+  { label: 'Farmers',            icon: Users,         nav: 'CollectionHeadFarmers', iconColor: '#1D9E75', iconBg: '#E1F5EE' },
+  { label: 'Payments',           icon: CreditCard,    nav: 'AllPays',               iconColor: '#185FA5', iconBg: '#E6F1FB' },
+];
 
 const CollectionHeadHomeScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -15,233 +23,238 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
   const user = useSelector((state) => state.auth.user);
   const farmers = useSelector((state) => state.farmers.list);
   const status = useSelector((state) => state.farmers.status);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (user?.assignedCenter && token) {
       dispatch(fetchFarmersByCenter({ centerId: user.assignedCenter, token }));
     }
   }, [dispatch, token, user]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
   const handleLogout = () => { dispatch(logout()); };
 
   if (status === 'loading') return <LoadingIndicator />;
 
   const activeFarmers = farmers.filter(f => f.status === 'Active').length;
-
-  const actions = [
-    { label: 'Add Food Record', icon: Salad, nav: 'FoodEntry', bg: colors.primary, text: colors.white },
-    { label: 'Daily Milk Collection', icon: Store, nav: 'MilkEntry', bg: colors.teal50, text: colors.primary, border: true },
-    { label: 'Food History', icon: Salad, nav: 'FoodHistory', bg: colors.warningLight, text: colors.warning, border2: true },
-    { label: 'View Farmers', icon: Users, nav: 'CollectionHeadFarmers', bg: colors.successLight, text: colors.success, border3: true },
-  ];
+  const inactiveFarmers = farmers.length - activeFarmers;
 
   return (
     <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'C'}</Text>
             </View>
             <View>
-              <Text style={styles.headerWelcome}>Welcome back</Text>
+              <Text style={styles.headerWelcome}>Welcome back 👋</Text>
               <Text style={styles.headerName}>{user?.name || user?.fullName || 'Collection Head'}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <Text style={styles.logoutBtnText}>Sign out</Text>
-          </TouchableOpacity>
+         <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+  <LogOut size={22} color={colors.danger} strokeWidth={2} />
+</TouchableOpacity>
         </View>
 
-        {/* Page Title */}
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Collection Head</Text>
+        {/* ── Brand + Role — centered ── */}
+        <View style={styles.brandCenter}>
+          <Image
+            source={require('../../assets/images/sarvaalogo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>Head</Text>
+            <Text style={styles.roleBadgeText}>Collection Head</Text>
           </View>
         </View>
 
-        {/* Center Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <View style={styles.summaryIconBox}>
-              <Store size={22} color={colors.primary} strokeWidth={2.5} />
+        {/* ── Farmer Stats Card ── */}
+        <View style={styles.statsCard}>
+          <View style={styles.statsCardHeader}>
+            <View style={styles.statsIconBox}>
+              <Store size={20} color={colors.primary} strokeWidth={2.5} />
             </View>
-            <View>
-              <Text style={styles.summaryLabel}>Assigned Center</Text>
-              <Text style={styles.summaryTitle}>My Center</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.statsCardLabel}>My Collection Center</Text>
+              <Text style={styles.statsCardTitle}>Farmer Overview</Text>
             </View>
-            <View style={styles.activeDot} />
+            <View style={styles.activePill}>
+              <View style={styles.activeDot} />
+              <Text style={styles.activePillText}>Active</Text>
+            </View>
           </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryStats}>
-            <View style={styles.summaryStat}>
-              <Text style={styles.summaryStatValue}>{activeFarmers}</Text>
-              <Text style={styles.summaryStatLabel}>Active</Text>
+          <View style={styles.statsDivider} />
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{farmers.length}</Text>
+              <Text style={styles.statLabel}>Total</Text>
             </View>
-            <View style={styles.summaryStatDivider} />
-            <View style={styles.summaryStat}>
-              <Text style={styles.summaryStatValue}>{farmers.length}</Text>
-              <Text style={styles.summaryStatLabel}>Total</Text>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.success }]}>{activeFarmers}</Text>
+              <Text style={styles.statLabel}>Active</Text>
             </View>
-            <View style={styles.summaryStatDivider} />
-            <View style={styles.summaryStat}>
-              <Text style={styles.summaryStatValue}>{farmers.length - activeFarmers}</Text>
-              <Text style={styles.summaryStatLabel}>Inactive</Text>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: colors.danger }]}>{inactiveFarmers}</Text>
+              <Text style={styles.statLabel}>Inactive</Text>
             </View>
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.actionsGrid}>
-          {actions.map((action, i) => {
-            const IconComponent = action.icon;
+        {/* ── Quick Menu — 3-col circular grid ── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        </View>
+
+        <View style={styles.menuGrid}>
+          {menuItems.map((item, i) => {
+            const IconComponent = item.icon;
             return (
               <TouchableOpacity
                 key={i}
-                style={[
-                  styles.actionTile,
-                  { backgroundColor: action.bg },
-                  action.border && { borderWidth: 1.5, borderColor: colors.teal100 },
-                  action.border2 && { borderWidth: 1.5, borderColor: colors.warning + '44' },
-                  action.border3 && { borderWidth: 1.5, borderColor: colors.success + '44' },
-                ]}
-                onPress={() => navigation.navigate(action.nav)}
+                style={styles.menuItem}
+                onPress={() => navigation.navigate(
+                  item.nav,
+                  item.nav === 'AllPays'
+                    ? { centerId: user?.assignedCenter, centerName: user?.name || 'My Center' }
+                    : undefined
+                )}
+                activeOpacity={0.7}
               >
-                <IconComponent size={24} color={action.text} strokeWidth={2.5} />
-                <Text style={[styles.actionLabel, { color: action.text }]}>{action.label}</Text>
-                <Text style={[styles.actionArrow, { color: action.text + '88' }]}>→</Text>
+                <View style={[styles.menuCircle, { backgroundColor: item.iconBg }]}>
+                  <IconComponent size={28} color={item.iconColor} strokeWidth={2} />
+                </View>
+                <Text style={styles.menuLabel}>{item.label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
+
       </ScrollView>
-
-      {/* Bottom Nav */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <View style={[styles.navIconContainer, styles.navIconActive]}>
-            <House size={22} color={colors.surface} strokeWidth={2} />
-          </View>
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MilkEntry')}>
-          <View style={styles.navIconContainer}>
-            <Store size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Milk Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('FoodEntry')}>
-          <View style={styles.navIconContainer}>
-            <Salad size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Food Entry</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('CollectionHeadFarmers')}>
-          <View style={styles.navIconContainer}>
-            <Users size={22} color={colors.textMuted} strokeWidth={2} />
-          </View>
-          <Text style={styles.navLabel}>Farmers</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+  container: { flex: 1, backgroundColor: '#EBF4FB' },
   scrollView: { flex: 1 },
-  content: { padding: spacing.lg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  content: { paddingHorizontal: spacing.lg },
+
+  // Header
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
     marginRight: spacing.sm, borderWidth: 2, borderColor: colors.teal100,
   },
   avatarText: { fontSize: 18, fontWeight: '700', color: colors.white },
   headerWelcome: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500' },
   headerName: { fontSize: typography.body, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
   logoutBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.sm,
     backgroundColor: colors.dangerLight, borderWidth: 1, borderColor: colors.danger,
   },
-  logoutBtnText: { fontSize: typography.xs, fontWeight: '700', color: colors.danger },
-  titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
-  title: { fontSize: typography.h1, fontWeight: '800', color: colors.text, letterSpacing: -0.5, marginRight: spacing.sm },
+
+  // Brand Center
+  brandCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xl,
+    backgroundColor: '#EBF4FB',
+    borderRadius: radius.lg,
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  logo: { width: 140, height: 56 },
   roleBadge: {
-    backgroundColor: colors.primaryXLight, paddingHorizontal: spacing.sm, paddingVertical: 3,
+    backgroundColor: colors.primaryXLight, paddingHorizontal: spacing.md, paddingVertical: 4,
     borderRadius: radius.full, borderWidth: 1, borderColor: colors.teal100,
   },
   roleBadgeText: { fontSize: typography.xs, fontWeight: '700', color: colors.primary },
-  summaryCard: {
+
+  // Stats Card
+  statsCard: {
     backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg,
     marginBottom: spacing.xl, ...shadows.card, borderWidth: 1, borderColor: colors.divider,
   },
-  summaryHeader: { flexDirection: 'row', alignItems: 'center' },
-  summaryIconBox: {
-    width: 48, height: 48, borderRadius: 14, backgroundColor: colors.primaryXLight,
+  statsCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
+  statsIconBox: {
+    width: 44, height: 44, borderRadius: 13, backgroundColor: colors.primaryXLight,
     alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm,
   },
-  summaryLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
-  summaryTitle: { fontSize: typography.h3, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
-  activeDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.success,
-    marginLeft: 'auto',
+  statsCardLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statsCardTitle: { fontSize: typography.h3, fontWeight: '800', color: colors.text },
+  activePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.successLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.full },
+  activeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.success },
+  activePillText: { fontSize: 10, fontWeight: '700', color: colors.success },
+  statsDivider: { height: 1, backgroundColor: colors.divider, marginBottom: spacing.md },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  statItem: { alignItems: 'center', flex: 1 },
+  statValue: { fontSize: typography.h2, fontWeight: '800', color: colors.text },
+  statLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', marginTop: 2 },
+  statDivider: { width: 1, backgroundColor: colors.divider },
+
+  // Section header
+  sectionHeader: { marginBottom: spacing.sm },
+  sectionTitle: { fontSize: typography.h3, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+
+  // 3-col circular menu grid
+  menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    paddingVertical: spacing.md,
+    ...shadows.xs,
   },
-  summaryDivider: { height: 1, backgroundColor: colors.divider, marginVertical: spacing.md },
-  summaryStats: { flexDirection: 'row', justifyContent: 'space-around' },
-  summaryStat: { alignItems: 'center', flex: 1 },
-  summaryStatValue: { fontSize: typography.h2, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
-  summaryStatLabel: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500', marginTop: 2 },
-  summaryStatDivider: { width: 1, backgroundColor: colors.divider },
-  sectionTitle: { fontSize: typography.h3, fontWeight: '700', color: colors.text, marginBottom: spacing.sm, letterSpacing: -0.2 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  actionTile: {
-    width: '47.5%', borderRadius: radius.lg, padding: spacing.md,
-    justifyContent: 'space-between', minHeight: 90, ...shadows.xs,
-  },
-  actionLabel: { fontSize: typography.small, fontWeight: '700', flex: 1, letterSpacing: -0.2 },
-  actionArrow: { fontSize: 18, fontWeight: '700', marginTop: 4 },
-  bottomNav: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: colors.surface, flexDirection: 'row',
-    justifyContent: 'space-around', paddingTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.medium,
-  },
-  navItem: { 
-    alignItems: 'center', 
-    paddingVertical: spacing.xs 
-  },
-  navIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
+  menuItem: {
+    width: '33.33%',
     alignItems: 'center',
-    marginBottom: 4
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
-  navIconActive: {
-    backgroundColor: colors.primary
+  menuCircle: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
-  navLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
+  menuLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 17,
+    letterSpacing: -0.1,
   },
-  navLabelActive: {
-    color: colors.primary
-  }
 });
 
 export default CollectionHeadHomeScreen;

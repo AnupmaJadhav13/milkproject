@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  FlatList, ActivityIndicator, Platform
+  FlatList, ActivityIndicator, Platform, RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,6 +24,7 @@ const FarmerMilkScreen = ({ navigation }) => {
   const [toDate, setToDate] = useState(today);
   const [showFrom, setShowFrom] = useState(false);
   const [showTo, setShowTo] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -159,6 +160,13 @@ const FarmerMilkScreen = ({ navigation }) => {
           renderItem={renderEntry}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); load(); setRefreshing(false); }}
+              tintColor={colors.primary}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Droplets size={40} color={colors.textMuted} strokeWidth={1.5} />
