@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
   FlatList, Alert, ActivityIndicator, TextInput, Modal, Platform
@@ -8,7 +8,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ChevronLeft, FileText, BarChart2, Share2, Search, Calendar } from 'lucide-react-native';
 import { fetchCenterReport, fetchFarmerReport, clearReports } from '../../redux/slices/reportSlice';
-import { colors, radius, spacing, typography, shadows } from '../../theme';
+import { fetchCenters } from '../../redux/slices/centerSlice';
+import { fetchFarmers } from '../../redux/slices/farmerSlice';
+import { colors, radius, spacing, shadows } from '../../theme';
 import { generateCenterReportPDF, generateFarmerReportPDF, printAndSharePDF } from '../../utils/pdfGenerator';
 
 const REPORT_TYPES = [
@@ -44,37 +46,41 @@ const DateInput = ({ label, value, onChange }) => {
   );
 };
 
-// ─── Summary Card ─────────────────────────────────────────────────────────────
+// ─── Summary Card (compact horizontal) ───────────────────────────────────────
 const SummaryCard = ({ label, value, color }) => (
-  <View style={[styles.summaryCard, color && { borderLeftColor: color, borderLeftWidth: 3 }]}>
-    <Text style={styles.summaryLabel}>{label}</Text>
+  <View style={[styles.summaryCard, color && { borderTopColor: color, borderTopWidth: 3 }]}>
     <Text style={[styles.summaryValue, color && { color }]}>{value}</Text>
+    <Text style={styles.summaryLabel}>{label}</Text>
   </View>
 );
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-const ReportsScreen = ({ navigation, route }) => {
+const ReportsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const { token } = useSelector((s) => s.auth);
-  const { centerReport, farmerReport, status } = useSelector((s) => s.reports);
+  const { centerReport, farmerReport, status, error } = useSelector((s) => s.reports);
   const { list: centers } = useSelector((s) => s.centers);
   const { list: farmers } = useSelector((s) => s.farmers);
 
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchCenters(token));
+      dispatch(fetchFarmers({ token, params: {} }));
+    }
+  }, [dispatch, token]);
+
   const [reportType, setReportType] = useState('center');
   const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
+    const d = new Date(); d.setDate(1);
     return d.toISOString().split('T')[0];
   });
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Center selection
   const [selectedCenter, setSelectedCenter] = useState(null);
   const [centerSearch, setCenterSearch] = useState('');
   const [showCenterPicker, setShowCenterPicker] = useState(false);
 
-  // Farmer selection
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [farmerSearch, setFarmerSearch] = useState('');
   const [showFarmerPicker, setShowFarmerPicker] = useState(false);
@@ -97,30 +103,20 @@ const ReportsScreen = ({ navigation, route }) => {
       return;
     }
     if (reportType === 'center') {
-      if (!selectedCenter) {
-        Alert.alert('Validation', 'Please select a Collection Center');
-        return;
-      }
+      if (!selectedCenter) { Alert.alert('Validation', 'Please select a Collection Center'); return; }
       dispatch(fetchCenterReport({ centerId: selectedCenter._id, token, params: { fromDate, toDate } }));
     } else {
-      if (!selectedFarmer) {
-        Alert.alert('Validation', 'Please select a Farmer');
-        return;
-      }
+      if (!selectedFarmer) { Alert.alert('Validation', 'Please select a Farmer'); return; }
       dispatch(fetchFarmerReport({ farmerId: selectedFarmer._id, token, params: { fromDate, toDate } }));
     }
   }, [reportType, selectedCenter, selectedFarmer, fromDate, toDate, token, dispatch]);
 
   const handleShare = async () => {
     const data = reportType === 'center' ? centerReport : farmerReport;
-    if (!data) {
-      Alert.alert('No Report', 'Please generate a report first');
-      return;
-    }
+    if (!data) { Alert.alert('No Report', 'Please generate a report first'); return; }
     setSharing(true);
     try {
-      let html;
-      let filename;
+      let html, filename;
       if (reportType === 'center') {
         html = generateCenterReportPDF(data);
         const cName = (selectedCenter?.name || 'Center').replace(/\s+/g, '_');
@@ -132,9 +128,7 @@ const ReportsScreen = ({ navigation, route }) => {
         filename = `Milk_Collection_Report_${fName}_${fCode}_${fromDate}_${toDate}`;
       }
       const result = await printAndSharePDF(html, filename);
-      if (!result.success) {
-        Alert.alert('Share Failed', result.error || 'Could not share report');
-      }
+      if (!result.success) Alert.alert('Share Failed', result.error || 'Could not share report');
     } catch (e) {
       Alert.alert('Error', e.message);
     }
@@ -191,21 +185,15 @@ const ReportsScreen = ({ navigation, route }) => {
         {/* Filters */}
         <View style={styles.filtersCard}>
           <Text style={styles.filtersTitle}>Report Filters</Text>
-
-          {/* Date Range */}
           <View style={styles.dateRow}>
             <DateInput label="From Date" value={fromDate} onChange={setFromDate} />
             <DateInput label="To Date" value={toDate} onChange={setToDate} />
           </View>
 
-          {/* Center Selector */}
           {reportType === 'center' && (
             <View style={styles.selectorBox}>
               <Text style={styles.fieldLabel}>Collection Center *</Text>
-              <TouchableOpacity
-                style={styles.selectorBtn}
-                onPress={() => setShowCenterPicker(true)}
-              >
+              <TouchableOpacity style={styles.selectorBtn} onPress={() => setShowCenterPicker(true)}>
                 <Text style={[styles.selectorBtnText, !selectedCenter && { color: colors.textMuted }]}>
                   {selectedCenter ? `${selectedCenter.name} (${selectedCenter.centerCode})` : 'Select Center...'}
                 </Text>
@@ -213,14 +201,10 @@ const ReportsScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* Farmer Selector */}
           {reportType === 'farmer' && (
             <View style={styles.selectorBox}>
               <Text style={styles.fieldLabel}>Farmer *</Text>
-              <TouchableOpacity
-                style={styles.selectorBtn}
-                onPress={() => setShowFarmerPicker(true)}
-              >
+              <TouchableOpacity style={styles.selectorBtn} onPress={() => setShowFarmerPicker(true)}>
                 <Text style={[styles.selectorBtnText, !selectedFarmer && { color: colors.textMuted }]}>
                   {selectedFarmer ? `${selectedFarmer.fullName} (${selectedFarmer.farmerCode})` : 'Select Farmer...'}
                 </Text>
@@ -234,17 +218,17 @@ const ReportsScreen = ({ navigation, route }) => {
               : <Text style={styles.generateBtnText}>Generate Report</Text>
             }
           </TouchableOpacity>
+
+          {status === 'failed' && error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>⚠ {error}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Report Results */}
-        {currentReport && reportType === 'center' && (
-          <CenterReportView data={centerReport} />
-        )}
-        {currentReport && reportType === 'farmer' && (
-          <FarmerReportView data={farmerReport} />
-        )}
+        {currentReport && reportType === 'center' && <CenterReportView data={centerReport} />}
+        {currentReport && reportType === 'farmer' && <FarmerReportView data={farmerReport} />}
 
-        {/* Share button at bottom */}
         {currentReport && (
           <TouchableOpacity style={styles.shareBottomBtn} onPress={handleShare} disabled={sharing}>
             {sharing
@@ -283,7 +267,7 @@ const ReportsScreen = ({ navigation, route }) => {
                   onPress={() => { setSelectedCenter(item); setShowCenterPicker(false); setCenterSearch(''); }}
                 >
                   <Text style={styles.pickerItemName}>{item.name}</Text>
-                  <Text style={styles.pickerItemSub}>{item.centerCode} · {item.village}</Text>
+                  <Text style={styles.pickerItemSub}>{item.centerCode}{item.pincode ? ` · ${item.pincode}` : ''}</Text>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={<Text style={styles.pickerEmpty}>No centers found</Text>}
@@ -345,14 +329,19 @@ const CenterReportView = ({ data }) => {
         <Text style={styles.reportSub}>{dateRange?.fromDate} → {dateRange?.toDate}</Text>
       </View>
 
-      <View style={styles.summaryGrid}>
-        <SummaryCard label="Total Farmers" value={summary?.totalFarmers || 0} />
+      {/* Single horizontal scrollable summary row */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.summaryRow}
+      >
+        <SummaryCard label="Farmers" value={summary?.totalFarmers || 0} />
         <SummaryCard label="Total Milk" value={`${Number(summary?.totalMilkLiters || 0).toFixed(2)} L`} color={colors.primary} />
         <SummaryCard label="Avg FAT" value={Number(summary?.avgFat || 0).toFixed(2)} color="#f59e0b" />
         <SummaryCard label="Avg SNF" value={Number(summary?.avgSnf || 0).toFixed(2)} color={colors.info} />
-        <SummaryCard label="Total Entries" value={summary?.totalCollectionEntries || 0} />
-        <SummaryCard label="Total Amount" value={`₹${Number(summary?.totalCollectionAmount || 0).toLocaleString('en-IN')}`} color={colors.success} />
-      </View>
+        <SummaryCard label="Entries" value={summary?.totalCollectionEntries || 0} />
+        <SummaryCard label="Total ₹" value={`₹${Number(summary?.totalCollectionAmount || 0).toLocaleString('en-IN')}`} color={colors.success} />
+      </ScrollView>
 
       <Text style={styles.tableTitle}>Farmer-wise Breakdown</Text>
       {(farmerSummary || []).map((f, i) => (
@@ -386,19 +375,21 @@ const FarmerReportView = ({ data }) => {
       <View style={styles.reportHeader}>
         <Text style={styles.reportTitle}>{farmer?.fullName}</Text>
         <Text style={styles.reportSub}>
-          {farmer?.farmerCode} · {farmer?.center?.name} · {dateRange?.fromDate} → {dateRange?.toDate}
+          {farmer?.farmerCode} · {farmer?.center?.name} 
         </Text>
       </View>
 
-      <View style={styles.summaryGrid}>
-        <SummaryCard label="Milk Days" value={summary?.totalMilkDays || 0} color={colors.primary} />
+      {/* Single horizontal scrollable summary row */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.summaryRow}
+      >
         <SummaryCard label="Total Milk" value={`${Number(summary?.totalMilkLiters || 0).toFixed(2)} L`} />
         <SummaryCard label="Avg FAT" value={Number(summary?.avgFat || 0).toFixed(2)} color="#f59e0b" />
         <SummaryCard label="Avg SNF" value={Number(summary?.avgSnf || 0).toFixed(2)} color={colors.info} />
-        <SummaryCard label="Morning" value={summary?.morningEntries || 0} />
-        <SummaryCard label="Evening" value={summary?.eveningEntries || 0} />
-        <SummaryCard label="Total Amount" value={`₹${Number(summary?.totalAmount || 0).toLocaleString('en-IN')}`} color={colors.success} />
-      </View>
+        <SummaryCard label="Total ₹" value={`₹${Number(summary?.totalAmount || 0).toLocaleString('en-IN')}`} color={colors.success} />
+      </ScrollView>
 
       {/* Search */}
       <View style={styles.tableSearchRow}>
@@ -525,6 +516,13 @@ const styles = StyleSheet.create({
   },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
+  errorBox: {
+    marginTop: 10, backgroundColor: colors.dangerLight,
+    borderRadius: radius.sm, padding: 10,
+    borderWidth: 1, borderColor: colors.danger,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+
   reportHeader: {
     marginHorizontal: spacing.md, marginBottom: 8,
     backgroundColor: colors.primary, borderRadius: radius.md,
@@ -533,21 +531,29 @@ const styles = StyleSheet.create({
   reportTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
   reportSub: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
 
-  summaryGrid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    marginHorizontal: spacing.md, gap: 8, marginBottom: 12
+  // ── Single-line horizontal summary ──
+  summaryRow: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    gap: 8,
   },
   summaryCard: {
-    backgroundColor: colors.surface, borderRadius: radius.sm,
-    padding: 10, minWidth: '30%', flex: 1,
-    ...shadows.xs, borderWidth: 1, borderColor: colors.divider
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    paddingHorizontal: 21,
+    paddingVertical: 9,
+    alignItems: 'center',
+    minWidth: 80,
+    ...shadows.xs,
+    borderWidth: 1,
+    borderColor: colors.divider,
   },
-  summaryLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', fontWeight: '600' },
-  summaryValue: { fontSize: 15, fontWeight: '800', color: colors.text, marginTop: 2 },
+  summaryValue: { fontSize: 15, fontWeight: '800', color: colors.text },
+  summaryLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', fontWeight: '600', marginTop: 2 },
 
   tableTitle: {
     fontSize: 13, fontWeight: '700', color: colors.text,
-    marginHorizontal: spacing.md, marginBottom: 6
+    marginHorizontal: spacing.md, marginBottom: 6, marginTop: 4,
   },
   tableRow: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -595,7 +601,6 @@ const styles = StyleSheet.create({
   },
   shareBottomBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
-  // Picker Modal
   pickerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   pickerContainer: {
     backgroundColor: colors.surface, borderTopLeftRadius: 22,

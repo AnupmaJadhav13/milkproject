@@ -2,8 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, FlatList, ActivityIndicator, Alert, Switch, RefreshControl
-} from 'react-native';
+  ScrollView, FlatList, ActivityIndicator, Alert, Switch, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -115,7 +114,15 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
     );
   };
 
-  
+  const filtered = farmers.filter((f) => {
+    const q = search.toLowerCase();
+    return (
+      f.fullName?.toLowerCase().includes(q) ||
+      f.mobileNumber?.includes(q) ||
+      f.farmerCode?.toLowerCase().includes(q)
+    );
+  });
+
   const enabledCount = farmers.filter((f) => f.loginEnabled).length;
 
   const renderFarmer = ({ item }) => (
@@ -126,21 +133,7 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
             {item.fullName?.charAt(0)?.toUpperCase() || 'F'}
           </Text>
         </View>
-        <View style={styles.farmerInfo}>
-          <Text style={styles.farmerName}>{item.fullName}</Text>
-          <Text style={styles.farmerMeta}>{item.mobileNumber} · {item.farmerCode}</Text>
-          <View style={[
-            styles.loginStatusBadge,
-            { backgroundColor: item.loginEnabled ? colors.successLight : colors.surfaceMuted }
-          ]}>
-            <Text style={[
-              styles.loginStatusText,
-              { color: item.loginEnabled ? colors.success : colors.textMuted }
-            ]}>
-              {item.loginEnabled ? '✓ Login Active' : '✗ Login Disabled'}
-            </Text>
-          </View>
-        </View>
+       
       </View>
       <View style={styles.farmerRight}>
         {togglingId === item._id ? (
@@ -173,10 +166,11 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadFarmers} tintColor={colors.primary || "#2563eb"} />}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadFarmers} tintColor={colors.primary} />}
       >
-      
+   
+
         {/* Set Common Password Card */}
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
@@ -287,31 +281,9 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Individual Farmer Access — moved to standalone list below cards */}
+        {/* Individual Farmer Toggle */}
+       
       </ScrollView>
-
-      {/* Farmer list outside scroll card for cleaner look */}
-      <View style={{ flex: 1, paddingHorizontal: spacing.lg }}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search farmer by name, mobile, code..."
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor={colors.textMuted}
-        />
-        {loading ? (
-          <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item._id}
-            renderItem={renderFarmer}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-            ListEmptyComponent={<Text style={styles.emptyText}>No farmers found</Text>}
-          />
-        )}
-      </View>
     </View>
   );
 };

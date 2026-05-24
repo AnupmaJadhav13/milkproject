@@ -106,13 +106,11 @@ const AdminDashboardScreen = ({ navigation }) => {
             <View style={styles.headerTitles}>
               <Text style={styles.headerWelcome}>Welcome back</Text>
               <Text style={styles.headerName}>{user?.name || 'Admin'}</Text>
-              <View style={styles.brandBadge}>
-                <Text style={styles.brandBadgeText}>Admin</Text>
-              </View>
+              
             </View>
           </View>
 
-          {/* Right: Logo + Sign out */}
+      
           <View style={styles.headerRight}>
             <Image
               source={require('../../assets/images/sarvaalogo.png')}
@@ -126,16 +124,12 @@ const AdminDashboardScreen = ({ navigation }) => {
         {/* Stat Cards */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: colors.statSage }]}>
-            <View style={[styles.statIconBox, { backgroundColor: colors.successLight }]}>
-              <Users size={18} color={colors.success} strokeWidth={2.5} />
-            </View>
+          
             <Text style={styles.statValue}>{activeFarmers}</Text>
             <Text style={styles.statLabel}>Active Farmers</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: colors.statWarm }]}>
-            <View style={[styles.statIconBox, { backgroundColor: colors.infoLight }]}>
-              <Store size={18} color={colors.info} strokeWidth={2.5} />
-            </View>
+           
             <Text style={styles.statValue}>{centers.length}</Text>
             <Text style={styles.statLabel}>Total Centers</Text>
           </View>
