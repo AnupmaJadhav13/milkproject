@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.lg,
     paddingHorizontal: spacing.lg,
   },
-  logo: { width: 168, height: 66 },
+  logo: { width: 140, height: 56 },
   roleBadge: {
     backgroundColor: colors.primaryXLight, paddingHorizontal: spacing.md, paddingVertical: 4,
     borderRadius: radius.full, borderWidth: 1, borderColor: colors.teal100,
