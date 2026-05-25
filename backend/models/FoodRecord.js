@@ -52,6 +52,11 @@ const foodRecordSchema = mongoose.Schema({
     required: true,
     min: 0
   },
+  paidAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   paymentStatus: {
     type: String,
     enum: ['Pending', 'Paid'],

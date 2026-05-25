@@ -62,10 +62,10 @@ const addAmountRules = [
 ];
 
 router.post('/',                protect, authorizeRoles('admin', 'collection_head'), advanceRules, validateRequest, addAdvance);
-router.post('/:id/add-amount', protect, authorizeRoles('collection_head'), addAmountRules, validateRequest, addAmountToAdvance);
+router.post('/:id/add-amount', protect, authorizeRoles('admin', 'collection_head'), addAmountRules, validateRequest, addAmountToAdvance);
 router.get('/',                 protect, getAdvances);
 router.get('/farmer/:farmerId', protect, getFarmerAdvanceDetails);
 router.put('/:id',              protect, authorizeRoles('collection_head'), updateAdvance);
-router.delete('/:id',           protect, authorizeRoles('collection_head'), deleteAdvance);
+router.delete('/:id',           protect, authorizeRoles('admin', 'collection_head'), deleteAdvance);
 
 module.exports = router;

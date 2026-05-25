@@ -2,19 +2,19 @@
 // Soft Teal / Warm Neutral — Enterprise SaaS palette
 
 export const colors = {
-  bg:             '#F4F7F6',
-  bgDeep:         '#EBF0EE',
+  bg:             '#F4F7FB',
+  bgDeep:         '#EAF1FA',
   surface:        '#FFFFFF',
-  surfaceMuted:   '#F8FAFA',
-  surfaceHover:   '#F0F5F3',
+  surfaceMuted:   '#F8FAFC',
+  surfaceHover:   '#EFF6FF',
 
-  primary:        '#2C7A6E',
-  primaryDark:    '#1F5C53',
-  primaryLight:   '#3D9487',
-  primaryXLight:  '#E6F3F1',
+  primary:        '#2563EB',
+  primaryDark:    '#1D4ED8',
+  primaryLight:   '#3B82F6',
+  primaryXLight:  '#DBEAFE',
 
-  accent:         '#4A8C7C',
-  accentLight:    '#EAF4F1',
+  accent:         '#0EA5E9',
+  accentLight:    '#E0F2FE',
 
   teal50:         '#F0F9F7',
   teal100:        '#CCEAE4',
@@ -45,29 +45,29 @@ export const colors = {
   divider:        '#ECF2F1',
 
   navBg:          '#FFFFFF',
-  navActive:      '#2C7A6E',
+  navActive:      '#2563EB',
   navInactive:    '#7A9690',
 
   overlay:        'rgba(26, 43, 40, 0.55)',
   white:          '#FFFFFF',
   black:          '#000000',
 
-  statTeal:       '#E6F3F1',
-  statSage:       '#EAF4F0',
+  statTeal:       '#DBEAFE',
+  statSage:       '#E0F2FE',
   statWarm:       '#FEF4E6',
   statCool:       '#EFF6FF',
 
   // legacy aliases
-  bg_compat:      '#F4F7F6',
-  lightBlue:      '#E6F3F1',
-  lightPurple:    '#EAF4F0',
+  bg_compat:      '#F4F7FB',
+  lightBlue:      '#DBEAFE',
+  lightPurple:    '#E0F2FE',
   lightGreen:     '#E6F5EF',
-  lightGray:      '#F4F7F6',
+  lightGray:      '#F4F7FB',
   darkGray:       '#3D5450',
-  purple:         '#4A8C7C',
+  purple:         '#0EA5E9',
   orange:         '#C87A1B',
-  iconBlue:       '#2C7A6E',
-  iconPurple:     '#4A8C7C',
+  iconBlue:       '#2563EB',
+  iconPurple:     '#0EA5E9',
   iconOrange:     '#C87A1B',
   iconGreen:      '#22896B',
 };

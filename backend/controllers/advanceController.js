@@ -111,11 +111,13 @@ const addAmountToAdvance = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Cannot add amount to a settled advance. Create a new advance instead.');
   }
-  if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
+  if (req.user.role === 'admin' && advance.recipientType === 'collection_center') {
+    // Admin can top up center advances.
+  } else if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
     res.status(403);
-    throw new Error('Only Collection Head can add amount to farmer advances');
+    throw new Error('You cannot add amount to this advance');
   }
-  if (advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
+  if (req.user.role === 'collection_head' && advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
     res.status(403);
     throw new Error('You can only manage advances for farmers in your assigned center');
   }
@@ -233,11 +235,13 @@ const deleteAdvance = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error('Advance record not found');
   }
-  if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
+  if (req.user.role === 'admin' && advance.recipientType === 'collection_center') {
+    // Admin can delete center advance records.
+  } else if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
     res.status(403);
-    throw new Error('Only Collection Head can delete farmer advances');
+    throw new Error('You cannot delete this advance');
   }
-  if (advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
+  if (req.user.role === 'collection_head' && advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
     res.status(403);
     throw new Error('You can only manage advances for farmers in your assigned center');
   }

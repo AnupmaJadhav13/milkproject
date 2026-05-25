@@ -233,6 +233,14 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
             </View>
           </View>
           {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
+          <View style={styles.cardActions}>
+            <TouchableOpacity style={styles.addAmtBtn} onPress={() => openAddAmount(item)}>
+              <Text style={styles.addAmtBtnText}>+ Add Amount</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item._id)}>
+              <Text style={styles.deleteBtnText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
@@ -481,7 +489,9 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
 
             {addAmountTarget && (
               <View style={styles.targetInfoBox}>
-                <Text style={styles.targetName}>{addAmountTarget.farmerId?.fullName}</Text>
+                <Text style={styles.targetName}>
+                  {addAmountTarget.farmerId?.fullName || addAmountTarget.collectionCenterId?.name || centerName}
+                </Text>
                 <View style={styles.targetAmtRow}>
                   <View style={styles.targetAmtItem}>
                     <Text style={styles.targetAmtLabel}>Current Total</Text>
