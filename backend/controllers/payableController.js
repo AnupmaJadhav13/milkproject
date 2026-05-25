@@ -179,6 +179,7 @@ const generatePayable = asyncHandler(async (req, res) => {
       deductAdvance: Boolean(deductAdvance),
       deductFood:    Boolean(deductFood),
       paymentStatus: 'Pending',   // only set on NEW records; existing Paid records are blocked above
+      adminApprovalStatus: existing?.adminApprovalStatus || 'Draft',
       weeklyBreakdown
     },
     { upsert: true, new: true }
@@ -196,6 +197,7 @@ const getPayables = asyncHandler(async (req, res) => {
   if (req.user.role === 'collection_head') {
     filter.collectionCenterId = req.user.assignedCenter;
   } else {
+    filter.adminApprovalStatus = 'Forwarded';
     if (centerId) filter.collectionCenterId = centerId;
   }
   if (farmerId) filter.farmerId = farmerId;
@@ -239,6 +241,7 @@ const getCenterPayableReport = asyncHandler(async (req, res) => {
   }
 
   const filter = { collectionCenterId: targetCenterId };
+  if (req.user.role === 'admin') filter.adminApprovalStatus = 'Forwarded';
   if (month) filter.month = Number(month);
   if (year) filter.year = Number(year);
 
@@ -259,6 +262,39 @@ const getCenterPayableReport = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { payables, summary } });
 });
 
+// @desc  Forward collection-head finalized payable to Admin
+// @route PUT /api/payable/:id/forward
+const forwardPayableToAdmin = asyncHandler(async (req, res) => {
+  const payable = await Payable.findById(req.params.id).populate('collectionCenterId', '_id');
+  if (!payable) {
+    res.status(404);
+    throw new Error('Payable record not found');
+  }
+
+  const payableCenterId = payable.collectionCenterId?._id?.toString() || payable.collectionCenterId?.toString();
+  const headCenterId = req.user.assignedCenter?.toString();
+  if (payableCenterId !== headCenterId) {
+    res.status(403);
+    throw new Error('You can only forward payables for your assigned center');
+  }
+
+  if (payable.paymentStatus === 'Paid') {
+    res.status(400);
+    throw new Error('Paid payable records cannot be forwarded again');
+  }
+
+  payable.adminApprovalStatus = 'Forwarded';
+  payable.forwardedToAdminAt = new Date();
+  payable.forwardedBy = req.user.assignedCenter;
+  await payable.save();
+
+  const updated = await Payable.findById(payable._id)
+    .populate('farmerId', 'fullName mobileNumber farmerCode')
+    .populate('collectionCenterId', 'name centerCode');
+
+  res.json({ success: true, data: updated });
+});
+
 // @desc  Mark payable as Paid
 //        Settles advance records FIFO by the ACTUAL recovered amount (not full balance)
 //        Marks food records as Paid only if food toggle was ON
@@ -270,14 +306,14 @@ const markPayableAsPaid = asyncHandler(async (req, res) => {
     throw new Error('Payable record not found');
   }
 
-  // Collection head can only mark paid for their own center
-  if (req.user.role === 'collection_head') {
-    const payableCenterId = payable.collectionCenterId?._id?.toString() || payable.collectionCenterId?.toString();
-    const headCenterId    = req.user.assignedCenter?.toString();
-    if (payableCenterId !== headCenterId) {
-      res.status(403);
-      throw new Error('You can only manage payables for your assigned center');
-    }
+  if (req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error('Only Admin can mark payables as Paid');
+  }
+
+  if (payable.adminApprovalStatus !== 'Forwarded') {
+    res.status(400);
+    throw new Error('Only payables forwarded by Collection Head can be marked as Paid');
   }
 
   if (payable.paymentStatus === 'Paid') {
@@ -335,6 +371,7 @@ const markPayableAsPaid = asyncHandler(async (req, res) => {
     sendPaymentDoneNotification(farmerDoc._id, {
       farmerName: farmerDoc.fullName,
       amount:     payable.finalPayableAmount.toFixed(2),
+      advanceDeducted: payable.totalAdvanceDeducted || 0,
       date:       new Date().toLocaleDateString('en-IN'),
       cycle:      payable.paymentCycle || `${payable.month}/${payable.year}`
     });
@@ -346,6 +383,11 @@ const markPayableAsPaid = asyncHandler(async (req, res) => {
 // @desc  Delete payable
 // @route DELETE /api/payable/:id
 const deletePayable = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') {
+    res.status(403);
+    throw new Error('Only Admin can delete payable records');
+  }
+
   const payable = await Payable.findById(req.params.id);
   if (!payable) {
     res.status(404);
@@ -360,6 +402,7 @@ module.exports = {
   getPayables,
   getFarmerPayableDetails,
   getCenterPayableReport,
+  forwardPayableToAdmin,
   markPayableAsPaid,
   deletePayable
 };

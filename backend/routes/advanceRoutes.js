@@ -15,7 +15,12 @@ const {
 
 const advanceRules = [
   body('farmerId')
+    .if((value, { req }) => req.user?.role === 'collection_head')
     .notEmpty().withMessage('Farmer is required'),
+
+  body('centerId')
+    .if((value, { req }) => req.user?.role === 'admin')
+    .notEmpty().withMessage('Collection center is required'),
 
   body('advanceAmount')
     .notEmpty().withMessage('Advance amount is required')
@@ -57,10 +62,10 @@ const addAmountRules = [
 ];
 
 router.post('/',                protect, authorizeRoles('admin', 'collection_head'), advanceRules, validateRequest, addAdvance);
-router.post('/:id/add-amount', protect, authorizeRoles('admin', 'collection_head'), addAmountRules, validateRequest, addAmountToAdvance);
+router.post('/:id/add-amount', protect, authorizeRoles('collection_head'), addAmountRules, validateRequest, addAmountToAdvance);
 router.get('/',                 protect, getAdvances);
 router.get('/farmer/:farmerId', protect, getFarmerAdvanceDetails);
-router.put('/:id',              protect, authorizeRoles('admin', 'collection_head'), updateAdvance);
-router.delete('/:id',           protect, authorizeRoles('admin', 'collection_head'), deleteAdvance);
+router.put('/:id',              protect, authorizeRoles('collection_head'), updateAdvance);
+router.delete('/:id',           protect, authorizeRoles('collection_head'), deleteAdvance);
 
 module.exports = router;

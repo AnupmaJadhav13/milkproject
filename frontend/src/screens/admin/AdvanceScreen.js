@@ -6,7 +6,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
 import { useSelector } from 'react-redux';
-import { advanceApi, farmerApi } from '../../api/api';
+import { advanceApi, farmerApi, centerApi } from '../../api/api';
 import { colors, radius, spacing, typography, shadows } from '../../theme';
 import { ROLE_ADMIN, ROLE_COLLECTION_HEAD } from '../../constants/roles';
 
@@ -39,6 +39,8 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
   const [farmerSearch, setFarmerSearch]   = useState('');
   const [farmerResults, setFarmerResults] = useState([]);
   const [selectedFarmer, setSelectedFarmer] = useState(null);
+  const [centerResults, setCenterResults] = useState([]);
+  const [selectedCenter, setSelectedCenter] = useState(null);
   const [farmerSearchLoading, setFarmerSearchLoading] = useState(false);
   const [addForm, setAddForm] = useState({
     advanceAmount: '',
@@ -78,9 +80,22 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
   // ── Farmer search ──
   const searchFarmers = async (query) => {
     setFarmerSearch(query);
-    if (query.length < 2) { setFarmerResults([]); return; }
+    if (query.length < 2) { setFarmerResults([]); setCenterResults([]); return; }
     setFarmerSearchLoading(true);
     try {
+      if (isAdmin) {
+        const res = await centerApi.getAll(token);
+        const all = res.data.data || res.data || [];
+        const q = query.toLowerCase();
+        setCenterResults(all.filter(c =>
+          c.name?.toLowerCase().includes(q) ||
+          c.centerCode?.toLowerCase().includes(q) ||
+          c.collectionHead?.fullName?.toLowerCase().includes(q)
+        ).slice(0, 8));
+        setFarmerSearchLoading(false);
+        return;
+      }
+
       let farmers = [];
       if (isCollectionHead && centerId) {
         // Collection head: fetch all center farmers then filter client-side
@@ -109,24 +124,36 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
     setFarmerResults([]);
   };
 
+  const selectCenter = (c) => {
+    setSelectedCenter(c);
+    setFarmerSearch(c.name);
+    setCenterResults([]);
+  };
+
   const resetAddForm = () => {
     setAddForm({ advanceAmount: '', advanceDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', notes: '' });
     setSelectedFarmer(null);
+    setSelectedCenter(null);
     setFarmerSearch('');
     setFarmerResults([]);
+    setCenterResults([]);
     setShowAdvanceDatePicker(false);
   };
 
   // ── Submit new advance ──
   const handleAddSubmit = async () => {
-    if (!selectedFarmer) { Alert.alert('Validation', 'Please select a farmer'); return; }
+    if (isAdmin && !selectedCenter) { Alert.alert('Validation', 'Please select a collection center'); return; }
+    if (isCollectionHead && !selectedFarmer) { Alert.alert('Validation', 'Please select a farmer'); return; }
     if (!addForm.advanceAmount || isNaN(Number(addForm.advanceAmount)) || Number(addForm.advanceAmount) <= 0) {
       Alert.alert('Validation', 'Enter a valid advance amount'); return;
     }
     setSubmitting(true);
     try {
-      await advanceApi.add({ farmerId: selectedFarmer._id, ...addForm }, token);
-      Alert.alert('Success', 'Advance added & SMS sent to farmer');
+      const payload = isAdmin
+        ? { centerId: selectedCenter._id, ...addForm }
+        : { farmerId: selectedFarmer._id, ...addForm };
+      await advanceApi.add(payload, token);
+      Alert.alert('Success', isAdmin ? 'Advance added for collection center' : 'Advance added & farmer notified');
       setShowAddModal(false);
       resetAddForm();
       loadAdvances();
@@ -182,6 +209,34 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
       ? Math.round(((item.advanceAmount - item.remainingAmount) / item.advanceAmount) * 100)
       : 100;
 
+    if (isAdmin) {
+      return (
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.farmerName}>{item.collectionCenterId?.name || centerName}</Text>
+              <Text style={styles.cardMeta}>
+                {item.collectionHeadName || item.collectionCenterId?.collectionHead?.fullName || 'Collection Head'}
+                {' · '}
+                {item.collectionCenterId?.centerCode || 'Center'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.amountRow}>
+            <View style={styles.amountBox}>
+              <Text style={styles.amountLabel}>Advance Amount</Text>
+              <Text style={styles.amountValue}>₹{(item.advanceAmount || 0).toLocaleString('en-IN')}</Text>
+            </View>
+            <View style={styles.amountBox}>
+              <Text style={styles.amountLabel}>Date</Text>
+              <Text style={styles.amountValue}>{new Date(item.advanceDate).toLocaleDateString('en-IN')}</Text>
+            </View>
+          </View>
+          {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
+        </View>
+      );
+    }
+
     return (
       <View style={styles.card}>
         {/* Header */}
@@ -232,7 +287,7 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
         {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
 
         {/* Actions */}
-        {canManage && (
+        {isCollectionHead && (
           <View style={styles.cardActions}>
             {isActive && (
               <TouchableOpacity style={styles.addAmtBtn} onPress={() => openAddAmount(item)}>
@@ -283,7 +338,7 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
             {/* Add button */}
             {canManage && (
               <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
-                <Text style={styles.addBtnText}>+ New Advance Payment</Text>
+                <Text style={styles.addBtnText}>{isAdmin ? '+ New Center Advance' : '+ New Advance Payment'}</Text>
               </TouchableOpacity>
             )}
 
@@ -303,24 +358,41 @@ const AdvanceScreen = ({ centerId: centerIdProp, centerName }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>New Advance Payment</Text>
+              <Text style={styles.modalTitle}>{isAdmin ? 'New Center Advance' : 'New Advance Payment'}</Text>
 
-              <Text style={styles.fieldLabel}>Search Farmer *</Text>
+              <Text style={styles.fieldLabel}>{isAdmin ? 'Search Collection Center *' : 'Search Farmer *'}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Search by name or farmer code..."
+                placeholder={isAdmin ? 'Search by center or head name...' : 'Search by name or farmer code...'}
                 value={farmerSearch}
                 onChangeText={searchFarmers}
                 placeholderTextColor={colors.textMuted}
               />
               {farmerSearchLoading && <ActivityIndicator size="small" color={colors.primary} />}
-              {farmerResults.length > 0 && (
+              {isAdmin && centerResults.length > 0 && (
+                <View style={styles.dropdown}>
+                  {centerResults.map((c) => (
+                    <TouchableOpacity key={c._id} style={styles.dropdownItem} onPress={() => selectCenter(c)}>
+                      <Text style={styles.dropdownText}>{c.name} ({c.centerCode})</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              {!isAdmin && farmerResults.length > 0 && (
                 <View style={styles.dropdown}>
                   {farmerResults.map((f) => (
                     <TouchableOpacity key={f._id} style={styles.dropdownItem} onPress={() => selectFarmer(f)}>
                       <Text style={styles.dropdownText}>{f.fullName} ({f.farmerCode})</Text>
                     </TouchableOpacity>
                   ))}
+                </View>
+              )}
+              {selectedCenter && (
+                <View style={styles.selectedBox}>
+                  <Text style={styles.selectedText}>✓ {selectedCenter.name}</Text>
+                  <Text style={styles.selectedSub}>
+                    {selectedCenter.collectionHead?.fullName || 'Collection Head'} · {selectedCenter.centerCode}
+                  </Text>
                 </View>
               )}
               {selectedFarmer && (
