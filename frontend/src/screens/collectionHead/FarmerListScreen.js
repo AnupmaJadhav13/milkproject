@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 16, fontWeight: '700', color: colors.white },
   brandText: { fontSize: 15, fontWeight: '700', color: colors.text },
   logoImage: {
-    width: 110,
-    height: 44,
+    width: 150,
+    height: 56,
   },
 
   // Title

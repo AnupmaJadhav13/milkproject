@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   logoImage: {
-    width: 110,
-    height: 40,
+    width: 150,
+    height: 56,
   },
   title: {
     fontSize: 28,

@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   headerTitles: { justifyContent: 'center' },
   headerWelcome: { fontSize: typography.xs, color: colors.textMuted, fontWeight: '500' },
   headerName: { fontSize: typography.body, fontWeight: '700', color: colors.text, letterSpacing: -0.2, marginBottom: 3 },
-  logo: { width: 100, height: 44 },
+  logo: { width: 132, height: 56 },
   logoutBtn: {
     paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.sm,
     backgroundColor: colors.dangerLight, borderWidth: 1, borderColor: colors.danger,
