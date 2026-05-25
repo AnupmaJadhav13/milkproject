@@ -7,7 +7,13 @@ const adminSchema = mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phoneNumber: { type: String },
-  role: { type: String, default: 'admin' }
+  role: { type: String, default: 'admin' },
+  
+  // ── Push Notification Fields ───────────────────────────────────────────────
+  /** Expo push notification token for admin's device */
+  expoPushToken: { type: String, default: null },
+  /** Last time push token was updated */
+  pushTokenUpdatedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 adminSchema.methods.matchPassword = async function (enteredPassword) {

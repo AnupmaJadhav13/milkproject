@@ -24,43 +24,41 @@ Notifications.setNotificationHandler({
  * 
  * @returns {Promise<string|null>} Expo push token or null if failed
  */
-export async function registerForPushNotificationsAsync() {
-  let token = null;
+/**
+ * Push Notification Service for Frontend
+ */
 
-  // Check if running on physical device
-  if (!Device.isDevice) {
-    console.log('⏭️ Push notifications require physical device');
-    return null;
-  }
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+export async function registerForPushNotificationsAsync() {
+  if (!Device.isDevice) return null;
 
   try {
-    // Check existing permissions
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
-    // Request permission if not already granted
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
 
-    // If permission denied, return null
-    if (finalStatus !== 'granted') {
-      console.log('⚠️ Notification permission not granted');
-      return null;
-    }
+    if (finalStatus !== 'granted') return null;
 
-    // Get the Expo push token
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: projectId
-    });
-    token = tokenData.data;
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    const token = tokenData.data;
 
-    console.log('✅ Push token obtained');
-
-    // Configure notification channel for Android
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Default',
@@ -74,9 +72,7 @@ export async function registerForPushNotificationsAsync() {
     }
 
     return token;
-
   } catch (error) {
-    console.error('❌ Error registering push notifications:', error.message);
     return null;
   }
 }

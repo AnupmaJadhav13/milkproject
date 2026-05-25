@@ -1,92 +1,108 @@
 /**
  * Notification Permission Handler
- * 
- * Handles push notification registration for farmers and collection heads
- * Shows success popup when activated
+ * Handles push notification registration for all users
  */
 
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator
-} from 'react-native';
+import { View, Text, Modal, StyleSheet, Platform } from 'react-native';
 import { useSelector } from 'react-redux';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import {
-  registerForPushNotificationsAsync
-} from '../services/pushNotificationService';
+import Constants from 'expo-constants';
 import { authApi } from '../api/api';
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function NotificationPermissionHandler() {
   const { user, token } = useSelector((state) => state.auth);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const hasProcessed = useRef(false);
+  const isRegistering = useRef(false);
+  const registeredUserId = useRef(null);
 
   useEffect(() => {
-    // Only process once per login session
-    if (hasProcessed.current) return;
-    
-    // Only handle for farmers and collection heads on physical devices
-    if (user && (user.role === 'farmer' || user.role === 'collection_head') && token) {
-      if (Device.isDevice) {
-        hasProcessed.current = true;
-        handleNotificationSetup();
-      } else {
-        console.log('⏭️ Skipping push notifications - not a physical device');
-      }
+    // Only register if:
+    // 1. User is logged in (user and token exist)
+    // 2. Running on physical device
+    // 3. Not currently registering
+    // 4. Haven't registered for this user yet
+    if (user && token && Device.isDevice && !isRegistering.current && registeredUserId.current !== user.id) {
+      registerPushNotifications();
     }
-  }, [user, token]);
+  }, [user, token]); // Watch entire user and token objects
 
-  const handleNotificationSetup = async () => {
+  const registerPushNotifications = async () => {
+    // Prevent concurrent registrations
+    if (isRegistering.current) return;
+    isRegistering.current = true;
+
     try {
-      setIsProcessing(true);
-      console.log('🔔 Starting notification setup...');
+      // Step 1: Request permission
+      const { status: existingStatus} = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-      // Get push token (this handles permission internally)
-      const expoPushToken = await registerForPushNotificationsAsync();
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
 
-      if (expoPushToken) {
-        console.log('✅ Push token obtained:', expoPushToken);
+      if (finalStatus !== 'granted') {
+        isRegistering.current = false;
+        return;
+      }
 
-        // Save to backend for farmers only
-        if (user.role === 'farmer') {
-          try {
-            console.log('💾 Saving push token to backend...');
-            await authApi.savePushToken(expoPushToken, token);
-            console.log('✅ Push token saved to backend');
-          } catch (saveError) {
-            console.error('❌ Error saving push token:', saveError);
-            // Don't show error to user, just log it
-          }
-        }
+      // Step 2: Get push token
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      
+      if (!projectId) {
+        isRegistering.current = false;
+        return;
+      }
 
+      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+      const expoPushToken = tokenData.data;
+
+      if (!expoPushToken) {
+        isRegistering.current = false;
+        return;
+      }
+
+      // Step 3: Configure Android channel
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'Default',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          sound: 'default',
+          enableVibrate: true,
+          showBadge: true,
+        });
+      }
+
+      // Step 4: Save to backend
+      const response = await authApi.savePushToken(expoPushToken, token);
+      
+      if (response.data.success) {
+        // Mark this user as registered
+        registeredUserId.current = user.id;
+        
         // Show success popup
         setShowSuccess(true);
-
-        // Auto-hide after 2 seconds
-        setTimeout(() => {
-          setShowSuccess(false);
-        }, 2000);
-      } else {
-        console.log('⚠️ Push token not obtained - permission may be denied');
-        // Don't show error popup, just silently fail
+        setTimeout(() => setShowSuccess(false), 2000);
       }
+      
+      isRegistering.current = false;
     } catch (error) {
-      console.error('❌ Error in notification setup:', error);
-      // Don't show error popup, just silently fail
-    } finally {
-      setIsProcessing(false);
+      isRegistering.current = false;
     }
   };
 
-  // Success Modal - Simple and clean
   return (
     <Modal
       visible={showSuccess}
@@ -116,7 +132,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   
-  // Success Modal Styles
   successCard: {
     backgroundColor: 'white',
     borderRadius: 20,
@@ -152,4 +167,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

@@ -143,23 +143,35 @@ const changePassword = asyncHandler(async (req, res) => {
   let user;
   if (userRole === 'admin') {
     user = await Admin.findById(userId);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+    
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      res.status(401);
+      throw new Error('Current password is incorrect');
+    }
+
+    user.password = newPassword;
+    await user.save();
   } else if (userRole === 'collection_head') {
     user = await CollectionCenter.findById(userId);
-  }
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+    
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      res.status(401);
+      throw new Error('Current password is incorrect');
+    }
 
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
+    user.collectionHead.password = newPassword;
+    await user.save();
   }
-
-  const isMatch = await user.matchPassword(currentPassword);
-  if (!isMatch) {
-    res.status(401);
-    throw new Error('Current password is incorrect');
-  }
-
-  user.password = newPassword;
-  await user.save();
 
   res.json({ message: 'Password changed successfully' });
 });
@@ -180,31 +192,51 @@ const updateProfile = asyncHandler(async (req, res) => {
   let user;
   if (userRole === 'admin') {
     user = await Admin.findById(userId);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    if (name) user.name = name;
+    if (username) user.username = username;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        phoneNumber: user.phoneNumber,
+        role: user.role
+      }
+    });
   } else if (userRole === 'collection_head') {
     user = await CollectionCenter.findById(userId);
-  }
-
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
-
-  if (name) user.name = name;
-  if (username) user.username = username;
-  if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
-
-  await user.save();
-
-  res.json({
-    message: 'Profile updated successfully',
-    user: {
-      id: user._id,
-      name: user.name,
-      username: user.username,
-      phoneNumber: user.phoneNumber,
-      role: user.role
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
     }
-  });
+
+    if (name) user.collectionHead.fullName = name;
+    if (username) user.collectionHead.username = username;
+    if (phoneNumber !== undefined) user.collectionHead.mobileNumber = phoneNumber;
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        name: user.collectionHead.fullName,
+        username: user.collectionHead.username,
+        phoneNumber: user.collectionHead.mobileNumber,
+        role: 'collection_head'
+      }
+    });
+  }
 });
 
 // ── Admin: Set / Update Common Farmer Password ────────────────────────────────
@@ -291,18 +323,12 @@ const enableAllFarmersLogin = asyncHandler(async (req, res) => {
   });
 });
 
-// ── Save Push Notification Token (Farmer & Collection Head) ──────────────────
+// ── Save Push Notification Token (All Users) ─────────────────────────────────
 
 const savePushToken = asyncHandler(async (req, res) => {
   const { expoPushToken } = req.body;
   const userId = req.user.id;
   const userRole = req.user.role;
-
-  // Only farmers and collection heads can save push tokens
-  if (userRole !== 'farmer' && userRole !== 'collection_head') {
-    res.status(403);
-    throw new Error('Only farmers and collection heads can save push tokens');
-  }
 
   if (!expoPushToken || !String(expoPushToken).startsWith('ExponentPushToken[')) {
     res.status(400);
@@ -333,6 +359,21 @@ const savePushToken = asyncHandler(async (req, res) => {
     await center.save();
 
     console.log(`✅ Push token saved for collection head: ${center.collectionHead.fullName}`);
+  } else if (userRole === 'admin') {
+    const admin = await Admin.findById(userId);
+    if (!admin) {
+      res.status(404);
+      throw new Error('Admin not found');
+    }
+
+    admin.expoPushToken = expoPushToken;
+    admin.pushTokenUpdatedAt = new Date();
+    await admin.save();
+
+    console.log(`✅ Push token saved for admin: ${admin.name}`);
+  } else {
+    res.status(400);
+    throw new Error('Invalid user role');
   }
 
   res.json({

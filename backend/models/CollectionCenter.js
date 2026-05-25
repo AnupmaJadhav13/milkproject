@@ -31,6 +31,11 @@ const collectionCenterSchema = mongoose.Schema({
   collectionHead: { type: collectionHeadSchema, default: () => ({}) }
 }, { timestamps: true });
 
+collectionCenterSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.collectionHead || !this.collectionHead.password) return false;
+  return await bcrypt.compare(enteredPassword, this.collectionHead.password);
+};
+
 collectionCenterSchema.pre('save', async function (next) {
   if (this.isModified('collectionHead.password')) {
     const salt = await bcrypt.genSalt(10);
