@@ -6,7 +6,7 @@ const farmerSchema = mongoose.Schema({
   fullName: { type: String, required: true },
   mobileNumber: { type: String, required: true },
   alternativeNumber: { type: String },
-  address: { type: String, required: true },
+  address: { type: String },
   village: { type: String, required: true },
   bankName: { type: String, required: true },
   ifscCode: { type: String, required: true },

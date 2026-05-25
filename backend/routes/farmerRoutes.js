@@ -32,9 +32,9 @@ const farmerValidationRules = [
     .matches(/^[6-9]\d{9}$/).withMessage('Alternative number must be a valid 10-digit Indian mobile number'),
 
   body('address')
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .notEmpty().withMessage('Address is required')
-    .isLength({ min: 3, max: 300 }).withMessage('Address must be 3–300 characters'),
+    .isLength({ max: 300 }).withMessage('Address must not exceed 300 characters'),
 
   body('village')
     .trim()
