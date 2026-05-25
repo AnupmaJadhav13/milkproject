@@ -10,7 +10,7 @@ const USE_LOCAL = true;
 // PRODUCTION URL (Deployed backend on Render)
 const PRODUCTION_URL = 'https://milkproject.onrender.com/api';
 
-const LOCAL_URL = 'http://192.168.0.107:5000/api';
+const LOCAL_URL = 'http://192.168.0.103:5000/api';
 
 const API_BASE_URL = USE_LOCAL ? LOCAL_URL : PRODUCTION_URL;
 
