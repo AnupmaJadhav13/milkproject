@@ -43,7 +43,7 @@ const AdminDashboardScreen = ({ navigation }) => {
   // Order: Collection, Notifications, Annual Bonus, Reports, Farmer Login, Rate Chart
   const quickActions = [
     {
-      label: 'Collection',
+      label: 'Manage centers',
       icon: Milk,
       nav: 'CenterList',
       iconBg: colors.teal50,

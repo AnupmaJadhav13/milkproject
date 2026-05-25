@@ -1,17 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, RefreshControl, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
-import { ArrowLeft, LogOut, Store, MapPin, Droplet, Users, CreditCard, House, Edit, Trash2, Salad, FlaskConical } from 'lucide-react-native';
-import { colors, radius, spacing, typography, shadows } from '../../theme';
+import { ArrowLeft, LogOut, MapPin, Droplet, Users, CreditCard, Salad } from 'lucide-react-native';
+import { colors, radius, spacing, shadows } from '../../theme';
 
 const CenterDetailScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  
-  // Get the full center object from route params
+
   const center = route?.params?.center || {};
   const centerId = center._id || route?.params?.centerId;
   const centerCode = center.centerCode || route?.params?.centerCode || '';
@@ -38,29 +37,49 @@ const CenterDetailScreen = ({ navigation, route }) => {
       'Are you sure you want to delete this center?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {
-          // Add delete logic here
-        }}
+        { text: 'Delete', style: 'destructive', onPress: () => {} }
       ]
     );
   };
 
   const handleEditCenter = () => {
-    // Check if we have a complete center object
     if (center && center._id) {
       navigation.navigate('EditCenter', { center });
     } else {
-      Alert.alert(
-        'Error',
-        'Unable to edit center. Please navigate from the Centers list.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Unable to edit center. Please navigate from the Centers list.', [{ text: 'OK' }]);
     }
   };
 
+  const quickActions = [
+    {
+      label: 'Collection\nRecords',
+      icon: <Droplet size={28} color="#1e40af" strokeWidth={2} />,
+      bg: '#dbeafe',
+      onPress: () => navigation.navigate('CollectionRecords', { centerId, centerName }),
+    },
+    {
+      label: 'Manage\nFarmers',
+      icon: <Users size={28} color="#065f46" strokeWidth={2} />,
+      bg: '#d1fae5',
+      onPress: () => navigation.navigate('FarmerList', { centerId, centerCode, centerName }),
+    },
+    {
+      label: 'Food\nRecords',
+      icon: <Salad size={28} color="#166534" strokeWidth={2} />,
+      bg: '#bbf7d0',
+      onPress: () => navigation.navigate('FoodReports', { centerId, centerName }),
+    },
+    {
+      label: 'All\nPayments',
+      icon: <CreditCard size={28} color="#9a3412" strokeWidth={2} />,
+      bg: '#fed7aa',
+      onPress: () => navigation.navigate('AllPays', { centerId, centerName }),
+    },
+  ];
+
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: 40 }]}
         showsVerticalScrollIndicator={false}
@@ -72,29 +91,28 @@ const CenterDetailScreen = ({ navigation, route }) => {
             <ArrowLeft size={20} color={colors.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={styles.brandText}>Sarvasvaa Milk</Text>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <LogOut size={18} color={colors.danger} strokeWidth={2} />
+          {/* Logout as icon only */}
+          <TouchableOpacity style={styles.logoutIconButton} onPress={handleLogout}>
+            <LogOut size={20} color={colors.danger} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
         {/* Center Info Card */}
         <View style={styles.centerCard}>
-          <View style={styles.centerIconContainer}>
-            <Store size={32} color={colors.surface} strokeWidth={2} />
+          <View style={styles.centerLogoContainer}>
+            <Image
+              source={require('../../assets/images/sarvaalogo.png')}
+              style={styles.centerLogo}
+              resizeMode="contain"
+            />
           </View>
+
           <Text style={styles.centerName}>{centerName}</Text>
           <Text style={styles.centerCode}>{centerCode}</Text>
-          
+
           <View style={styles.addressRow}>
             <MapPin size={14} color={colors.textMuted} strokeWidth={2} />
             <Text style={styles.centerAddress}>{centerVillage || centerAddress}</Text>
-          </View>
-
-          <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: centerStatus === 'Active' ? colors.success : colors.textMuted }]} />
-            <Text style={[styles.statusText, { color: centerStatus === 'Active' ? colors.success : colors.textMuted }]}>
-              {centerStatus}
-            </Text>
           </View>
 
           {/* Stats Row */}
@@ -114,92 +132,25 @@ const CenterDetailScreen = ({ navigation, route }) => {
               <Text style={styles.statLabel}>Inactive</Text>
             </View>
           </View>
-
-          {/* Facilities */}
-          <View style={styles.facilitiesSection}>
-            <Text style={styles.facilitiesTitle}>Facilities</Text>
-            <View style={styles.facilitiesRow}>
-              {hasCoolingUnit && (
-                <View style={styles.facilityTag}>
-                  <Droplet size={14} color={colors.primary} strokeWidth={2} />
-                  <Text style={styles.facilityText}>Cooling Unit</Text>
-                </View>
-              )}
-              {hasTestingLab && (
-                <View style={styles.facilityTag}>
-                  <FlaskConical size={14} color={colors.primary} strokeWidth={2} />
-                  <Text style={styles.facilityText}>Testing Lab</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Edit & Delete Buttons */}
-          <View style={styles.centerActions}>
-            <TouchableOpacity 
-              style={styles.editCenterButton}
-              onPress={handleEditCenter}
-            >
-              <Edit size={16} color={colors.text} strokeWidth={2} />
-              <Text style={styles.editCenterText}>Edit Center</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.deleteCenterButton}
-              onPress={handleDelete}
-            >
-              <Trash2 size={16} color={colors.danger} strokeWidth={2} />
-              <Text style={styles.deleteCenterText}>Delete</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
         <View style={styles.actionsGrid}>
-          <TouchableOpacity 
-            style={[styles.actionCard, styles.actionCardGreen]} 
-            onPress={() => navigation.navigate('FoodReports', { centerId, centerName })}
-          >
-            <Salad size={24} color="#ffffff" strokeWidth={2} />
-            <Text style={[styles.actionCardText, { color: '#ffffff' }]}>Food Records</Text>
-            <View style={styles.actionCardArrow}>
-              <Text style={[styles.actionCardArrowText, { color: '#ffffff' }]}>→</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionCard, styles.actionCardLightGreen]} 
-            onPress={() => navigation.navigate('FarmerList', { centerId, centerCode, centerName })}
-          >
-            <Users size={24} color="#065f46" strokeWidth={2} />
-            <Text style={[styles.actionCardText, { color: '#065f46' }]}>Manage Farmers</Text>
-            <View style={styles.actionCardArrow}>
-              <Text style={[styles.actionCardArrowText, { color: '#065f46' }]}>→</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionCard, styles.actionCardBlue]} 
-            onPress={() => navigation.navigate('CollectionRecords', { centerId, centerName })}
-          >
-            <Droplet size={24} color="#1e40af" strokeWidth={2} />
-            <Text style={[styles.actionCardText, { color: '#1e40af' }]}>Collection Records</Text>
-            <View style={styles.actionCardArrow}>
-              <Text style={[styles.actionCardArrowText, { color: '#1e40af' }]}>→</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionCard, styles.actionCardOrange]} 
-            onPress={() => navigation.navigate('AllPays', { centerId, centerName })}
-          >
-            <CreditCard size={24} color="#9a3412" strokeWidth={2} />
-            <Text style={[styles.actionCardText, { color: '#9a3412' }]}>All Payments</Text>
-            <View style={styles.actionCardArrow}>
-              <Text style={[styles.actionCardArrowText, { color: '#9a3412' }]}>→</Text>
-            </View>
-          </TouchableOpacity>
+          {quickActions.map((action, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.actionItem}
+              onPress={action.onPress}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: action.bg }]}>
+                {action.icon}
+              </View>
+              <Text style={styles.actionLabel}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -209,19 +160,19 @@ const CenterDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bg
+    backgroundColor: colors.bg,
   },
   scrollView: {
-    flex: 1
+    flex: 1,
   },
   content: {
-    padding: spacing.lg
+    padding: spacing.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg
+    marginBottom: spacing.lg,
   },
   backButton: {
     width: 40,
@@ -231,14 +182,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border
+    borderColor: colors.border,
   },
   brandText: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text
+    color: colors.text,
   },
-  logoutButton: {
+  logoutIconButton: {
     width: 40,
     height: 40,
     borderRadius: 10,
@@ -246,7 +197,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border
+    borderColor: colors.border,
   },
   centerCard: {
     backgroundColor: colors.surface,
@@ -254,230 +205,106 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     marginBottom: spacing.lg,
     alignItems: 'center',
-    ...shadows.card
+    ...shadows.card,
   },
-  centerIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#065f46',
+  centerLogoContainer: {
+    width: 140,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md
+    marginBottom: spacing.md,
+  },
+  centerLogo: {
+    width: 120,
+    height: 64,
   },
   centerName: {
     fontSize: 24,
     fontWeight: '800',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: 4
+    marginBottom: 4,
   },
   centerCode: {
     fontSize: 14,
     color: colors.textMuted,
     fontWeight: '600',
-    marginBottom: spacing.sm
+    marginBottom: spacing.sm,
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm
+    marginBottom: spacing.sm,
   },
   centerAddress: {
     fontSize: 13,
     color: colors.textMuted,
-    marginLeft: 6
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: colors.successLight,
-    marginBottom: spacing.md
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600'
+    marginLeft: 6,
   },
   statsRow: {
     flexDirection: 'row',
     width: '100%',
     paddingVertical: spacing.md,
-    marginBottom: spacing.md,
+    marginTop: spacing.sm,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.border
+    borderColor: colors.border,
   },
   statItem: {
     flex: 1,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   statValue: {
     fontSize: 28,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 4
+    marginBottom: 4,
   },
   statLabel: {
     fontSize: 11,
     color: colors.textMuted,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   statDivider: {
     width: 1,
-    backgroundColor: colors.border
-  },
-  facilitiesSection: {
-    width: '100%',
-    marginBottom: spacing.md
-  },
-  facilitiesTitle: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
-    textAlign: 'left'
-  },
-  facilitiesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs
-  },
-  facilityTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.lightGray,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6
-  },
-  facilityText: {
-    fontSize: 12,
-    color: colors.text,
-    fontWeight: '600'
-  },
-  centerActions: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: spacing.sm
-  },
-  editCenterButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 12
-  },
-  editCenterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text
-  },
-  deleteCenterButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingVertical: 12
-  },
-  deleteCenterText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.danger
+    backgroundColor: colors.border,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: spacing.md
+    marginBottom: spacing.md,
   },
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg
-  },
-  actionCard: {
-    width: '48%',
-    aspectRatio: 1.5,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    justifyContent: 'space-between',
-    ...shadows.small
-  },
-  actionCardGreen: {
-    backgroundColor: '#065f46'
-  },
-  actionCardLightGreen: {
-    backgroundColor: '#d1fae5'
-  },
-  actionCardBlue: {
-    backgroundColor: '#dbeafe'
-  },
-  actionCardOrange: {
-    backgroundColor: '#fed7aa'
-  },
-  actionCardText: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginTop: spacing.xs
-  },
-  actionCardArrow: {
-    alignSelf: 'flex-end'
-  },
-  actionCardArrowText: {
-    fontSize: 20,
-    fontWeight: '600'
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.surface,
-    flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadows.medium
+    ...shadows.card,
   },
-  navItem: {
+  actionItem: {
+    width: '22%',
     alignItems: 'center',
-    paddingVertical: spacing.xs
+    marginBottom: spacing.sm,
   },
-  navIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  actionIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4
+    marginBottom: 8,
   },
-  navLabel: {
+  actionLabel: {
     fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600'
-  }
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    lineHeight: 15,
+  },
 });
 
 export default CenterDetailScreen;

@@ -51,8 +51,6 @@ const FarmerDetailScreen = ({ navigation, route }) => {
 
         <View style={styles.card}>
           <Field label="Mobile" value={farmer.mobileNumber} />
-          <Field label="Village" value={farmer.village} />
-          <Field label="Address" value={farmer.address} />
           <Field label="Animal Type" value={farmer.animalType} />
           <Field label="Center" value={farmer.assignedCenter?.name} />
         </View>

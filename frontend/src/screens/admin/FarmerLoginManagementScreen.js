@@ -114,16 +114,8 @@ const FarmerLoginManagementScreen = ({ navigation }) => {
     );
   };
 
-  const filtered = farmers.filter((f) => {
-    const q = search.toLowerCase();
-    return (
-      f.fullName?.toLowerCase().includes(q) ||
-      f.mobileNumber?.includes(q) ||
-      f.farmerCode?.toLowerCase().includes(q)
-    );
-  });
+  
 
-  const enabledCount = farmers.filter((f) => f.loginEnabled).length;
 
   const renderFarmer = ({ item }) => (
     <View style={styles.farmerCard}>

@@ -1,62 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
-import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { fetchFoodRecords } from '../../redux/slices/foodSlice';
-import { LoadingIndicator, EmptyState, SearchBar } from '../../components';
-import styles from './adminStyles';
+import { LoadingIndicator, EmptyState } from '../../components';
+import { ChevronLeft, Calendar, Search, X, Salad } from 'lucide-react-native';
+import { colors, radius, spacing, shadows } from '../../theme';
 
-const isWithinDateRange = (dateValue, range) => {
-  if (!range) return true;
-  if (!dateValue) return false;
-
-  const now = new Date();
-  const recordDate = new Date(dateValue);
-
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(todayStart.getDate() + 1);
-
-  if (range === 'today') {
-    return recordDate >= todayStart && recordDate < tomorrowStart;
-  }
-
-  if (range === 'yesterday') {
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(todayStart.getDate() - 1);
-    return recordDate >= yesterdayStart && recordDate < todayStart;
-  }
-
-  if (range === 'lastWeek') {
-    const lastWeekStart = new Date(todayStart);
-    lastWeekStart.setDate(todayStart.getDate() - 7);
-    return recordDate >= lastWeekStart && recordDate < tomorrowStart;
-  }
-
-  if (range === 'lastMonth') {
-    const firstDayCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return recordDate >= firstDayLastMonth && recordDate < firstDayCurrentMonth;
-  }
-
-  return true;
-};
-
-const isMatchingPayment = (paymentStatus, filterValue) => {
-  if (!filterValue) return true;
-  const normalized = (paymentStatus || '').toLowerCase();
-
-  if (filterValue === 'Paid') {
-    return normalized === 'paid';
-  }
-
-  if (filterValue === 'Unpaid') {
-    return normalized !== 'paid';
-  }
-
-  return true;
-};
+const fmtDate = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : null;
 
 const FoodReportsScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -68,186 +23,155 @@ const FoodReportsScreen = ({ navigation, route }) => {
   const selectedCenterId = route?.params?.centerId || '';
   const selectedCenterName = route?.params?.centerName || '';
 
-  const [filters, setFilters] = useState({
-    center: selectedCenterId,
-    dateRange: '',
-    paymentStatus: '',
-    animalType: '',
-    foodType: ''
-  });
+  const [date, setDate]               = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (token) {
-      loadData();
-    }
-  }, [dispatch, token, filters.center, filters.animalType, filters.foodType]);
-
-  useEffect(() => {
-    if (selectedCenterId) {
-      setFilters((prev) => ({ ...prev, center: selectedCenterId }));
-    }
-  }, [selectedCenterId]);
+    if (token) loadData();
+  }, [dispatch, token]);
 
   const loadData = () => {
     const params = {};
-    if (filters.center) params.center = filters.center;
-    if (filters.animalType) params.animalType = filters.animalType;
-    if (filters.foodType) params.foodType = filters.foodType;
+    if (selectedCenterId) params.center = selectedCenterId;
     dispatch(fetchFoodRecords({ token, params }));
   };
 
   const filteredRecords = useMemo(() => {
     const search = searchQuery.trim().toLowerCase();
-
     return foodRecords.filter((record) => {
       const farmerName = record.farmerId?.fullName?.toLowerCase() || '';
       const centerName = record.collectionCenterId?.name?.toLowerCase() || '';
-      const searchMatched = !search || farmerName.includes(search) || centerName.includes(search);
-      const dateMatched = isWithinDateRange(record.date, filters.dateRange);
-      const paymentMatched = isMatchingPayment(record.paymentStatus, filters.paymentStatus);
-      return searchMatched && dateMatched && paymentMatched;
+      const searchOk   = !search || farmerName.includes(search) || centerName.includes(search);
+
+      let dateOk = true;
+      if (date) {
+        const selected = new Date(date); selected.setHours(0,0,0,0);
+        const rec = new Date(record.date); rec.setHours(0,0,0,0);
+        dateOk = rec.getTime() === selected.getTime();
+      }
+
+      return searchOk && dateOk;
     });
-  }, [foodRecords, searchQuery, filters.dateRange, filters.paymentStatus]);
+  }, [foodRecords, searchQuery, date]);
 
-  const totalAmount = filteredRecords.reduce((sum, record) => sum + (record.totalAmount || 0), 0);
-  const totalQuantity = filteredRecords.reduce((sum, record) => sum + (record.quantity || 0), 0);
-  const totalRecords = filteredRecords.length;
+  const renderItem = ({ item }) => {
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.88}
+        onPress={() => navigation.navigate('FoodDetail', { foodRecord: item })}
+      >
+        {/* Top row */}
+        <View style={styles.cardTop}>
+          <View style={styles.cardIconWrap}>
+            <Salad size={18} color="#3aafa9" strokeWidth={2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardName} numberOfLines={1}>
+              {item.farmerId?.fullName || '—'}
+            </Text>
+            <Text style={styles.cardCenter} numberOfLines={1}>
+              {item.collectionCenterId?.name || '—'}
+            </Text>
+          </View>
+        </View>
 
-  const renderRecordItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.recordCard}
-      activeOpacity={0.9}
-      onPress={() => navigation.navigate('FoodDetail', { foodRecord: item })}
-    >
-      <View style={styles.recordHeader}>
-        <Text style={styles.farmerName}>{item.farmerId?.fullName}</Text>
-        <Text style={styles.centerName}>{item.collectionCenterId?.name}</Text>
-      </View>
-      <View style={styles.recordDetails}>
-        <Text>Animal: {item.animalType}</Text>
-        <Text>Food: {item.foodType}</Text>
-        <Text>Quantity: {item.quantity} {item.unit}</Text>
-        <Text>Rate: ₹{item.rate}</Text>
-        <Text>Total: ₹{item.totalAmount}</Text>
-        <Text>Status: {item.paymentStatus}</Text>
-        <Text>Date: {new Date(item.date).toLocaleDateString()}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+        {/* Details row */}
+        <View style={styles.cardBottom}>
+          <Text style={styles.cardDate}>
+            📅 {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+          </Text>
+          <Text style={styles.cardAmount}>₹{Number(item.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
-  if (status === 'loading') {
-    return <LoadingIndicator />;
-  }
+  if (status === 'loading') return <LoadingIndicator />;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Records</Text>
-          <Text style={styles.summaryValue}>{totalRecords}</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Total Amount</Text>
-          <Text style={styles.summaryValue}>₹{totalAmount.toFixed(2)}</Text>
-        </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Total Quantity</Text>
-          <Text style={styles.summaryValue}>{totalQuantity}</Text>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+
+      {/* ── Teal Header ── */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <ChevronLeft size={22} color="#fff" strokeWidth={2.5} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.brand}>Sarvasvaa Milk</Text>
+          <Text style={styles.title}>Food Records</Text>
         </View>
       </View>
 
-      {selectedCenterId ? (
-        <View style={styles.selectedCenterBanner}>
-          <Text style={styles.selectedCenterLabel}>Viewing food records for center:</Text>
-          <Text style={styles.selectedCenterValue}>{selectedCenterName || 'Selected Center'}</Text>
+      {/* ── Center banner ── */}
+      {selectedCenterName ? (
+        <View style={styles.centerBanner}>
+          <Text style={styles.centerBannerText}>📍 {selectedCenterName}</Text>
         </View>
       ) : null}
 
-      {/* Filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersContainer}>
-        <View style={styles.filterItem}>
-          <Text style={styles.filterLabel}>Date</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={filters.dateRange}
-              onValueChange={(value) => setFilters((prev) => ({ ...prev, dateRange: value }))}
-              style={styles.picker}
-            >
-              <Picker.Item label="All Dates" value="" />
-              <Picker.Item label="Today" value="today" />
-              <Picker.Item label="Yesterday" value="yesterday" />
-              <Picker.Item label="Last Week" value="lastWeek" />
-              <Picker.Item label="Last Month" value="lastMonth" />
-            </Picker>
-          </View>
-        </View>
+      {/* ── Search ── */}
+      <View style={styles.searchBar}>
+        <Search size={15} color={colors.primary} strokeWidth={2} />
+        <TextInput
+          style={styles.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search farmer or center..."
+          placeholderTextColor={colors.textDisabled}
+          autoCorrect={false}
+          autoCapitalize="none"
+          underlineColorAndroid="transparent"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <X size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-        <View style={styles.filterItem}>
-          <Text style={styles.filterLabel}>Payment</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={filters.paymentStatus}
-              onValueChange={(value) => setFilters((prev) => ({ ...prev, paymentStatus: value }))}
-              style={styles.picker}
-            >
-              <Picker.Item label="All" value="" />
-              <Picker.Item label="Paid" value="Paid" />
-              <Picker.Item label="Unpaid" value="Unpaid" />
-            </Picker>
-          </View>
-        </View>
+      {/* ── Single Date picker ── */}
+      <View style={styles.dateRow}>
+        <TouchableOpacity style={styles.datePill} onPress={() => setShowDatePicker(true)}>
+          <Calendar size={13} color="#3aafa9" strokeWidth={2} />
+          <Text style={styles.datePillText}>{date ? fmtDate(date) : 'Select Date'}</Text>
+        </TouchableOpacity>
+        {date && (
+          <TouchableOpacity onPress={() => setDate(null)} style={styles.clearDatesBtn}>
+            <X size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-        <View style={styles.filterItem}>
-          <Text style={styles.filterLabel}>Animal Type</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={filters.animalType}
-              onValueChange={(value) => setFilters((prev) => ({ ...prev, animalType: value }))}
-              style={styles.picker}
-            >
-              <Picker.Item label="All" value="" />
-              <Picker.Item label="Cow" value="Cow" />
-              <Picker.Item label="Buffalo" value="Buffalo" />
-            </Picker>
-          </View>
-        </View>
+      {showDatePicker && (
+        <DateTimePicker
+          value={date ? new Date(date) : new Date()}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={(_, d) => { setShowDatePicker(false); if (d) setDate(d.toISOString()); }}
+        />
+      )}
 
-        <View style={styles.filterItem}>
-          <Text style={styles.filterLabel}>Food Type</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={filters.foodType}
-              onValueChange={(value) => setFilters((prev) => ({ ...prev, foodType: value }))}
-              style={styles.picker}
-            >
-              <Picker.Item label="All" value="" />
-              <Picker.Item label="Cattle Feed" value="Cattle Feed" />
-              <Picker.Item label="Buffalo Feed" value="Buffalo Feed" />
-              <Picker.Item label="Mineral Mix" value="Mineral Mix" />
-              <Picker.Item label="Dry Fodder" value="Dry Fodder" />
-              <Picker.Item label="Green Fodder" value="Green Fodder" />
-              <Picker.Item label="Protein Mix" value="Protein Mix" />
-              <Picker.Item label="Other" value="Other" />
-            </Picker>
-          </View>
-        </View>
-      </ScrollView>
+      {/* ── Count ── */}
+      <View style={styles.countRow}>
+        <Text style={styles.countText}>Records ({filteredRecords.length})</Text>
+      </View>
 
-      {/* Search */}
-      <SearchBar
-        placeholder="Search records..."
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-
-      {/* Records List */}
+      {/* ── List ── */}
       <FlatList
         data={filteredRecords}
         keyExtractor={(item) => item._id}
-        renderItem={renderRecordItem}
-        ListEmptyComponent={<EmptyState message="No food records found" />}
-        contentContainerStyle={styles.listContainer}
+        renderItem={renderItem}
+        ListEmptyComponent={
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyIcon}>🌾</Text>
+            <Text style={styles.emptyTitle}>No food records found</Text>
+            <Text style={styles.emptySub}>Try adjusting your filters or date range</Text>
+          </View>
+        }
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
         onRefresh={loadData}
         refreshing={status === 'loading'}
@@ -255,5 +179,80 @@ const FoodReportsScreen = ({ navigation, route }) => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f3f4f6' },
+
+  // Header
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#3aafa9',
+    paddingHorizontal: spacing.lg, paddingVertical: 14, gap: 10,
+  },
+  backBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  brand: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.8)' },
+  title: { fontSize: 18, fontWeight: '800', color: '#fff' },
+
+  centerBanner: {
+    backgroundColor: '#e6f7f6', paddingHorizontal: spacing.lg, paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: '#b2e8e5',
+  },
+  centerBannerText: { fontSize: 13, fontWeight: '600', color: '#3aafa9' },
+
+  // Search
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: spacing.md, marginTop: 12,
+    backgroundColor: '#fff', borderRadius: radius.md,
+    paddingHorizontal: spacing.md, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#e5e7eb', ...shadows.xs,
+  },
+  searchInput: { flex: 1, fontSize: 14, color: colors.text },
+
+  // Date row
+  dateRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: spacing.md, marginTop: 10,
+  },
+  datePill: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#fff', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 9,
+    borderWidth: 1, borderColor: '#b2e8e5',
+  },
+  datePillText: { fontSize: 13, fontWeight: '600', color: '#3aafa9', flex: 1 },
+  clearDatesBtn: { padding: 6 },
+
+  // Count
+  countRow: { paddingHorizontal: spacing.md, paddingVertical: 10 },
+  countText: { fontSize: 14, fontWeight: '800', color: colors.text },
+
+  // Card
+  card: {
+    backgroundColor: '#fff', borderRadius: 14,
+    padding: spacing.md, marginBottom: 10,
+    ...shadows.card,
+  },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  cardIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#e6f7f6',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  cardName: { fontSize: 15, fontWeight: '700', color: colors.text },
+  cardCenter: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  cardBottom: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 8,
+  },
+  cardDate: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+  cardAmount: { fontSize: 16, fontWeight: '800', color: '#3aafa9' },
+
+  // Empty
+  emptyBox: { alignItems: 'center', paddingTop: 60 },
+  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+  emptySub: { fontSize: 13, color: colors.textMuted, marginTop: 4 },
+});
 
 export default FoodReportsScreen;
