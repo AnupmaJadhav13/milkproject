@@ -25,7 +25,6 @@ connectDB();
 console.log('──────────────────────────────────────────');
 console.log('Sarvasvaa Milk Backend starting...');
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-console.log('SMS integration: REMOVED — using in-app notifications');
 console.log('──────────────────────────────────────────');
 
 const app = express();

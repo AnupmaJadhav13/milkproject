@@ -5,12 +5,12 @@ import axios from 'axios';
 // ============================================================================
 
 // CHANGE THIS TO SWITCH BETWEEN LOCAL AND PRODUCTION
-const USE_LOCAL = false;
+const USE_LOCAL = true;
 
 // PRODUCTION URL (Deployed backend on Render)
 const PRODUCTION_URL = 'https://milkproject.onrender.com/api';
 
-const LOCAL_URL = 'http://192.168.1.100:5000/api';
+const LOCAL_URL = 'http://192.168.0.107:5000/api';
 
 const API_BASE_URL = USE_LOCAL ? LOCAL_URL : PRODUCTION_URL;
 
@@ -64,8 +64,8 @@ export const farmerApi = {
 };
 
 export const rateChartApi = {
-  get:    (token, centerId) => api.get('/admin/rate-chart',  { headers: { Authorization: `Bearer ${token}` }, params: { centerId } }),
-  update: (data, token, centerId) => api.put('/admin/rate-chart', data, { headers: { Authorization: `Bearer ${token}` }, params: { centerId } })
+  get:    (token, centerId, animalType = 'Cow') => api.get('/admin/rate-chart',  { headers: { Authorization: `Bearer ${token}` }, params: { centerId, animalType } }),
+  update: (data, token, centerId, animalType = 'Cow') => api.put('/admin/rate-chart', data, { headers: { Authorization: `Bearer ${token}` }, params: { centerId, animalType } })
 };
 
 export const annualBonusApi = {

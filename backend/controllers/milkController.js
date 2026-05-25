@@ -17,8 +17,70 @@ const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
 // Default fallback rates used when no center-specific chart exists
 const DEFAULT_RATES = {
-  baseRate: 30, fatStepInr: 0.3, snfStepInr: 0.5,
-  fatMin: 3.0, fatMax: 5.5, snfMin: 7.5, snfMax: 9.0
+  cow: {
+    baseRate: 30,
+    fatSteps: [{ fromValue: 3.0, stepRate: 0.3 }],
+    snfSteps: [{ fromValue: 7.5, stepRate: 0.5 }],
+    fatMin: 3.0, fatMax: 5.5, snfMin: 7.5, snfMax: 9.0
+  },
+  buffalo: {
+    baseRate: 35,
+    fatSteps: [{ fromValue: 5.0, stepRate: 0.5 }],
+    snfSteps: [{ fromValue: 8.0, stepRate: 0.6 }],
+    fatMin: 5.0, fatMax: 7.0, snfMin: 8.0, snfMax: 9.5
+  }
+};
+
+/**
+ * Calculate tiered step bonus for a given value using step ranges.
+ * @param {number} value - The actual FAT or SNF value
+ * @param {Array} steps - Array of {fromValue, stepRate} objects, sorted by fromValue
+ * @param {number} minValue - Minimum allowed value
+ * @param {number} maxValue - Maximum allowed value
+ * @returns {number} Total bonus amount
+ */
+const calculateTieredBonus = (value, steps, minValue, maxValue) => {
+  const clampedValue = clamp(Number(value), Number(minValue), Number(maxValue));
+  
+  // Sort steps by fromValue to ensure correct order
+  const sortedSteps = [...steps].sort((a, b) => a.fromValue - b.fromValue);
+  
+  let totalBonus = 0;
+  let currentValue = Number(minValue);
+  
+  for (let i = 0; i < sortedSteps.length; i++) {
+    const step = sortedSteps[i];
+    const stepStart = Number(step.fromValue);
+    const stepRate = Number(step.stepRate);
+    
+    // Determine where this step ends (next step's start or max value)
+    const stepEnd = i < sortedSteps.length - 1 
+      ? Number(sortedSteps[i + 1].fromValue)
+      : Number(maxValue);
+    
+    // If clampedValue is less than this step's start, we're done
+    if (clampedValue <= stepStart) {
+      break;
+    }
+    
+    // Calculate how much of this step range to apply
+    const rangeStart = Math.max(currentValue, stepStart);
+    const rangeEnd = Math.min(clampedValue, stepEnd);
+    
+    if (rangeEnd > rangeStart) {
+      const stepsInRange = Math.round((rangeEnd - rangeStart) * 10);
+      totalBonus += stepsInRange * stepRate;
+    }
+    
+    currentValue = rangeEnd;
+    
+    // If we've reached the clampedValue, we're done
+    if (currentValue >= clampedValue) {
+      break;
+    }
+  }
+  
+  return Number(totalBonus.toFixed(2));
 };
 
 /**
@@ -27,27 +89,55 @@ const DEFAULT_RATES = {
  * @param {number} fat
  * @param {number} snf
  * @param {string|ObjectId} centerId  — the collection center's _id
+ * @param {string} animalType - 'Cow' or 'Buffalo'
  */
-const calculateRate = async (fat, snf, centerId) => {
+const calculateRate = async (fat, snf, centerId, animalType = 'Cow') => {
   let settings = null;
+  let animalSettings = null;
 
   if (centerId) {
     settings = await RateChartSettings.findOne({ centerId }).lean();
   }
 
-  // Fall back to defaults if no center-specific chart found
-  if (!settings) {
-    settings = DEFAULT_RATES;
+  // Determine which animal type settings to use
+  const animalKey = animalType.toLowerCase(); // 'cow' or 'buffalo'
+  
+  if (settings && settings[animalKey]) {
+    animalSettings = settings[animalKey];
+  } else {
+    // Fall back to defaults
+    animalSettings = DEFAULT_RATES[animalKey] || DEFAULT_RATES.cow;
   }
 
-  const usedFat = clamp(Number(fat), Number(settings.fatMin), Number(settings.fatMax));
-  const usedSnf = clamp(Number(snf), Number(settings.snfMin), Number(settings.snfMax));
-  const fatDiffSteps = Math.round((usedFat - Number(settings.fatMin)) * 10);
-  const snfDiffSteps = Math.round((usedSnf - Number(settings.snfMin)) * 10);
-  const computed =
-    Number(settings.baseRate) +
-    fatDiffSteps * Number(settings.fatStepInr) +
-    snfDiffSteps * Number(settings.snfStepInr);
+  // Migrate old format to new format on-the-fly if needed (for backward compatibility)
+  if (!animalSettings.fatSteps || animalSettings.fatSteps.length === 0) {
+    animalSettings.fatSteps = [{ 
+      fromValue: animalSettings.fatMin || (animalKey === 'buffalo' ? 5.0 : 3.0), 
+      stepRate: settings?.fatStepInr || 0.3 
+    }];
+  }
+  if (!animalSettings.snfSteps || animalSettings.snfSteps.length === 0) {
+    animalSettings.snfSteps = [{ 
+      fromValue: animalSettings.snfMin || (animalKey === 'buffalo' ? 8.0 : 7.5), 
+      stepRate: settings?.snfStepInr || 0.5 
+    }];
+  }
+
+  const fatBonus = calculateTieredBonus(
+    fat, 
+    animalSettings.fatSteps, 
+    animalSettings.fatMin, 
+    animalSettings.fatMax
+  );
+  
+  const snfBonus = calculateTieredBonus(
+    snf, 
+    animalSettings.snfSteps, 
+    animalSettings.snfMin, 
+    animalSettings.snfMax
+  );
+
+  const computed = Number(animalSettings.baseRate) + fatBonus + snfBonus;
   return Number(computed.toFixed(2));
 };
 
@@ -75,7 +165,7 @@ const createMilkEntry = asyncHandler(async (req, res) => {
   }
 
   const { start, end } = asDayRange(date);
-  const ratePerLiter = await calculateRate(fat, snf, collectionCenterId);
+  const ratePerLiter = await calculateRate(fat, snf, collectionCenterId, animalType);
   const totalAmount = Number((Number(quantityLiters) * ratePerLiter).toFixed(2));
   const center = await CollectionCenter.findById(collectionCenterId).select('name collectionHead.fullName').lean();
 

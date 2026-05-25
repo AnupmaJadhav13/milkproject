@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
-import { ChevronLeft, Settings, NotepadText, Save, ChevronDown, Store } from 'lucide-react-native';
+import { ChevronLeft, Settings, NotepadText, Save, ChevronDown, Store, Plus, X } from 'lucide-react-native';
 import { rateChartApi } from '../../api/api';
 import { fetchCenters } from '../../redux/slices/centerSlice';
 import { colors, radius, spacing, shadows, typography } from '../../theme';
@@ -21,18 +21,70 @@ const stepRange = (min, max, step) => {
 const buildMatrix = (s) => {
   const fats = stepRange(s.fatMin, s.fatMax, 0.1);
   const snfs = stepRange(s.snfMin, s.snfMax, 0.1);
+  
   const rows = fats.map((fat) => {
-    const fatSteps = Math.round((fat - s.fatMin) / 0.1);
     return {
       fat,
       cells: snfs.map((snf) => {
-        const snfSteps = Math.round((snf - s.snfMin) / 0.1);
-        const rate = s.baseRate + fatSteps * s.fatStepInr + snfSteps * s.snfStepInr;
+        const rate = calculateRatePreview(fat, snf, s);
         return { snf, rate: Math.round(rate * 100) / 100 };
       })
     };
   });
   return { fats, snfs, rows };
+};
+
+// Calculate rate using tiered steps (same logic as backend)
+const calculateRatePreview = (fat, snf, settings) => {
+  if (!settings || !settings.fatSteps || !settings.snfSteps) {
+    return settings?.baseRate || 0;
+  }
+  
+  const fatBonus = calculateTieredBonus(
+    fat, 
+    settings.fatSteps, 
+    settings.fatMin || 3.0, 
+    settings.fatMax || 5.5
+  );
+  const snfBonus = calculateTieredBonus(
+    snf, 
+    settings.snfSteps, 
+    settings.snfMin || 7.5, 
+    settings.snfMax || 9.0
+  );
+  return (settings.baseRate || 0) + fatBonus + snfBonus;
+};
+
+const calculateTieredBonus = (value, steps, minValue, maxValue) => {
+  if (!steps || steps.length === 0) return 0;
+  
+  const clampedValue = Math.max(minValue, Math.min(maxValue, value));
+  const sortedSteps = [...steps].sort((a, b) => a.fromValue - b.fromValue);
+  
+  let totalBonus = 0;
+  let currentValue = minValue;
+  
+  for (let i = 0; i < sortedSteps.length; i++) {
+    const step = sortedSteps[i];
+    const stepStart = step.fromValue;
+    const stepRate = step.stepRate;
+    const stepEnd = i < sortedSteps.length - 1 ? sortedSteps[i + 1].fromValue : maxValue;
+    
+    if (clampedValue <= stepStart) break;
+    
+    const rangeStart = Math.max(currentValue, stepStart);
+    const rangeEnd = Math.min(clampedValue, stepEnd);
+    
+    if (rangeEnd > rangeStart) {
+      const stepsInRange = Math.round((rangeEnd - rangeStart) * 10);
+      totalBonus += stepsInRange * stepRate;
+    }
+    
+    currentValue = rangeEnd;
+    if (currentValue >= clampedValue) break;
+  }
+  
+  return Number(totalBonus.toFixed(2));
 };
 
 // ─── CenterPicker ─────────────────────────────────────────────────────────────
@@ -88,6 +140,90 @@ const cp = StyleSheet.create({
   optionCode:      { fontSize: 12, color: colors.textMuted },
 });
 
+// ─── StepBuilder Component ────────────────────────────────────────────────────
+const StepBuilder = ({ title, steps, onStepsChange, minValue, maxValue }) => {
+  const addStep = () => {
+    const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+    const newFromValue = lastStep ? lastStep.fromValue + 0.5 : minValue;
+    onStepsChange([...steps, { fromValue: newFromValue, stepRate: 0.3 }]);
+  };
+
+  const removeStep = (index) => {
+    if (steps.length === 1) {
+      Alert.alert('Cannot Remove', 'At least one step is required');
+      return;
+    }
+    onStepsChange(steps.filter((_, i) => i !== index));
+  };
+
+  const updateStep = (index, field, value) => {
+    const updated = [...steps];
+    updated[index] = { ...updated[index], [field]: parseFloat(value) || 0 };
+    onStepsChange(updated);
+  };
+
+  return (
+    <View style={sb.container}>
+      <View style={sb.header}>
+        <Text style={sb.title}>{title}</Text>
+        <TouchableOpacity style={sb.addBtn} onPress={addStep}>
+          <Plus size={16} color={colors.primary} strokeWidth={2.5} />
+          <Text style={sb.addBtnText}>Add Step</Text>
+        </TouchableOpacity>
+      </View>
+
+      {steps.map((step, index) => (
+        <View key={index} style={sb.stepRow}>
+          <View style={sb.stepInputs}>
+            <View style={sb.inputGroup}>
+              <Text style={sb.inputLabel}>From</Text>
+              <TextInput
+                value={String(step.fromValue)}
+                onChangeText={(val) => updateStep(index, 'fromValue', val)}
+                keyboardType="decimal-pad"
+                style={sb.input}
+                placeholder="3.0"
+              />
+            </View>
+            <View style={sb.inputGroup}>
+              <Text style={sb.inputLabel}>Step Rate (₹)</Text>
+              <TextInput
+                value={String(step.stepRate)}
+                onChangeText={(val) => updateStep(index, 'stepRate', val)}
+                keyboardType="decimal-pad"
+                style={sb.input}
+                placeholder="0.30"
+              />
+            </View>
+          </View>
+          {steps.length > 1 && (
+            <TouchableOpacity style={sb.deleteBtn} onPress={() => removeStep(index)}>
+              <X size={18} color={colors.error} strokeWidth={2.5} />
+            </TouchableOpacity>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const sb = StyleSheet.create({
+  container:   { marginBottom: spacing.md },
+  header:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  title:       { fontSize: 14, fontWeight: '700', color: colors.text, textTransform: 'uppercase', letterSpacing: 0.5 },
+  addBtn:      { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primaryXLight,
+                 paddingHorizontal: 10, paddingVertical: 6, borderRadius: radius.sm },
+  addBtnText:  { fontSize: 12, fontWeight: '700', color: colors.primary },
+  stepRow:     { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm,
+                 backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: spacing.sm },
+  stepInputs:  { flex: 1, flexDirection: 'row', gap: spacing.sm },
+  inputGroup:  { flex: 1 },
+  inputLabel:  { fontSize: 11, fontWeight: '600', color: colors.textMuted, marginBottom: 4 },
+  input:       { backgroundColor: colors.surface, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border,
+                 paddingHorizontal: spacing.sm, paddingVertical: 8, fontSize: 14, color: colors.text },
+  deleteBtn:   { padding: 8, backgroundColor: colors.errorLight, borderRadius: radius.sm },
+});
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 const RateChartScreen = ({ navigation }) => {
   const token    = useSelector((s) => s.auth.token);
@@ -96,33 +232,63 @@ const RateChartScreen = ({ navigation }) => {
   const insets   = useSafeAreaInsets();
 
   const [selectedCenterId, setSelectedCenterId] = useState('');
+  const [selectedAnimalType, setSelectedAnimalType] = useState('Cow'); // 'Cow' or 'Buffalo'
   const [settings,   setSettings]   = useState(null);
   const [isDefault,  setIsDefault]  = useState(false); // true = not yet saved for this center
   const [loading,    setLoading]    = useState(false);
   const [saving,     setSaving]     = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Editable inputs
-  const [baseInput,    setBaseInput]    = useState('');
-  const [fatStepInput, setFatStepInput] = useState('');
-  const [snfStepInput, setSnfStepInput] = useState('');
+  const [baseInput, setBaseInput] = useState('');
+  const [fatSteps, setFatSteps] = useState([{ fromValue: 3.0, stepRate: 0.3 }]);
+  const [snfSteps, setSnfSteps] = useState([{ fromValue: 7.5, stepRate: 0.5 }]);
+
+  // Track original values to detect changes
+  const [originalData, setOriginalData] = useState(null);
 
   // Load centers list once
   useEffect(() => {
     if (token) dispatch(fetchCenters(token));
   }, [dispatch, token]);
 
-  // Load rate chart whenever selected center changes
-  const loadChart = useCallback(async (centerId) => {
+  // Detect unsaved changes
+  useEffect(() => {
+    if (!originalData) return;
+    
+    const hasChanges = 
+      baseInput !== String(originalData.baseRate) ||
+      JSON.stringify(fatSteps) !== JSON.stringify(originalData.fatSteps) ||
+      JSON.stringify(snfSteps) !== JSON.stringify(originalData.snfSteps);
+    
+    setHasUnsavedChanges(hasChanges);
+  }, [baseInput, fatSteps, snfSteps, originalData]);
+
+  // Load rate chart whenever selected center or animal type changes
+  const loadChart = useCallback(async (centerId, animalType) => {
     if (!centerId) return;
     setLoading(true);
     try {
-      const { data } = await rateChartApi.get(token, centerId);
+      const { data } = await rateChartApi.get(token, centerId, animalType);
       setSettings(data);
       setIsDefault(!!data._isDefault);
-      setBaseInput(String(data.baseRate ?? 30));
-      setFatStepInput(String(data.fatStepInr ?? 0.3));
-      setSnfStepInput(String(data.snfStepInr ?? 0.5));
+      const baseRate = data.baseRate ?? (animalType === 'Buffalo' ? 35 : 30);
+      const defaultFatSteps = data.fatSteps || [{ fromValue: animalType === 'Buffalo' ? 5.0 : 3.0, stepRate: animalType === 'Buffalo' ? 0.5 : 0.3 }];
+      const defaultSnfSteps = data.snfSteps || [{ fromValue: animalType === 'Buffalo' ? 8.0 : 7.5, stepRate: animalType === 'Buffalo' ? 0.6 : 0.5 }];
+      
+      setBaseInput(String(baseRate));
+      setFatSteps(defaultFatSteps);
+      setSnfSteps(defaultSnfSteps);
+      
+      // Store original data for change detection
+      setOriginalData({
+        baseRate: String(baseRate),
+        fatSteps: defaultFatSteps,
+        snfSteps: defaultSnfSteps
+      });
+      
+      setHasUnsavedChanges(false);
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
@@ -131,50 +297,173 @@ const RateChartScreen = ({ navigation }) => {
   }, [token]);
 
   const handleSelectCenter = (id) => {
-    setSelectedCenterId(id);
-    setSettings(null);
-    loadChart(id);
+    // Warn about unsaved changes
+    if (hasUnsavedChanges && selectedCenterId) {
+      Alert.alert(
+        'Unsaved Changes',
+        'You have unsaved changes. Do you want to save them before switching centers?',
+        [
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => {
+              setSelectedCenterId(id);
+              setSettings(null);
+              setHasUnsavedChanges(false);
+              loadChart(id, selectedAnimalType);
+            }
+          },
+          {
+            text: 'Save & Switch',
+            onPress: async () => {
+              await onSave();
+              setSelectedCenterId(id);
+              setSettings(null);
+              loadChart(id, selectedAnimalType);
+            }
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+    } else {
+      setSelectedCenterId(id);
+      setSettings(null);
+      loadChart(id, selectedAnimalType);
+    }
+  };
+
+  const handleSelectAnimalType = (type) => {
+    // Warn about unsaved changes
+    if (hasUnsavedChanges) {
+      Alert.alert(
+        'Unsaved Changes',
+        'You have unsaved changes. Do you want to save them before switching animal types?',
+        [
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => {
+              setSelectedAnimalType(type);
+              setHasUnsavedChanges(false);
+              if (selectedCenterId) {
+                loadChart(selectedCenterId, type);
+              }
+            }
+          },
+          {
+            text: 'Save & Switch',
+            onPress: async () => {
+              await onSave();
+              setSelectedAnimalType(type);
+              if (selectedCenterId) {
+                loadChart(selectedCenterId, type);
+              }
+            }
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+    } else {
+      setSelectedAnimalType(type);
+      if (selectedCenterId) {
+        loadChart(selectedCenterId, type);
+      }
+    }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadChart(selectedCenterId);
+    await loadChart(selectedCenterId, selectedAnimalType);
     setRefreshing(false);
   };
 
   // Live matrix preview
   const matrix = useMemo(() => {
     if (!settings) return null;
-    return buildMatrix({
-      ...settings,
-      baseRate:   Number(baseInput)    || settings.baseRate,
-      fatStepInr: Number(fatStepInput) || settings.fatStepInr,
-      snfStepInr: Number(snfStepInput) || settings.snfStepInr,
-    });
-  }, [settings, baseInput, fatStepInput, snfStepInput]);
+    
+    // Ensure all required fields exist
+    const matrixSettings = {
+      baseRate: Number(baseInput) || settings.baseRate || 30,
+      fatSteps: fatSteps || settings.fatSteps || [],
+      snfSteps: snfSteps || settings.snfSteps || [],
+      fatMin: settings.fatMin || (selectedAnimalType === 'Buffalo' ? 5.0 : 3.0),
+      fatMax: settings.fatMax || (selectedAnimalType === 'Buffalo' ? 7.0 : 5.5),
+      snfMin: settings.snfMin || (selectedAnimalType === 'Buffalo' ? 8.0 : 7.5),
+      snfMax: settings.snfMax || (selectedAnimalType === 'Buffalo' ? 9.5 : 9.0),
+    };
+    
+    return buildMatrix(matrixSettings);
+  }, [settings, baseInput, fatSteps, snfSteps, selectedAnimalType]);
 
   const onSave = async () => {
     if (!selectedCenterId) {
       Alert.alert('No Center Selected', 'Please select a collection center first.');
       return;
     }
-    const base    = Number(baseInput);
-    const fatStep = Number(fatStepInput);
-    const snfStep = Number(snfStepInput);
-    if (isNaN(base)    || base    <= 0) { Alert.alert('Invalid', 'Base rate must be > 0');    return; }
-    if (isNaN(fatStep) || fatStep <  0) { Alert.alert('Invalid', 'FAT step must be ≥ 0');     return; }
-    if (isNaN(snfStep) || snfStep <  0) { Alert.alert('Invalid', 'SNF step must be ≥ 0');     return; }
+    const base = Number(baseInput);
+    if (isNaN(base) || base <= 0) { 
+      Alert.alert('Invalid', 'Base rate must be > 0'); 
+      return; 
+    }
+
+    // Validate steps
+    for (const step of fatSteps) {
+      if (isNaN(step.fromValue) || isNaN(step.stepRate)) {
+        Alert.alert('Invalid', 'All FAT step values must be valid numbers');
+        return;
+      }
+    }
+    for (const step of snfSteps) {
+      if (isNaN(step.fromValue) || isNaN(step.stepRate)) {
+        Alert.alert('Invalid', 'All SNF step values must be valid numbers');
+        return;
+      }
+    }
 
     setSaving(true);
     try {
+      const payload = { 
+        baseRate: base, 
+        fatSteps: fatSteps.map(s => ({ 
+          fromValue: Number(s.fromValue), 
+          stepRate: Number(s.stepRate) 
+        })),
+        snfSteps: snfSteps.map(s => ({ 
+          fromValue: Number(s.fromValue), 
+          stepRate: Number(s.stepRate) 
+        }))
+      };
+      
       const { data } = await rateChartApi.update(
-        { baseRate: base, fatStepInr: fatStep, snfStepInr: snfStep },
+        payload,
         token,
-        selectedCenterId
+        selectedCenterId,
+        selectedAnimalType
       );
       setSettings(data);
       setIsDefault(false);
-      Alert.alert('Saved', `Rate chart saved for ${centers.find(c => c._id === selectedCenterId)?.name || 'center'}.`);
+      
+      // Update original data to reflect saved state
+      setOriginalData({
+        baseRate: String(base),
+        fatSteps: fatSteps.map(s => ({ 
+          fromValue: Number(s.fromValue), 
+          stepRate: Number(s.stepRate) 
+        })),
+        snfSteps: snfSteps.map(s => ({ 
+          fromValue: Number(s.fromValue), 
+          stepRate: Number(s.stepRate) 
+        }))
+      });
+      setHasUnsavedChanges(false);
+      
+      Alert.alert('Saved', `${selectedAnimalType} rate chart saved for ${centers.find(c => c._id === selectedCenterId)?.name || 'center'}.`);
     } catch (e) {
       Alert.alert('Error', e.message);
     } finally {
@@ -202,7 +491,7 @@ const RateChartScreen = ({ navigation }) => {
 
         <Text style={styles.title}>Rate Chart</Text>
         <Text style={styles.subtitle}>
-          Each collection center has its own milk rate chart. Select a center to view or edit its rates.
+          Configure tiered rate steps for each collection center. Different rates for Cow and Buffalo milk.
         </Text>
 
         {/* ── Center Selector ── */}
@@ -215,6 +504,28 @@ const RateChartScreen = ({ navigation }) => {
           selectedId={selectedCenterId}
           onSelect={handleSelectCenter}
         />
+
+        {/* ── Animal Type Selector ── */}
+        {selectedCenterId && (
+          <View style={styles.animalTypeContainer}>
+            <TouchableOpacity
+              style={[styles.animalTypeBtn, selectedAnimalType === 'Cow' && styles.animalTypeBtnActive]}
+              onPress={() => handleSelectAnimalType('Cow')}
+            >
+              <Text style={[styles.animalTypeText, selectedAnimalType === 'Cow' && styles.animalTypeTextActive]}>
+                🐄 Cow
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.animalTypeBtn, selectedAnimalType === 'Buffalo' && styles.animalTypeBtnActive]}
+              onPress={() => handleSelectAnimalType('Buffalo')}
+            >
+              <Text style={[styles.animalTypeText, selectedAnimalType === 'Buffalo' && styles.animalTypeTextActive]}>
+                🐃 Buffalo
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ── No center selected placeholder ── */}
         {!selectedCenterId && (
@@ -240,13 +551,23 @@ const RateChartScreen = ({ navigation }) => {
               <View style={styles.centerBadgeDot} />
               <Text style={styles.centerBadgeText}>
                 Editing: <Text style={{ color: colors.primary, fontWeight: '800' }}>{selectedCenter?.name}</Text>
-                {' '}({selectedCenter?.centerCode})
+                {' '}({selectedCenter?.centerCode}) - {selectedAnimalType}
               </Text>
               {isDefault && (
                 <View style={styles.defaultPill}>
                   <Text style={styles.defaultPillText}>Default rates — not saved yet</Text>
                 </View>
               )}
+            </View>
+
+            {/* Range info */}
+            <View style={styles.rangeInfo}>
+              <Text style={styles.rangeInfoText}>
+                {selectedAnimalType === 'Cow' 
+                  ? '🐄 Cow: FAT 3.0-5.5% • SNF 7.5-9.0%'
+                  : '🐃 Buffalo: FAT 5.0-7.0% • SNF 8.0-9.5%'
+                }
+              </Text>
             </View>
 
             {/* Config card */}
@@ -256,7 +577,7 @@ const RateChartScreen = ({ navigation }) => {
                 <Text style={styles.cardTitle}>Base Configuration</Text>
               </View>
 
-              <Text style={styles.fieldLabel}>Base Rate (₹ per Liter)</Text>
+              <Text style={styles.fieldLabel}>Starting Amount (₹ per Liter)</Text>
               <View style={styles.rateRow}>
                 <Text style={styles.rupee}>₹</Text>
                 <TextInput
@@ -264,40 +585,41 @@ const RateChartScreen = ({ navigation }) => {
                   onChangeText={setBaseInput}
                   keyboardType="decimal-pad"
                   style={styles.rateInput}
-                  placeholder="30.00"
+                  placeholder={selectedAnimalType === 'Buffalo' ? '35.00' : '30.00'}
                   placeholderTextColor={colors.textDisabled}
                 />
               </View>
 
-              <View style={styles.stepRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>FAT Step (₹)</Text>
-                  <TextInput
-                    value={fatStepInput}
-                    onChangeText={setFatStepInput}
-                    keyboardType="decimal-pad"
-                    style={styles.stepInput}
-                    placeholder="0.30"
-                    placeholderTextColor={colors.textDisabled}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.fieldLabel}>SNF Step (₹)</Text>
-                  <TextInput
-                    value={snfStepInput}
-                    onChangeText={setSnfStepInput}
-                    keyboardType="decimal-pad"
-                    style={styles.stepInput}
-                    placeholder="0.50"
-                    placeholderTextColor={colors.textDisabled}
-                  />
-                </View>
-              </View>
+              <StepBuilder
+                title="FAT Steps"
+                steps={fatSteps}
+                onStepsChange={setFatSteps}
+                minValue={settings.fatMin}
+                maxValue={settings.fatMax}
+              />
 
-              <TouchableOpacity style={styles.saveBtn} onPress={onSave} disabled={saving}>
+              <StepBuilder
+                title="SNF Steps"
+                steps={snfSteps}
+                onStepsChange={setSnfSteps}
+                minValue={settings.snfMin}
+                maxValue={settings.snfMax}
+              />
+
+              {hasUnsavedChanges && (
+                <View style={styles.unsavedWarning}>
+                  <Text style={styles.unsavedWarningText}>⚠️ You have unsaved changes</Text>
+                </View>
+              )}
+
+              <TouchableOpacity 
+                style={[styles.saveBtn, hasUnsavedChanges && styles.saveBtnHighlight]} 
+                onPress={onSave} 
+                disabled={saving}
+              >
                 {saving
                   ? <ActivityIndicator color="#fff" />
-                  : <><Save size={17} color="#fff" strokeWidth={2.5} /><Text style={styles.saveBtnText}>Save for {selectedCenter?.name}</Text></>
+                  : <><Save size={17} color="#fff" strokeWidth={2.5} /><Text style={styles.saveBtnText}>Save {selectedAnimalType} Rates{hasUnsavedChanges ? ' *' : ''}</Text></>
                 }
               </TouchableOpacity>
             </View>
@@ -310,7 +632,7 @@ const RateChartScreen = ({ navigation }) => {
                   <Text style={styles.cardTitle}>Rate Matrix Preview</Text>
                 </View>
                 <Text style={styles.matrixNote}>
-                  Base ₹{Number(baseInput) || settings.baseRate} · FAT +₹{Number(fatStepInput) || settings.fatStepInr}/0.1 · SNF +₹{Number(snfStepInput) || settings.snfStepInr}/0.1
+                  Base ₹{Number(baseInput) || settings.baseRate} with tiered FAT and SNF steps
                 </Text>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -367,6 +689,13 @@ const styles = StyleSheet.create({
   sectionLabel:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.xs },
   sectionLabelText: { fontSize: 13, fontWeight: '700', color: colors.text, textTransform: 'uppercase', letterSpacing: 0.5 },
 
+  animalTypeContainer: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  animalTypeBtn:       { flex: 1, paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.surface,
+                         borderWidth: 2, borderColor: colors.border, alignItems: 'center', ...shadows.xs },
+  animalTypeBtnActive: { backgroundColor: colors.primaryXLight, borderColor: colors.primary },
+  animalTypeText:      { fontSize: 15, fontWeight: '700', color: colors.textMuted },
+  animalTypeTextActive:{ color: colors.primary },
+
   placeholderCard:  { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.xl, alignItems: 'center', marginTop: spacing.lg, ...shadows.card },
   placeholderIcon:  { fontSize: 48, marginBottom: spacing.sm },
   placeholderTitle: { fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 6 },
@@ -380,6 +709,9 @@ const styles = StyleSheet.create({
   defaultPill:     { backgroundColor: colors.warningLight, borderRadius: radius.full, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: colors.warning },
   defaultPillText: { fontSize: 11, color: colors.warning, fontWeight: '700' },
 
+  rangeInfo:       { backgroundColor: colors.accentLight, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 8, marginBottom: spacing.md },
+  rangeInfoText:   { fontSize: 12, fontWeight: '600', color: colors.accent, textAlign: 'center' },
+
   configCard:  { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md, ...shadows.card },
   cardHeader:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: spacing.md },
   cardTitle:   { fontSize: 16, fontWeight: '700', color: colors.text },
@@ -389,12 +721,13 @@ const styles = StyleSheet.create({
                  borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, marginBottom: spacing.md },
   rupee:       { fontSize: 18, fontWeight: '700', color: colors.text, marginRight: 6 },
   rateInput:   { flex: 1, height: 50, fontSize: 16, color: colors.text, fontWeight: '600' },
-  stepRow:     { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
-  stepInput:   { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border,
-                 paddingHorizontal: spacing.md, height: 44, fontSize: 15, color: colors.text },
+
+  unsavedWarning:     { backgroundColor: colors.warningLight, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 8, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.warning },
+  unsavedWarningText: { fontSize: 12, fontWeight: '600', color: colors.warning, textAlign: 'center' },
 
   saveBtn:     { flexDirection: 'row', backgroundColor: colors.primary, borderRadius: radius.md,
-                 paddingVertical: 13, alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.sm },
+                 paddingVertical: 13, alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.sm, marginTop: spacing.md },
+  saveBtnHighlight: { backgroundColor: colors.warning, ...shadows.medium },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
   matrixCard:    { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.md, ...shadows.card },
