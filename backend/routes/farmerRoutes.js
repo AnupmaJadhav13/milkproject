@@ -37,13 +37,13 @@ const farmerValidationRules = [
     .isLength({ max: 300 }).withMessage('Address must not exceed 300 characters'),
 
   body('village')
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
-    .notEmpty().withMessage('Village is required')
-    .isLength({ min: 2, max: 100 }).withMessage('Village must be 2–100 characters'),
+    .isLength({ max: 100 }).withMessage('Village must not exceed 100 characters'),
 
   body('bankName')
-    .trim()
-    .notEmpty().withMessage('Bank name is required'),
+    .optional({ nullable: true, checkFalsy: true })
+    .trim(),
 
   body('ifscCode')
     .trim()
