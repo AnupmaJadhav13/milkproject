@@ -10,8 +10,6 @@ import { colors, radius, spacing, typography, shadows } from '../../theme';
 import { ROLE_ADMIN, ROLE_COLLECTION_HEAD } from '../../constants/roles';
 import { Calendar } from 'lucide-react-native';
 
-const round2      = (value) => Number(Number(value || 0).toFixed(2));
-const fmtMoney    = (value) => round2(value).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 const today      = () => new Date().toISOString().split('T')[0];
 const monthStart = () => { const d = new Date(); d.setDate(1); return d.toISOString().split('T')[0]; };
 const fmtDate    = (iso) => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
@@ -78,15 +76,11 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
   const milkIncome     = item.totalMilkIncome      || 0;
   const advanceAmt     = item.totalAdvanceRemaining || 0;
   const foodAmt        = item.totalFoodPending      || 0;
-  const liveDeductFood = round2(deductFood ? Math.min(foodAmt, milkIncome) : 0);
-  const milkAfterFood  = round2(Math.max(0, milkIncome - liveDeductFood));
-  const liveDeductAdv  = round2(deductAdvance ? Math.min(advanceAmt, milkAfterFood) : 0);
-  const livePayable    = round2(Math.max(0, milkAfterFood - liveDeductAdv));
-  const liveAdvStillOwed = round2(Math.max(0, advanceAmt - liveDeductAdv));
-  const displayAdvanceDeducted = isAdmin || isForwarded || isPaid ? round2(item.totalAdvanceDeducted) : liveDeductAdv;
-  const displayFoodDeducted = isAdmin || isForwarded || isPaid ? round2(item.totalFoodExpenses) : liveDeductFood;
-  const displayPayable = isAdmin || isForwarded || isPaid ? round2(item.finalPayableAmount) : livePayable;
-  const displayAdvanceStillOwed = isAdmin || isForwarded || isPaid ? round2(item.remainingAdvanceBalance) : liveAdvStillOwed;
+  const liveDeductFood = deductFood    ? Math.min(foodAmt,    milkIncome)    : 0;
+  const milkAfterFood  = Math.max(0, milkIncome - liveDeductFood);
+  const liveDeductAdv  = deductAdvance ? Math.min(advanceAmt, milkAfterFood) : 0;
+  const livePayable    = Math.max(0, milkAfterFood - liveDeductAdv);
+  const liveAdvStillOwed = Math.max(0, advanceAmt - liveDeductAdv);
   const togglesChanged = deductAdvance !== (item.deductAdvance ?? false) || deductFood !== (item.deductFood ?? false);
 
   const doGenerate = async (da, df) => {
@@ -113,9 +107,9 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
 
   const handleMarkPaid = () => {
     const lines = [
-      `Pay ₹${fmtMoney(displayPayable)} to ${item.farmerId?.fullName}?`,
-      displayAdvanceDeducted > 0 ? `• Advance recovered: ₹${fmtMoney(displayAdvanceDeducted)}  (₹${fmtMoney(displayAdvanceStillOwed)} still owed)` : '',
-      displayFoodDeducted > 0 ? `• Food settled: ₹${fmtMoney(displayFoodDeducted)}` : '',
+      `Pay ₹${livePayable.toLocaleString('en-IN')} to ${item.farmerId?.fullName}?`,
+      liveDeductAdv  > 0 ? `• Advance recovered: ₹${liveDeductAdv.toLocaleString('en-IN')}  (₹${liveAdvStillOwed.toLocaleString('en-IN')} still owed)` : '',
+      liveDeductFood > 0 ? `• Food settled: ₹${liveDeductFood.toLocaleString('en-IN')}` : '',
     ].filter(Boolean).join('\n');
     Alert.alert('Confirm Payment', lines, [
       { text: 'Cancel', style: 'cancel' },
@@ -172,30 +166,30 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
       <View style={cs.amountsRow}>
         <View style={[cs.amountBox, { backgroundColor: colors.successLight, marginRight: 5 }]}>
           <Text style={cs.amountLabel}>🥛 Milk Income</Text>
-          <Text style={[cs.amountValue, { color: colors.success }]}>₹{fmtMoney(milkIncome)}</Text>
+          <Text style={[cs.amountValue, { color: colors.success }]}>₹{milkIncome.toLocaleString('en-IN')}</Text>
         </View>
         <View style={[cs.amountBox, { backgroundColor: isPaid ? colors.successLight : '#eff6ff', marginLeft: 5 }]}>
           <Text style={[cs.amountLabel, { color: isPaid ? colors.success : colors.primary }]}>
             {isPaid ? '✓ Paid' : '💰 Payable'}
           </Text>
           <Text style={[cs.amountValue, { color: isPaid ? colors.success : colors.primary }]}>
-            ₹{fmtMoney(displayPayable)}
+            ₹{(isPaid ? item.finalPayableAmount : livePayable).toLocaleString('en-IN')}
           </Text>
         </View>
       </View>
 
       {/* Formula line if deductions exist */}
-      {!isPaid && (displayFoodDeducted > 0 || displayAdvanceDeducted > 0) && (
+      {!isPaid && (liveDeductFood > 0 || liveDeductAdv > 0) && (
         <Text style={cs.formula}>
-          ₹{fmtMoney(milkIncome)} milk
-          {displayFoodDeducted > 0 ? ` - ₹${fmtMoney(displayFoodDeducted)} food` : ''}
-          {displayAdvanceDeducted > 0 ? ` - ₹${fmtMoney(displayAdvanceDeducted)} advance` : ''}
-          {' = ₹'}{fmtMoney(displayPayable)}
+          ₹{milkIncome.toLocaleString('en-IN')} milk
+          {liveDeductFood > 0 ? ` − ₹${liveDeductFood.toLocaleString('en-IN')} food` : ''}
+          {liveDeductAdv  > 0 ? ` − ₹${liveDeductAdv.toLocaleString('en-IN')} advance` : ''}
+          {' = ₹'}{livePayable.toLocaleString('en-IN')}
         </Text>
       )}
-      {!isPaid && deductAdvance && displayAdvanceStillOwed > 0 && (
+      {!isPaid && deductAdvance && liveAdvStillOwed > 0 && (
         <Text style={[cs.formula, { color: colors.danger }]}>
-          ₹{fmtMoney(displayAdvanceStillOwed)} advance still owed after this cycle
+          ₹{liveAdvStillOwed.toLocaleString('en-IN')} advance still owed after this cycle
         </Text>
       )}
 
@@ -210,11 +204,11 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
                 <Text style={cs.toggleLabel}>Deduct Advance</Text>
                 {deductAdvance
                   ? <Text style={[cs.toggleSub, { color: colors.danger }]}>
-                      Recover ₹{fmtMoney(liveDeductAdv)}
-                      {liveAdvStillOwed > 0 ? `  ·  ₹${fmtMoney(liveAdvStillOwed)} still owed` : '  ·  Fully cleared'}
+                      Recover ₹{liveDeductAdv.toLocaleString('en-IN')}
+                      {liveAdvStillOwed > 0 ? `  ·  ₹${liveAdvStillOwed.toLocaleString('en-IN')} still owed` : '  ·  Fully cleared'}
                     </Text>
                   : advanceAmt > 0
-                    ? <Text style={[cs.toggleSub, { color: colors.textMuted }]}>Outstanding: ₹{fmtMoney(advanceAmt)}</Text>
+                    ? <Text style={[cs.toggleSub, { color: colors.textMuted }]}>Outstanding: ₹{advanceAmt.toLocaleString('en-IN')}</Text>
                     : <Text style={[cs.toggleSub, { color: colors.textMuted }]}>No advance</Text>
                 }
               </View>
@@ -229,9 +223,9 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
               <View style={{ flex: 1 }}>
                 <Text style={cs.toggleLabel}>Deduct Food</Text>
                 {deductFood
-                  ? <Text style={[cs.toggleSub, { color: '#f59e0b' }]}>- ₹{fmtMoney(liveDeductFood)}</Text>
+                  ? <Text style={[cs.toggleSub, { color: '#f59e0b' }]}>− ₹{liveDeductFood.toLocaleString('en-IN')}</Text>
                   : foodAmt > 0
-                    ? <Text style={[cs.toggleSub, { color: colors.textMuted }]}>Pending: ₹{fmtMoney(foodAmt)}</Text>
+                    ? <Text style={[cs.toggleSub, { color: colors.textMuted }]}>Pending: ₹{foodAmt.toLocaleString('en-IN')}</Text>
                     : <Text style={[cs.toggleSub, { color: colors.textMuted }]}>No food pending</Text>
                 }
               </View>
@@ -467,8 +461,8 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         <View style={ss.summaryCard}>
           <View style={ss.summaryRow}>
             <SummaryItem label="Farmers"       value={summary.totalFarmers} />
-            <SummaryItem label="Milk Income"   value={`₹${fmtMoney(summary.totalMilkIncome)}`} />
-            <SummaryItem label="Total Payable" value={`₹${fmtMoney(summary.totalPayable)}`} valueColor={colors.success} />
+            <SummaryItem label="Milk Income"   value={`₹${(summary.totalMilkIncome || 0).toLocaleString('en-IN')}`} />
+            <SummaryItem label="Total Payable" value={`₹${(summary.totalPayable || 0).toLocaleString('en-IN')}`} valueColor={colors.success} />
           </View>
         </View>
       )}
@@ -542,33 +536,33 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
                   <DRow label="Date Range"   value={`${fmtDate(detailItem.fromDate)} – ${fmtDate(detailItem.toDate)}`} />
                   <DRow label="Milk Days"    value={`${detailItem.totalMilkDays || 0} days`} />
                   <DRow label="Total Liters" value={`${(detailItem.totalMilkQuantity || 0).toFixed(2)} L`} />
-                  <DRow label="Milk Income"  value={`₹${fmtMoney(detailItem.totalMilkIncome)}`} color={colors.success} bold />
+                  <DRow label="Milk Income"  value={`₹${(detailItem.totalMilkIncome || 0).toLocaleString('en-IN')}`} color={colors.success} bold />
                 </DSec>
                 {(detailItem.weeklyBreakdown || []).length > 0 && (
                   <DSec title="Weekly Breakdown">
                     {detailItem.weeklyBreakdown.map((w) => (
                       <DRow key={w.week} label={`Week ${w.week}`}
-                        value={`${(w.milkQuantity || 0).toFixed(1)}L · ₹${fmtMoney(w.milkIncome)}`} />
+                        value={`${(w.milkQuantity || 0).toFixed(1)}L · ₹${(w.milkIncome || 0).toLocaleString('en-IN')}`} />
                     ))}
                   </DSec>
                 )}
                 <DSec title="Pending Amounts">
-                  <DRow label="Food Pending"      value={`₹${fmtMoney(detailItem.totalFoodPending)}`}      color="#f59e0b" />
-                  <DRow label="Advance Remaining" value={`₹${fmtMoney(detailItem.totalAdvanceRemaining)}`} color={colors.danger} />
+                  <DRow label="Food Pending"      value={`₹${(detailItem.totalFoodPending || 0).toLocaleString('en-IN')}`}      color="#f59e0b" />
+                  <DRow label="Advance Remaining" value={`₹${(detailItem.totalAdvanceRemaining || 0).toLocaleString('en-IN')}`} color={colors.danger} />
                 </DSec>
                 <DSec title="Deductions Applied">
                   <DRow label="Advance Recovered"
-                    value={detailItem.deductAdvance ? `₹${fmtMoney(detailItem.totalAdvanceDeducted)}` : 'Not deducted'}
+                    value={detailItem.deductAdvance ? `₹${(detailItem.totalAdvanceDeducted || 0).toLocaleString('en-IN')}` : 'Not deducted'}
                     color={detailItem.deductAdvance ? colors.danger : colors.textMuted} />
                   <DRow label="Food Deducted"
-                    value={detailItem.deductFood ? `₹${fmtMoney(detailItem.totalFoodExpenses)}` : 'Not deducted'}
+                    value={detailItem.deductFood ? `₹${(detailItem.totalFoodExpenses || 0).toLocaleString('en-IN')}` : 'Not deducted'}
                     color={detailItem.deductFood ? '#f59e0b' : colors.textMuted} />
                   <DRow label="Advance Still Owed"
-                    value={`₹${fmtMoney(detailItem.remainingAdvanceBalance)}`}
+                    value={`₹${(detailItem.remainingAdvanceBalance || 0).toLocaleString('en-IN')}`}
                     color={colors.danger} />
                 </DSec>
                 <DSec title="Final Settlement">
-                  <DRow label="Final Payable" value={`₹${fmtMoney(detailItem.finalPayableAmount)}`} color={colors.primary} bold />
+                  <DRow label="Final Payable" value={`₹${(detailItem.finalPayableAmount || 0).toLocaleString('en-IN')}`} color={colors.primary} bold />
                   <DRow label="Status"        value={detailItem.paymentStatus} />
                   <DRow label="Cycle"         value={detailItem.paymentCycle || '—'} />
                 </DSec>

@@ -8,13 +8,6 @@ const mongoose = require('mongoose');
 const { sendPaymentDoneNotification } = require('../services/notificationService');
 
 // ---------- helpers ----------
-const round2 = (value) => Number((Number(value || 0)).toFixed(2));
-
-const getFoodPendingAmount = (record) => Math.max(
-  0,
-  round2((record.totalAmount || 0) - (record.paidAmount || 0))
-);
-
 const getWeeklyBreakdown = (records) => {
   const weeks = {};
   records.forEach((r) => {
@@ -100,14 +93,14 @@ const generatePayable = asyncHandler(async (req, res) => {
   };
   if (centerId) foodFilter.collectionCenterId = new mongoose.Types.ObjectId(centerId);
   const pendingFoodRecords  = await FoodRecord.find(foodFilter);
-  const totalFoodPending    = round2(pendingFoodRecords.reduce((s, r) => s + getFoodPendingAmount(r), 0));
+  const totalFoodPending    = pendingFoodRecords.reduce((s, r) => s + r.totalAmount, 0);
 
   // 3. Active advance remaining balance (all-time active)
   const activeAdvances = await Advance.find({
     farmerId: new mongoose.Types.ObjectId(farmerId),
     status: 'Active'
   }).sort({ createdAt: 1 });
-  const totalAdvanceRemaining = round2(activeAdvances.reduce((s, a) => s + a.remainingAmount, 0));
+  const totalAdvanceRemaining = activeAdvances.reduce((s, a) => s + a.remainingAmount, 0);
 
   // 4. Toggle-based deduction — CORRECT LOGIC
   //    Milk income is the ceiling. You can never deduct more than what milk earned.
@@ -118,20 +111,20 @@ const generatePayable = asyncHandler(async (req, res) => {
   //    Step 4: advance_recovered = min(advance_remaining, milk_after_food)
   //    Step 5: advance_still_remaining = advance_remaining - advance_recovered
 
-  const foodDeducted = round2(deductFood ? Math.min(totalFoodPending, totalMilkIncome) : 0);
+  const foodDeducted = deductFood ? Math.min(totalFoodPending, totalMilkIncome) : 0;
 
-  const milkAfterFood = round2(Math.max(0, totalMilkIncome - foodDeducted));
+  const milkAfterFood = Math.max(0, totalMilkIncome - foodDeducted);
 
   // How much of the advance can actually be recovered from this milk cycle
-  const advanceRecovered = round2(deductAdvance ? Math.min(totalAdvanceRemaining, milkAfterFood) : 0);
+  const advanceRecovered = deductAdvance ? Math.min(totalAdvanceRemaining, milkAfterFood) : 0;
 
   // What admin "deducted" = what was actually recovered from milk (not the full balance)
   const advanceDeducted = advanceRecovered;
 
-  const finalPayableAmount = round2(Math.max(0, milkAfterFood - advanceDeducted));
+  const finalPayableAmount = Math.max(0, milkAfterFood - advanceDeducted);
 
   // Advance still outstanding after this payment cycle
-  const remainingAdvanceBalance = round2(Math.max(0, totalAdvanceRemaining - advanceRecovered));
+  const remainingAdvanceBalance = Math.max(0, totalAdvanceRemaining - advanceRecovered);
 
   const collectionCenterId = centerId || farmer.assignedCenter;
 
@@ -361,32 +354,10 @@ const markPayableAsPaid = asyncHandler(async (req, res) => {
 
   // ── Food settlement ──
   if (payable.deductFood && payable.totalFoodExpenses > 0) {
-    const foodRecords = await FoodRecord.find({
-      farmerId: payable.farmerId,
-      paymentStatus: 'Pending'
-    }).sort({ date: 1, createdAt: 1 });
-
-    let foodToSettle = payable.totalFoodExpenses;
-
-    for (const food of foodRecords) {
-      if (foodToSettle <= 0) break;
-
-      const pendingAmount = getFoodPendingAmount(food);
-      if (pendingAmount <= 0) {
-        food.paymentStatus = 'Paid';
-        await food.save();
-        continue;
-      }
-
-      const applied = Math.min(pendingAmount, foodToSettle);
-      food.paidAmount = round2((food.paidAmount || 0) + applied);
-      foodToSettle = round2(foodToSettle - applied);
-
-      if (getFoodPendingAmount(food) <= 0) {
-        food.paymentStatus = 'Paid';
-      }
-      await food.save();
-    }
+    await FoodRecord.updateMany(
+      { farmerId: payable.farmerId, paymentStatus: 'Pending' },
+      { paymentStatus: 'Paid' }
+    );
   }
 
   // Return populated payable
@@ -399,7 +370,7 @@ const markPayableAsPaid = asyncHandler(async (req, res) => {
   if (farmerDoc?._id) {
     sendPaymentDoneNotification(farmerDoc._id, {
       farmerName: farmerDoc.fullName,
-      amount:     round2(payable.finalPayableAmount),
+      amount:     payable.finalPayableAmount.toFixed(2),
       advanceDeducted: payable.totalAdvanceDeducted || 0,
       date:       new Date().toLocaleDateString('en-IN'),
       cycle:      payable.paymentCycle || `${payable.month}/${payable.year}`
