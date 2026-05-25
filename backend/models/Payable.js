@@ -42,6 +42,15 @@ const payableSchema = mongoose.Schema(
       default: 'Pending'
     },
 
+    adminApprovalStatus: {
+      type: String,
+      enum: ['Draft', 'Forwarded'],
+      default: 'Draft',
+      index: true
+    },
+    forwardedToAdminAt: { type: Date },
+    forwardedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'CollectionCenter' },
+
     // Weekly breakdown snapshot
     weeklyBreakdown: [
       {

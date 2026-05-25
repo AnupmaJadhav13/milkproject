@@ -139,6 +139,7 @@ export const advanceApi = {
 export const payableApi = {
   getAll: (token, params) => api.get('/payable', { headers: { Authorization: `Bearer ${token}` }, params }),
   generate: (data, token) => api.post('/payable/generate', data, { headers: { Authorization: `Bearer ${token}` } }),
+  forward: (id, token) => api.put(`/payable/${id}/forward`, {}, { headers: { Authorization: `Bearer ${token}` } }),
   // Both /clear and /mark-paid are supported by backend
   clear: (id, token) => api.put(`/payable/${id}/mark-paid`, {}, { headers: { Authorization: `Bearer ${token}` } }),
   markPaid: (id, token) => api.put(`/payable/${id}/mark-paid`, {}, { headers: { Authorization: `Bearer ${token}` } }),

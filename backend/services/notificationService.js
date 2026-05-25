@@ -74,14 +74,15 @@ const sendFarmerRegistrationNotification = (farmerId, data) => {
  */
 const sendPaymentDoneNotification = (farmerId, data) => {
   const title = 'पेमेंट पूर्ण झाले';
-  const message =
-    `नमस्कार ${data.farmerName}, आपले पेमेंट यशस्वीरित्या पूर्ण झाले आहे.\n` +
-    `रक्कम: ₹${data.amount}\n` +
-    `दिनांक: ${data.date}\n` +
-    `पेमेंट कालावधी: ${data.cycle}\n` +
-    `धन्यवाद.`;
+  const advanceDeducted = Number(data.advanceDeducted || 0);
+  const amount = Number(data.amount || 0);
+  const message = advanceDeducted > 0
+    ? `तुमच्या दुधाच्या बिलामधून ₹${advanceDeducted.toLocaleString('en-IN')} अॅडव्हान्स वजा करण्यात आला आहे.\n` +
+      `उर्वरित ₹${amount.toLocaleString('en-IN')} रक्कम जमा करण्यात आली आहे.`
+    : `तुमची ₹${amount.toLocaleString('en-IN')} रक्कम जमा करण्यात आली आहे.`;
   dispatchNotification(farmerId, 'PAYMENT_DONE', title, message, {
     amount: data.amount,
+    advanceDeducted,
     date: data.date,
     cycle: data.cycle
   });

@@ -4,14 +4,50 @@ const Farmer = require('../models/Farmer');
 const CollectionCenter = require('../models/CollectionCenter');
 const { sendAdvanceNotification } = require('../services/notificationService');
 
-// @desc  Add advance payment (Admin or Collection Head)
+// @desc  Add advance payment (Admin to center / Collection Head to farmer)
 // @route POST /api/advances
 const addAdvance = asyncHandler(async (req, res) => {
-  const { farmerId, advanceAmount, advanceDate, paymentMethod, notes } = req.body;
+  const { farmerId, centerId, advanceAmount, advanceDate, paymentMethod, notes } = req.body;
 
-  if (!farmerId || !advanceAmount || !advanceDate || !paymentMethod) {
+  if (!advanceAmount || !advanceDate || !paymentMethod) {
     res.status(400);
-    throw new Error('farmerId, advanceAmount, advanceDate and paymentMethod are required');
+    throw new Error('advanceAmount, advanceDate and paymentMethod are required');
+  }
+
+  const newAmount = Number(advanceAmount);
+
+  if (req.user.role === 'admin') {
+    if (!centerId) {
+      res.status(400);
+      throw new Error('centerId is required for admin center advance');
+    }
+
+    const center = await CollectionCenter.findById(centerId);
+    if (!center) {
+      res.status(404);
+      throw new Error('Collection center not found');
+    }
+
+    const advance = await Advance.create({
+      recipientType: 'collection_center',
+      collectionCenterId: center._id,
+      collectionHeadName: center.collectionHead?.fullName || '',
+      advanceAmount: newAmount,
+      remainingAmount: newAmount,
+      advanceDate: new Date(advanceDate),
+      paymentMethod,
+      notes
+    });
+
+    const populated = await Advance.findById(advance._id)
+      .populate('collectionCenterId', 'name centerCode collectionHead');
+
+    return res.status(201).json({ success: true, data: populated });
+  }
+
+  if (!farmerId) {
+    res.status(400);
+    throw new Error('farmerId is required');
   }
 
   const farmer = await Farmer.findById(farmerId).populate('assignedCenter');
@@ -32,9 +68,8 @@ const addAdvance = asyncHandler(async (req, res) => {
 
   // Each advance record tracks its own remainingAmount independently.
   // Total remaining for the farmer = sum of all active advance remainingAmounts.
-  const newAmount = Number(advanceAmount);
-
   const advance = await Advance.create({
+    recipientType: 'farmer',
     farmerCode: farmer.farmerCode,
     farmerId: farmer._id,
     collectionCenterId: farmer.assignedCenter._id,
@@ -75,6 +110,14 @@ const addAmountToAdvance = asyncHandler(async (req, res) => {
   if (advance.status === 'Settled') {
     res.status(400);
     throw new Error('Cannot add amount to a settled advance. Create a new advance instead.');
+  }
+  if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
+    res.status(403);
+    throw new Error('Only Collection Head can add amount to farmer advances');
+  }
+  if (advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
+    res.status(403);
+    throw new Error('You can only manage advances for farmers in your assigned center');
   }
 
   const { extraAmount, notes } = req.body;
@@ -117,7 +160,9 @@ const getAdvances = asyncHandler(async (req, res) => {
 
   if (req.user.role === 'collection_head') {
     filter.collectionCenterId = req.user.assignedCenter;
+    filter.$or = [{ recipientType: 'farmer' }, { recipientType: { $exists: false } }];
   } else {
+    filter.recipientType = 'collection_center';
     if (centerId) filter.collectionCenterId = centerId;
   }
   if (farmerId) filter.farmerId = farmerId;
@@ -130,7 +175,7 @@ const getAdvances = asyncHandler(async (req, res) => {
 
   const advances = await Advance.find(filter)
     .populate('farmerId', 'fullName mobileNumber farmerCode')
-    .populate('collectionCenterId', 'name centerCode')
+    .populate('collectionCenterId', 'name centerCode collectionHead')
     .sort({ advanceDate: -1 });
 
   res.json({ success: true, data: advances });
@@ -140,7 +185,10 @@ const getAdvances = asyncHandler(async (req, res) => {
 // @route GET /api/advances/farmer/:farmerId
 const getFarmerAdvanceDetails = asyncHandler(async (req, res) => {
   const { farmerId } = req.params;
-  const advances = await Advance.find({ farmerId })
+  const advances = await Advance.find({
+    farmerId,
+    $or: [{ recipientType: 'farmer' }, { recipientType: { $exists: false } }]
+  })
     .populate('collectionCenterId', 'name centerCode')
     .sort({ advanceDate: -1 });
 
@@ -150,13 +198,21 @@ const getFarmerAdvanceDetails = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { advances, totalGiven, totalRemaining } });
 });
 
-// @desc  Update advance (Admin only)
+// @desc  Update farmer advance (Collection Head only)
 // @route PUT /api/advances/:id
 const updateAdvance = asyncHandler(async (req, res) => {
   const advance = await Advance.findById(req.params.id);
   if (!advance) {
     res.status(404);
     throw new Error('Advance record not found');
+  }
+  if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
+    res.status(403);
+    throw new Error('Only Collection Head can edit farmer advances');
+  }
+  if (advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
+    res.status(403);
+    throw new Error('You can only manage advances for farmers in your assigned center');
   }
   const { advanceAmount, advanceDate, paymentMethod, notes, remainingAmount, status } = req.body;
   if (advanceAmount !== undefined) advance.advanceAmount = Number(advanceAmount);
@@ -169,13 +225,21 @@ const updateAdvance = asyncHandler(async (req, res) => {
   res.json({ success: true, data: advance });
 });
 
-// @desc  Delete advance (Admin only)
+// @desc  Delete farmer advance (Collection Head only)
 // @route DELETE /api/advances/:id
 const deleteAdvance = asyncHandler(async (req, res) => {
   const advance = await Advance.findById(req.params.id);
   if (!advance) {
     res.status(404);
     throw new Error('Advance record not found');
+  }
+  if (req.user.role !== 'collection_head' || (advance.recipientType && advance.recipientType !== 'farmer')) {
+    res.status(403);
+    throw new Error('Only Collection Head can delete farmer advances');
+  }
+  if (advance.collectionCenterId?.toString() !== req.user.assignedCenter?.toString()) {
+    res.status(403);
+    throw new Error('You can only manage advances for farmers in your assigned center');
   }
   await advance.deleteOne();
   res.json({ success: true, message: 'Advance deleted' });

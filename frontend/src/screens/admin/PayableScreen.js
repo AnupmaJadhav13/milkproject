@@ -64,13 +64,14 @@ const chip = StyleSheet.create({
 // ─── FarmerPayableCard ────────────────────────────────────────────────────────
 const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDate, toDate, centerId, token, onRefresh, onViewDetail }) => {
   const isPaid = item.paymentStatus === 'Paid';
-  const canManage = isAdmin || isCollectionHead;
-  const canToggleDeductions = isCollectionHead;
+  const isForwarded = item.adminApprovalStatus === 'Forwarded';
+  const canToggleDeductions = isCollectionHead && !isForwarded;
 
   const [deductAdvance, setDeductAdvance] = useState(item.deductAdvance ?? false);
   const [deductFood,    setDeductFood]    = useState(item.deductFood    ?? false);
   const [applying,  setApplying]  = useState(false);
   const [paying,    setPaying]    = useState(false);
+  const [forwarding, setForwarding] = useState(false);
 
   const milkIncome     = item.totalMilkIncome      || 0;
   const advanceAmt     = item.totalAdvanceRemaining || 0;
@@ -125,6 +126,17 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
     ]);
   };
 
+  const handleForward = async () => {
+    setForwarding(true);
+    try {
+      if (togglesChanged) await doGenerate(deductAdvance, deductFood);
+      await payableApi.forward(item._id, token);
+      Alert.alert('Success', 'Payment details forwarded to Admin');
+      onRefresh();
+    } catch (e) { Alert.alert('Error', e.message); }
+    setForwarding(false);
+  };
+
   const handleDelete = () =>
     Alert.alert('Delete Payable', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
@@ -145,7 +157,7 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
         </View>
         <View style={[cs.badge, { backgroundColor: isPaid ? colors.successLight : colors.primaryXLight }]}>
           <Text style={[cs.badgeText, { color: isPaid ? colors.success : colors.primary }]}>
-            {isPaid ? '✓ Paid' : '⏳ Pending'}
+            {isPaid ? 'Paid' : isForwarded ? 'Forwarded' : 'Pending'}
           </Text>
         </View>
       </TouchableOpacity>
@@ -231,7 +243,20 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
       )}
 
       {/* Actions */}
-      {canManage && !isPaid && (
+      {isCollectionHead && !isPaid && (
+        <TouchableOpacity
+          style={[cs.forwardBtn, isForwarded && cs.forwardedBtn]}
+          onPress={handleForward}
+          disabled={forwarding || isForwarded}
+        >
+          {forwarding
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={cs.forwardBtnText}>{isForwarded ? 'Forwarded to Admin' : 'Forward to Admin'}</Text>
+          }
+        </TouchableOpacity>
+      )}
+
+      {isAdmin && !isPaid && (
         <View style={cs.actionsRow}>
           <TouchableOpacity style={cs.payBtn} onPress={handleMarkPaid} disabled={paying}>
             {paying ? <ActivityIndicator size="small" color="#fff" /> : <Text style={cs.payBtnText}>Mark as Paid</Text>}
@@ -241,7 +266,7 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
           </TouchableOpacity>
         </View>
       )}
-      {canManage && isPaid && (
+      {isAdmin && isPaid && (
         <TouchableOpacity style={[cs.delBtn, { marginTop: 6 }]} onPress={handleDelete}>
           <Text style={cs.delBtnText}>Delete Record</Text>
         </TouchableOpacity>
@@ -293,6 +318,9 @@ const cs = StyleSheet.create({
   applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
 
   actionsRow: { flexDirection: 'row', gap: 7, marginTop: 4 },
+  forwardBtn: { backgroundColor: colors.primary, borderRadius: radius.sm, paddingVertical: 10, alignItems: 'center', marginTop: 4 },
+  forwardedBtn: { backgroundColor: colors.textMuted },
+  forwardBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   payBtn: { flex: 2, backgroundColor: colors.success + '20', borderRadius: radius.sm, paddingVertical: 9, alignItems: 'center' },
   payBtnText: { color: colors.success, fontWeight: '700', fontSize: 13 },
   delBtn: { flex: 1, backgroundColor: colors.danger + '15', borderRadius: radius.sm, paddingVertical: 9, alignItems: 'center' },
@@ -326,7 +354,6 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
   const { token, user } = useSelector((s) => s.auth);
   const isAdmin = user?.role === ROLE_ADMIN;
   const isCollectionHead = user?.role === ROLE_COLLECTION_HEAD;
-  const canManage = isAdmin || isCollectionHead;
 
   const centerId = isCollectionHead
     ? (typeof user?.assignedCenter === 'object'
@@ -440,7 +467,7 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         </View>
       )}
 
-      {canManage && (
+      {isCollectionHead && (
         <View style={ss.generateRow}>
           <TouchableOpacity style={ss.generateBtn} onPress={generateAll} disabled={generating}>
             {generating
@@ -486,8 +513,9 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         ListEmptyComponent={
           !loading ? (
             <Text style={ss.empty}>
-              No payable records for this period.{'\n'}
-              Set a date range and tap "Generate Payables".
+              {isAdmin
+                ? 'No forwarded payment records for this period.'
+                : 'No payable records for this period.\nSet a date range and tap "Generate Payables".'}
             </Text>
           ) : null
         }
