@@ -291,6 +291,40 @@ const enableAllFarmersLogin = asyncHandler(async (req, res) => {
   });
 });
 
+// ── Farmer: Save Push Notification Token ─────────────────────────────────────
+
+const savePushToken = asyncHandler(async (req, res) => {
+  const { expoPushToken } = req.body;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  // Only farmers can save push tokens
+  if (userRole !== 'farmer') {
+    res.status(403);
+    throw new Error('Only farmers can save push tokens');
+  }
+
+  if (!expoPushToken || !String(expoPushToken).startsWith('ExponentPushToken[')) {
+    res.status(400);
+    throw new Error('Invalid Expo push token format');
+  }
+
+  const farmer = await Farmer.findById(userId);
+  if (!farmer) {
+    res.status(404);
+    throw new Error('Farmer not found');
+  }
+
+  farmer.expoPushToken = expoPushToken;
+  farmer.pushTokenUpdatedAt = new Date();
+  await farmer.save();
+
+  res.json({
+    success: true,
+    message: 'Push token saved successfully'
+  });
+});
+
 module.exports = {
   login,
   createAdmin,
@@ -298,5 +332,6 @@ module.exports = {
   updateProfile,
   setFarmerPassword,
   toggleFarmerLogin,
-  enableAllFarmersLogin
+  enableAllFarmersLogin,
+  savePushToken
 };

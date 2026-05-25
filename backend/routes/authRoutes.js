@@ -8,7 +8,8 @@ const {
   updateProfile,
   setFarmerPassword,
   toggleFarmerLogin,
-  enableAllFarmersLogin
+  enableAllFarmersLogin,
+  savePushToken
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
@@ -98,6 +99,19 @@ router.put(
   ],
   validateRequest,
   updateProfile
+);
+
+// ── Farmer: Save Push Token ───────────────────────────────────────────────────
+
+router.post(
+  '/push-token',
+  protect,
+  authorizeRoles('farmer'),
+  [
+    check('expoPushToken', 'Valid Expo push token is required').notEmpty().trim()
+  ],
+  validateRequest,
+  savePushToken
 );
 
 module.exports = router;

@@ -1,23 +1,28 @@
 /**
  * notificationService.js
  * ─────────────────────────────────────────────────────────────────────────────
- * In-app notification system replacing SMS integration.
+ * In-app notification system with Push Notification support.
  * All Marathi notification templates preserved.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 const Notification = require('../models/Notification');
+const Farmer = require('../models/Farmer');
 const { emitToFarmer } = require('../socket');
+const { sendPushNotification, sendBulkPushNotifications } = require('./pushNotificationService');
 
 // ── Core creator ──────────────────────────────────────────────────────────────
 
 /**
  * Create a notification for a farmer.
  * Fire-and-forget safe — errors are logged, not thrown.
+ * Also sends push notification if farmer has a push token.
  */
 const createNotification = async (farmerId, type, title, message, metadata = {}) => {
   try {
     if (!farmerId) return null;
+    
+    // Create in-app notification
     const notification = await Notification.create({
       farmerId,
       type,
@@ -25,13 +30,36 @@ const createNotification = async (farmerId, type, title, message, metadata = {})
       message,
       metadata
     });
+    
     const unreadCount = await Notification.countDocuments({ farmerId, isRead: false });
     const payload = notification.toObject();
+    
+    // Emit socket event for real-time update
     emitToFarmer(farmerId, 'notification:new', {
       notification: payload,
       unreadCount
     });
     emitToFarmer(farmerId, 'notification:unread-count', { unreadCount });
+    
+    // Send push notification if farmer has a push token
+    try {
+      const farmer = await Farmer.findById(farmerId).select('expoPushToken').lean();
+      if (farmer && farmer.expoPushToken) {
+        await sendPushNotification(farmer.expoPushToken, {
+          title,
+          body: message,
+          data: {
+            notificationId: notification._id.toString(),
+            type,
+            ...metadata
+          }
+        });
+      }
+    } catch (pushError) {
+      // Don't fail the whole operation if push notification fails
+      console.error(`[Push] Failed to send push notification to farmer ${farmerId}:`, pushError.message);
+    }
+    
     return notification;
   } catch (err) {
     console.error(`[Notification] Failed to create ${type} for farmer ${farmerId}:`, err.message);
@@ -162,11 +190,14 @@ const sendMilkCollectionNotification = (farmerId, data) => {
 
 /**
  * Custom Admin Message Notification (replaces Send SMS)
+ * Sends both in-app and push notifications to multiple farmers
  */
 const sendCustomNotification = async (farmerIds, title, message) => {
   if (!farmerIds || farmerIds.length === 0) return { sent: 0, errors: [] };
 
-  const results = { sent: 0, errors: [] };
+  const results = { sent: 0, errors: [], pushSent: 0 };
+  
+  // Create in-app notifications
   const promises = farmerIds.map(async (farmerId) => {
     try {
       await createNotification(farmerId, 'CUSTOM_MESSAGE', title || 'संदेश', message);
@@ -177,6 +208,34 @@ const sendCustomNotification = async (farmerIds, title, message) => {
   });
 
   await Promise.allSettled(promises);
+  
+  // Send bulk push notifications
+  try {
+    const farmers = await Farmer.find({
+      _id: { $in: farmerIds },
+      expoPushToken: { $exists: true, $ne: null }
+    }).select('_id expoPushToken').lean();
+    
+    if (farmers.length > 0) {
+      const pushNotifications = farmers.map(farmer => ({
+        pushToken: farmer.expoPushToken,
+        title: title || 'संदेश',
+        body: message,
+        data: {
+          type: 'CUSTOM_MESSAGE',
+          farmerId: farmer._id.toString()
+        }
+      }));
+      
+      const pushResult = await sendBulkPushNotifications(pushNotifications);
+      if (pushResult.success) {
+        results.pushSent = pushResult.totalSent;
+      }
+    }
+  } catch (pushError) {
+    console.error('[Push] Failed to send bulk push notifications:', pushError.message);
+  }
+  
   return results;
 };
 
