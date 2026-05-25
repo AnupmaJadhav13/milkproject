@@ -116,9 +116,6 @@ const LoginScreen = () => {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Farmer? Use your mobile number</Text>
-          {/* <TouchableOpacity>
-            <Text style={styles.footerLink}>Contact Support</Text>
-          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -135,15 +132,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     justifyContent: 'center',
-    padding: spacing.xl,
+    padding: spacing.xxl,
   },
   brandSection: {
     alignItems: 'center',
     marginBottom: spacing.xxl,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 180,
     marginBottom: spacing.md,
   },
   logoMark: {

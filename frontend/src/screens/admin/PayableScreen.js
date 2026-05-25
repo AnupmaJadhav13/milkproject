@@ -137,11 +137,11 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
 
   return (
     <View style={cs.card}>
+      {/* Header */}
       <TouchableOpacity style={cs.headerRow} onPress={() => onViewDetail(item)} activeOpacity={0.75}>
         <View style={{ flex: 1 }}>
           <Text style={cs.farmerName} numberOfLines={1}>{item.farmerId?.fullName || '—'}</Text>
           <Text style={cs.meta}>{item.farmerId?.farmerCode || item.farmerCode}{' · '}{item.collectionCenterId?.name || centerName}</Text>
-          <Text style={cs.cycle}>📅 {item.paymentCycle || `${fmtDate(item.fromDate)} – ${fmtDate(item.toDate)}`}</Text>
         </View>
         <View style={[cs.badge, { backgroundColor: isPaid ? colors.successLight : colors.primaryXLight }]}>
           <Text style={[cs.badgeText, { color: isPaid ? colors.success : colors.primary }]}>
@@ -150,22 +150,41 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
         </View>
       </TouchableOpacity>
 
-      <View style={cs.milkBox}>
-        <Text style={cs.milkLabel}>🥛 Milk Income</Text>
-        <Text style={cs.milkValue}>₹{milkIncome.toLocaleString('en-IN')}</Text>
+      {/* Milk Income + Final Payable — side by side */}
+      <View style={cs.amountsRow}>
+        <View style={[cs.amountBox, { backgroundColor: colors.successLight, marginRight: 5 }]}>
+          <Text style={cs.amountLabel}>🥛 Milk Income</Text>
+          <Text style={[cs.amountValue, { color: colors.success }]}>₹{milkIncome.toLocaleString('en-IN')}</Text>
+        </View>
+        <View style={[cs.amountBox, { backgroundColor: isPaid ? colors.successLight : '#eff6ff', marginLeft: 5 }]}>
+          <Text style={[cs.amountLabel, { color: isPaid ? colors.success : colors.primary }]}>
+            {isPaid ? '✓ Paid' : '💰 Payable'}
+          </Text>
+          <Text style={[cs.amountValue, { color: isPaid ? colors.success : colors.primary }]}>
+            ₹{(isPaid ? item.finalPayableAmount : livePayable).toLocaleString('en-IN')}
+          </Text>
+        </View>
       </View>
 
-      <View style={cs.chipsRow}>
-        <InfoChip label="Milk Days"    value={item.totalMilkDays || 0} />
-        <InfoChip label="Liters"       value={`${(item.totalMilkQuantity || 0).toFixed(1)} L`} />
-        <InfoChip label="Food Pending" value={foodAmt > 0 ? `₹${foodAmt.toLocaleString('en-IN')}` : '₹0'} valueColor={foodAmt > 0 ? '#f59e0b' : undefined} />
-        <InfoChip label="Advance Owed" value={advanceAmt > 0 ? `₹${advanceAmt.toLocaleString('en-IN')}` : '₹0'} valueColor={advanceAmt > 0 ? colors.danger : undefined} />
-      </View>
+      {/* Formula line if deductions exist */}
+      {!isPaid && (liveDeductFood > 0 || liveDeductAdv > 0) && (
+        <Text style={cs.formula}>
+          ₹{milkIncome.toLocaleString('en-IN')} milk
+          {liveDeductFood > 0 ? ` − ₹${liveDeductFood.toLocaleString('en-IN')} food` : ''}
+          {liveDeductAdv  > 0 ? ` − ₹${liveDeductAdv.toLocaleString('en-IN')} advance` : ''}
+          {' = ₹'}{livePayable.toLocaleString('en-IN')}
+        </Text>
+      )}
+      {!isPaid && deductAdvance && liveAdvStillOwed > 0 && (
+        <Text style={[cs.formula, { color: colors.danger }]}>
+          ₹{liveAdvStillOwed.toLocaleString('en-IN')} advance still owed after this cycle
+        </Text>
+      )}
 
       {/* Deduction toggles — Collection Head only */}
       {canToggleDeductions && !isPaid && (
         <View style={cs.togglesBox}>
-          <Text style={cs.togglesTitle}>Deductions for this farmer</Text>
+          <Text style={cs.togglesTitle}>Deductions</Text>
           <View style={cs.toggleRow}>
             <View style={cs.toggleLeft}>
               <View style={[cs.dot, { backgroundColor: colors.danger }]} />
@@ -211,31 +230,6 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
         </View>
       )}
 
-      {/* Final Payable */}
-      <View style={[cs.finalBox, { backgroundColor: isPaid ? colors.successLight : '#eff6ff' }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={[cs.finalLabel, { color: isPaid ? colors.success : colors.primary }]}>
-            {isPaid ? '✓ Amount Paid' : '💰 Final Payable'}
-          </Text>
-          {!isPaid && (
-            <Text style={cs.finalFormula}>
-              ₹{milkIncome.toLocaleString('en-IN')} milk
-              {liveDeductFood > 0 ? ` − ₹${liveDeductFood.toLocaleString('en-IN')} food` : ''}
-              {liveDeductAdv  > 0 ? ` − ₹${liveDeductAdv.toLocaleString('en-IN')} advance` : ''}
-              {' = ₹'}{livePayable.toLocaleString('en-IN')}
-            </Text>
-          )}
-          {!isPaid && deductAdvance && liveAdvStillOwed > 0 && (
-            <Text style={[cs.finalFormula, { color: colors.danger, marginTop: 2 }]}>
-              ₹{liveAdvStillOwed.toLocaleString('en-IN')} advance still owed after this cycle
-            </Text>
-          )}
-        </View>
-        <Text style={[cs.finalAmt, { color: isPaid ? colors.success : colors.primary }]}>
-          ₹{(isPaid ? item.finalPayableAmount : livePayable).toLocaleString('en-IN')}
-        </Text>
-      </View>
-
       {/* Actions */}
       {canManage && !isPaid && (
         <View style={cs.actionsRow}>
@@ -248,7 +242,7 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
         </View>
       )}
       {canManage && isPaid && (
-        <TouchableOpacity style={[cs.delBtn, { marginTop: 8 }]} onPress={handleDelete}>
+        <TouchableOpacity style={[cs.delBtn, { marginTop: 6 }]} onPress={handleDelete}>
           <Text style={cs.delBtnText}>Delete Record</Text>
         </TouchableOpacity>
       )}
@@ -257,34 +251,51 @@ const FarmerPayableCard = ({ item, centerName, isAdmin, isCollectionHead, fromDa
 };
 
 const cs = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: 12, ...shadows.card },
-  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
-  farmerName: { fontSize: 16, fontWeight: '700', color: colors.text },
-  meta:  { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  cycle: { fontSize: 11, color: colors.primary, fontWeight: '600', marginTop: 3 },
-  badge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginLeft: 8, alignSelf: 'flex-start' },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  milkBox: { backgroundColor: colors.successLight, borderRadius: radius.sm, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  milkLabel: { fontSize: 13, fontWeight: '700', color: colors.success },
-  milkValue: { fontSize: 18, fontWeight: '900', color: colors.success },
-  chipsRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
-  togglesBox: { backgroundColor: '#fafafa', borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 10 },
-  togglesTitle: { fontSize: 11, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.divider },
-  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  toggleLabel: { fontSize: 13, fontWeight: '600', color: colors.text },
-  toggleSub: { fontSize: 11, fontWeight: '600', marginTop: 2 },
-  applyBtn: { marginTop: 10, backgroundColor: colors.primary, borderRadius: radius.sm, paddingVertical: 9, alignItems: 'center' },
-  applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  finalBox: { borderRadius: radius.sm, padding: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  finalLabel: { fontSize: 13, fontWeight: '700' },
-  finalFormula: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  finalAmt: { fontSize: 20, fontWeight: '900' },
-  actionsRow: { flexDirection: 'row', gap: 8 },
-  payBtn: { flex: 2, backgroundColor: colors.success + '20', borderRadius: radius.sm, paddingVertical: 10, alignItems: 'center' },
+  card: {
+    backgroundColor: colors.surface, borderRadius: radius.md,
+    padding: spacing.sm, marginBottom: 8, ...shadows.card,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 7 },
+  farmerName: { fontSize: 14, fontWeight: '700', color: colors.text },
+  meta:  { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  badge: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2, marginLeft: 8, alignSelf: 'flex-start' },
+  badgeText: { fontSize: 11, fontWeight: '700' },
+
+  // ── Side-by-side amounts ──
+  amountsRow: { flexDirection: 'row', marginBottom: 5 },
+  amountBox: {
+    flex: 1, borderRadius: radius.sm, paddingHorizontal: 10, paddingVertical: 8,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  amountLabel: { fontSize: 12, fontWeight: '700', color: colors.success },
+  amountValue: { fontSize: 15, fontWeight: '900' },
+
+  formula: { fontSize: 10, color: colors.textMuted, marginBottom: 5 },
+
+  togglesBox: {
+    backgroundColor: '#fafafa', borderRadius: radius.sm,
+    borderWidth: 1, borderColor: colors.border,
+    padding: 10, marginTop: 4, marginBottom: 6,
+  },
+  togglesTitle: {
+    fontSize: 10, fontWeight: '700', color: colors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
+  },
+  toggleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.divider,
+  },
+  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  toggleLabel: { fontSize: 12, fontWeight: '600', color: colors.text },
+  toggleSub: { fontSize: 10, fontWeight: '600', marginTop: 1 },
+  applyBtn: { marginTop: 8, backgroundColor: colors.primary, borderRadius: radius.sm, paddingVertical: 8, alignItems: 'center' },
+  applyBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+
+  actionsRow: { flexDirection: 'row', gap: 7, marginTop: 4 },
+  payBtn: { flex: 2, backgroundColor: colors.success + '20', borderRadius: radius.sm, paddingVertical: 9, alignItems: 'center' },
   payBtnText: { color: colors.success, fontWeight: '700', fontSize: 13 },
-  delBtn: { flex: 1, backgroundColor: colors.danger + '15', borderRadius: radius.sm, paddingVertical: 10, alignItems: 'center' },
+  delBtn: { flex: 1, backgroundColor: colors.danger + '15', borderRadius: radius.sm, paddingVertical: 9, alignItems: 'center' },
   delBtnText: { color: colors.danger, fontWeight: '700', fontSize: 13 },
 });
 
@@ -317,7 +328,6 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
   const isCollectionHead = user?.role === ROLE_COLLECTION_HEAD;
   const canManage = isAdmin || isCollectionHead;
 
-  // Normalise centerId — collection head always uses their own assignedCenter
   const centerId = isCollectionHead
     ? (typeof user?.assignedCenter === 'object'
         ? user?.assignedCenter?._id?.toString() || user?.assignedCenter?.toString()
@@ -396,10 +406,8 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
     setGenerating(false);
   };
 
-  // ── ListHeaderComponent — scrolls with the list ──
   const ListHeader = (
     <>
-      {/* Date Range */}
       <View style={ss.dateRangeCard}>
         <View style={ss.dateRow}>
           <DateInput label="From Date" value={fromDate} onChange={setFromDate} />
@@ -408,7 +416,6 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         </View>
       </View>
 
-      {/* Status filter */}
       <View style={ss.filterRow}>
         {['', 'Pending', 'Paid'].map((s) => (
           <TouchableOpacity
@@ -423,7 +430,6 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         ))}
       </View>
 
-      {/* Summary */}
       {summary && (
         <View style={ss.summaryCard}>
           <View style={ss.summaryRow}>
@@ -434,7 +440,6 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         </View>
       )}
 
-      {/* Generate button */}
       {canManage && (
         <View style={ss.generateRow}>
           <TouchableOpacity style={ss.generateBtn} onPress={generateAll} disabled={generating}>
@@ -446,7 +451,7 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
         </View>
       )}
 
-      {loading && <ActivityIndicator style={{ marginTop: 40, marginBottom: 20 }} color={colors.primary} size="large" />}
+      {loading && <ActivityIndicator style={{ marginTop: 30, marginBottom: 16 }} color={colors.primary} size="large" />}
     </>
   );
 
@@ -470,7 +475,7 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
           />
         )}
         ListHeaderComponent={ListHeader}
-        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -548,27 +553,27 @@ const PayableScreen = ({ centerId: centerIdProp, centerName }) => {
 // ─── Screen styles ────────────────────────────────────────────────────────────
 const ss = StyleSheet.create({
   dateRangeCard: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     backgroundColor: colors.surface, borderRadius: radius.md,
-    padding: spacing.md, ...shadows.card, borderWidth: 1, borderColor: colors.border,
+    padding: spacing.sm, ...shadows.card, borderWidth: 1, borderColor: colors.border,
   },
   dateRow:     { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
   dateSep:     { paddingBottom: 10 },
   dateSepText: { fontSize: 16, color: colors.textMuted, fontWeight: '700' },
 
-  filterRow: { flexDirection: 'row', paddingVertical: spacing.sm, gap: 6 },
+  filterRow: { flexDirection: 'row', paddingVertical: spacing.xs, gap: 6 },
   filterBtn: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: radius.sm, backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
   filterBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   filterBtnText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   filterBtnTextActive: { color: '#fff' },
 
-  summaryCard: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.md, marginBottom: 8, ...shadows.card },
+  summaryCard: { backgroundColor: colors.surface, borderRadius: radius.md, padding: spacing.sm, marginBottom: 6, ...shadows.card },
   summaryRow:  { flexDirection: 'row', justifyContent: 'space-around' },
   summaryLabel: { fontSize: 11, color: colors.textMuted },
   summaryValue: { fontSize: 15, fontWeight: '800', color: colors.text },
 
-  generateRow: { marginBottom: 8 },
-  generateBtn: { backgroundColor: '#7c3aed', borderRadius: radius.md, paddingVertical: 12, alignItems: 'center' },
+  generateRow: { marginBottom: 6 },
+  generateBtn: { backgroundColor: '#7c3aed', borderRadius: radius.md, paddingVertical: 11, alignItems: 'center' },
   generateBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
   empty: { textAlign: 'center', color: colors.textMuted, marginTop: 60, fontSize: 15, paddingHorizontal: 30, lineHeight: 24 },
