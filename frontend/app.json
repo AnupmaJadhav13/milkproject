@@ -34,7 +34,11 @@
     "web": {
       "favicon": "./assets/sarvaalogo.png"
     },
-    "extra": {},
+    "extra": {
+      "eas": {
+        "projectId": "31d96667-ff24-4bc7-bdaa-fd3412cc1a99"
+      }
+    },
     "plugins": [
       [
         "expo-build-properties",
