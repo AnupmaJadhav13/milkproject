@@ -4,12 +4,22 @@ const CollectionCenter = require('../models/CollectionCenter');
 const { sendFarmerRegistrationNotification } = require('../services/notificationService');
 
 const getNextFarmerCode = async () => {
-  const latestFarmer = await Farmer.findOne({ farmerCode: { $exists: true, $ne: null } })
-    .sort({ createdAt: -1 })
-    .select('farmerCode');
+  // Get all farmers and find the highest farmer code number
+  const farmers = await Farmer.find({ farmerCode: { $exists: true, $ne: null } })
+    .select('farmerCode')
+    .lean();
 
-  const lastNumber = Number((latestFarmer?.farmerCode || '').replace('FARM-', '')) || 0;
-  return `FARM-${String(lastNumber + 1).padStart(4, '0')}`;
+  // Extract numbers from all farmer codes and find the maximum
+  let maxNumber = 0;
+  farmers.forEach(farmer => {
+    const number = Number((farmer.farmerCode || '').replace('FARM-', ''));
+    if (!isNaN(number) && number > maxNumber) {
+      maxNumber = number;
+    }
+  });
+
+  // Return next number
+  return `FARM-${String(maxNumber + 1).padStart(4, '0')}`;
 };
 
 const createFarmer = asyncHandler(async (req, res) => {
