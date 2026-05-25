@@ -27,8 +27,6 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
         "POST_NOTIFICATIONS"
       ]
     },

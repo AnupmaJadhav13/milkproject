@@ -101,12 +101,12 @@ router.put(
   updateProfile
 );
 
-// ── Farmer: Save Push Token ───────────────────────────────────────────────────
+// ── Save Push Token (Farmer & Collection Head) ───────────────────────────────
 
 router.post(
   '/push-token',
   protect,
-  authorizeRoles('farmer'),
+  authorizeRoles('farmer', 'collection_head'),
   [
     check('expoPushToken', 'Valid Expo push token is required').notEmpty().trim()
   ],

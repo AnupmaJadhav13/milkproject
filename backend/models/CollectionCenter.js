@@ -10,7 +10,13 @@ const collectionHeadSchema = mongoose.Schema({
   password: { type: String },
   profilePhoto: { type: String },
   role: { type: String, default: 'collection_head' },
-  status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' }
+  status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
+  
+  // ── Push Notification Fields ───────────────────────────────────────────────
+  /** Expo push notification token for collection head's device */
+  expoPushToken: { type: String, default: null },
+  /** Last time push token was updated */
+  pushTokenUpdatedAt: { type: Date, default: null }
 }, { _id: false });
 
 const collectionCenterSchema = mongoose.Schema({

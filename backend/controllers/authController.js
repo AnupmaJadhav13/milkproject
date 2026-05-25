@@ -291,17 +291,17 @@ const enableAllFarmersLogin = asyncHandler(async (req, res) => {
   });
 });
 
-// ── Farmer: Save Push Notification Token ─────────────────────────────────────
+// ── Save Push Notification Token (Farmer & Collection Head) ──────────────────
 
 const savePushToken = asyncHandler(async (req, res) => {
   const { expoPushToken } = req.body;
   const userId = req.user.id;
   const userRole = req.user.role;
 
-  // Only farmers can save push tokens
-  if (userRole !== 'farmer') {
+  // Only farmers and collection heads can save push tokens
+  if (userRole !== 'farmer' && userRole !== 'collection_head') {
     res.status(403);
-    throw new Error('Only farmers can save push tokens');
+    throw new Error('Only farmers and collection heads can save push tokens');
   }
 
   if (!expoPushToken || !String(expoPushToken).startsWith('ExponentPushToken[')) {
@@ -309,15 +309,31 @@ const savePushToken = asyncHandler(async (req, res) => {
     throw new Error('Invalid Expo push token format');
   }
 
-  const farmer = await Farmer.findById(userId);
-  if (!farmer) {
-    res.status(404);
-    throw new Error('Farmer not found');
-  }
+  if (userRole === 'farmer') {
+    const farmer = await Farmer.findById(userId);
+    if (!farmer) {
+      res.status(404);
+      throw new Error('Farmer not found');
+    }
 
-  farmer.expoPushToken = expoPushToken;
-  farmer.pushTokenUpdatedAt = new Date();
-  await farmer.save();
+    farmer.expoPushToken = expoPushToken;
+    farmer.pushTokenUpdatedAt = new Date();
+    await farmer.save();
+
+    console.log(`✅ Push token saved for farmer: ${farmer.fullName}`);
+  } else if (userRole === 'collection_head') {
+    const center = await CollectionCenter.findById(userId);
+    if (!center) {
+      res.status(404);
+      throw new Error('Collection center not found');
+    }
+
+    center.collectionHead.expoPushToken = expoPushToken;
+    center.collectionHead.pushTokenUpdatedAt = new Date();
+    await center.save();
+
+    console.log(`✅ Push token saved for collection head: ${center.collectionHead.fullName}`);
+  }
 
   res.json({
     success: true,

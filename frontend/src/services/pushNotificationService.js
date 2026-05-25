@@ -29,7 +29,7 @@ export async function registerForPushNotificationsAsync() {
 
   // Check if running on physical device
   if (!Device.isDevice) {
-    console.log('Push notifications only work on physical devices, not simulators/emulators');
+    console.log('⏭️ Push notifications require physical device');
     return null;
   }
 
@@ -46,17 +46,19 @@ export async function registerForPushNotificationsAsync() {
 
     // If permission denied, return null
     if (finalStatus !== 'granted') {
-      console.log('Push notification permission denied');
+      console.log('⚠️ Notification permission not granted');
       return null;
     }
 
     // Get the Expo push token
-    // For Expo Go, projectId is not required
-    // For standalone apps, it's automatically configured
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: projectId
+    });
     token = tokenData.data;
 
-    console.log('✅ Expo Push Token:', token);
+    console.log('✅ Push token obtained');
 
     // Configure notification channel for Android
     if (Platform.OS === 'android') {
@@ -74,7 +76,7 @@ export async function registerForPushNotificationsAsync() {
     return token;
 
   } catch (error) {
-    console.error('Error registering for push notifications:', error);
+    console.error('❌ Error registering push notifications:', error.message);
     return null;
   }
 }
