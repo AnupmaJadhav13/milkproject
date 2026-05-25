@@ -82,7 +82,7 @@ const CollectionHeadFarmerListScreen = ({ navigation }) => {
             <Text style={styles.brandText}>{user?.name || 'Collection Head'}</Text>
           </View>
           <Image
-            source={require('../../assets/images/sarvaalogo.png')}
+            source={require('../../../assets/sarvaalogo.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />

@@ -1,33 +1,40 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 
-const APP_CONFIG_URL = Constants.expoConfig?.extra?.apiUrl;
+// ============================================================================
+// 🔧 API CONFIGURATION - Easy Switch Between Local & Production
+// ============================================================================
 
-const getRuntimeHost = () => {
-  const hostUri = Constants.expoConfig?.hostUri || '';
-  if (!hostUri) return null;
-  return String(hostUri).split(':')[0];
-};
+// CHANGE THIS TO SWITCH BETWEEN LOCAL AND PRODUCTION
+const USE_LOCAL = false;
 
-const runtimeHost = getRuntimeHost();
-const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const DEFAULT_API_URL = APP_CONFIG_URL || `http://${runtimeHost || fallbackHost}:5000/api`;
+// PRODUCTION URL (Deployed backend on Render)
+const PRODUCTION_URL = 'https://milkproject.onrender.com/api';
 
-const API_BASE_URL = DEFAULT_API_URL;
+const LOCAL_URL = 'http://192.168.1.100:5000/api';
+
+const API_BASE_URL = USE_LOCAL ? LOCAL_URL : PRODUCTION_URL;
+
+console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('📍 Mode:', USE_LOCAL ? '💻 LOCAL DEVELOPMENT' : '🚀 PRODUCTION');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000, // 30 second timeout
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.message || error.message || 'Network error';
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      'Network error';
+
     error.message = message;
+
     return Promise.reject(error);
   }
 );

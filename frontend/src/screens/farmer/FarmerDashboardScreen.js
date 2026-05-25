@@ -68,7 +68,7 @@ const FarmerDashboardScreen = ({ navigation }) => {
         {/* ── Logo + Role badge ── */}
         <View style={styles.brandRow}>
           <Image
-            source={require('../../assets/images/sarvaalogo.png')}
+            source={require('../../../assets/sarvaalogo.png')}
             style={styles.logo}
             resizeMode="contain"
           />

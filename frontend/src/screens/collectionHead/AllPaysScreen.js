@@ -25,7 +25,7 @@ const AllPaysScreen = ({ route, navigation }) => {
 
           {/* Logo in center */}
           <Image
-            source={require('../../assets/images/sarvaalogo.png')}
+            source={require('../../../assets/sarvaalogo.png')}
             style={styles.logoImage}
             resizeMode="contain"
           />

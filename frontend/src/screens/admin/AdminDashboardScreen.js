@@ -113,7 +113,7 @@ const AdminDashboardScreen = ({ navigation }) => {
       
           <View style={styles.headerRight}>
             <Image
-              source={require('../../assets/images/sarvaalogo.png')}
+              source={require('../../../assets/sarvaalogo.png')}
               style={styles.logo}
               resizeMode="contain"
             />

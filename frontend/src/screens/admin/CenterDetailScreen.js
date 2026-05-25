@@ -101,7 +101,7 @@ const CenterDetailScreen = ({ navigation, route }) => {
         <View style={styles.centerCard}>
           <View style={styles.centerLogoContainer}>
             <Image
-              source={require('../../assets/images/sarvaalogo.png')}
+              source={require('../../../assets/sarvaalogo.png')}
               style={styles.centerLogo}
               resizeMode="contain"
             />

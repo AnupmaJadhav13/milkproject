@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, StatusBar, Image } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import Toast from 'react-native-toast-message';
@@ -28,9 +28,11 @@ const LoginScreen = () => {
 
         {/* Brand Header */}
         <View style={styles.brandSection}>
-          <View style={styles.logoMark}>
-            <Text style={styles.logoSymbol}>◈</Text>
-          </View>
+          <Image 
+            source={require('../../../assets/sarvaalogo.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.brandName}>Sarvasvaa Milk</Text>
           <Text style={styles.brandTagline}>Dairy Management System</Text>
         </View>
@@ -98,10 +100,6 @@ const LoginScreen = () => {
                   ) : null}
                 </View>
 
-                <TouchableOpacity style={styles.forgotRow}>
-                  <Text style={styles.forgotText}>Forgot Password?</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity
                   style={[styles.signInBtn, status === 'loading' && styles.signInBtnDisabled]}
                   onPress={handleSubmit}
@@ -118,10 +116,10 @@ const LoginScreen = () => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Farmer? Use your mobile number · </Text>
-          <TouchableOpacity>
+          <Text style={styles.footerText}>Farmer? Use your mobile number</Text>
+          {/* <TouchableOpacity>
             <Text style={styles.footerLink}>Contact Support</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 
@@ -143,6 +141,11 @@ const styles = StyleSheet.create({
   brandSection: {
     alignItems: 'center',
     marginBottom: spacing.xxl,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: spacing.md,
   },
   logoMark: {
     width: 72,

@@ -73,7 +73,7 @@ const CollectionHeadHomeScreen = ({ navigation }) => {
         {/* ── Brand + Role — centered ── */}
         <View style={styles.brandCenter}>
           <Image
-            source={require('../../assets/images/sarvaalogo.png')}
+            source={require('../../../assets/sarvaalogo.png')}
             style={styles.logo}
             resizeMode="contain"
           />
