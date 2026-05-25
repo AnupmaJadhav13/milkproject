@@ -15,25 +15,39 @@ const asDayRange = (dateValue) => {
 
 const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-const calculateRate = async (fat, snf) => {
-  let settings = await RateChartSettings.findOne({ key: 'default' }).lean();
-  if (!settings) {
-    settings = {
-      baseRate: 30,
-      fatStepInr: 0.3,
-      snfStepInr: 0.5,
-      fatMin: 3.0,
-      fatMax: 5.5,
-      snfMin: 7.5,
-      snfMax: 9.0
-    };
+// Default fallback rates used when no center-specific chart exists
+const DEFAULT_RATES = {
+  baseRate: 30, fatStepInr: 0.3, snfStepInr: 0.5,
+  fatMin: 3.0, fatMax: 5.5, snfMin: 7.5, snfMax: 9.0
+};
+
+/**
+ * Calculate rate per liter for a given fat/snf using the center's rate chart.
+ * Falls back to defaults if no chart is configured for the center.
+ * @param {number} fat
+ * @param {number} snf
+ * @param {string|ObjectId} centerId  — the collection center's _id
+ */
+const calculateRate = async (fat, snf, centerId) => {
+  let settings = null;
+
+  if (centerId) {
+    settings = await RateChartSettings.findOne({ centerId }).lean();
   }
+
+  // Fall back to defaults if no center-specific chart found
+  if (!settings) {
+    settings = DEFAULT_RATES;
+  }
+
   const usedFat = clamp(Number(fat), Number(settings.fatMin), Number(settings.fatMax));
   const usedSnf = clamp(Number(snf), Number(settings.snfMin), Number(settings.snfMax));
   const fatDiffSteps = Math.round((usedFat - Number(settings.fatMin)) * 10);
   const snfDiffSteps = Math.round((usedSnf - Number(settings.snfMin)) * 10);
   const computed =
-    Number(settings.baseRate) + fatDiffSteps * Number(settings.fatStepInr) + snfDiffSteps * Number(settings.snfStepInr);
+    Number(settings.baseRate) +
+    fatDiffSteps * Number(settings.fatStepInr) +
+    snfDiffSteps * Number(settings.snfStepInr);
   return Number(computed.toFixed(2));
 };
 
@@ -61,7 +75,7 @@ const createMilkEntry = asyncHandler(async (req, res) => {
   }
 
   const { start, end } = asDayRange(date);
-  const ratePerLiter = await calculateRate(fat, snf);
+  const ratePerLiter = await calculateRate(fat, snf, collectionCenterId);
   const totalAmount = Number((Number(quantityLiters) * ratePerLiter).toFixed(2));
   const center = await CollectionCenter.findById(collectionCenterId).select('name collectionHead.fullName').lean();
 

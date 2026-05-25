@@ -64,8 +64,8 @@ export const farmerApi = {
 };
 
 export const rateChartApi = {
-  get: (token) => api.get('/admin/rate-chart', { headers: { Authorization: `Bearer ${token}` } }),
-  update: (data, token) => api.put('/admin/rate-chart', data, { headers: { Authorization: `Bearer ${token}` } })
+  get:    (token, centerId) => api.get('/admin/rate-chart',  { headers: { Authorization: `Bearer ${token}` }, params: { centerId } }),
+  update: (data, token, centerId) => api.put('/admin/rate-chart', data, { headers: { Authorization: `Bearer ${token}` }, params: { centerId } })
 };
 
 export const annualBonusApi = {

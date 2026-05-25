@@ -34,7 +34,6 @@ const LoginScreen = () => {
             resizeMode="contain"
           />
           <Text style={styles.brandName}>Sarvasvaa Milk</Text>
-          <Text style={styles.brandTagline}>Dairy Management System</Text>
         </View>
 
         {/* Login Card */}
