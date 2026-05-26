@@ -1,112 +1,109 @@
-/**
- * Notification Permission Handler
- * Handles push notification registration for all users
- */
-
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Modal, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  Linking,
+  Modal,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSelector } from 'react-redux';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+import { registerForPushNotificationsAsync } from '../services/pushNotificationService';
 import { authApi } from '../api/api';
-
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
 
 export default function NotificationPermissionHandler() {
   const { user, token } = useSelector((state) => state.auth);
   const [showSuccess, setShowSuccess] = useState(false);
-  const isRegistering = useRef(false);
-  const registeredUserId = useRef(null);
+  const hasSavedToken = useRef(false);
+  const isProcessing = useRef(false);
+  const permissionAlertVisible = useRef(false);
 
   useEffect(() => {
-    // Only register if:
-    // 1. User is logged in (user and token exist)
-    // 2. Running on physical device
-    // 3. Not currently registering
-    // 4. Haven't registered for this user yet
-    if (user && token && Device.isDevice && !isRegistering.current && registeredUserId.current !== user.id) {
-      registerPushNotifications();
+    if (user?.role === 'farmer' && token) {
+      handleNotificationSetup();
     }
-  }, [user, token]); // Watch entire user and token objects
+  }, [user, token]);
 
-  const registerPushNotifications = async () => {
-    // Prevent concurrent registrations
-    if (isRegistering.current) return;
-    isRegistering.current = true;
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && user?.role === 'farmer' && token) {
+        handleNotificationSetup();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [user, token]);
+
+  const showNotificationRequiredAlert = () => {
+    if (permissionAlertVisible.current) return;
+
+    permissionAlertVisible.current = true;
+    Alert.alert(
+      'Notifications Required',
+      'Farmer payment and advance alerts are sent as phone notifications. Please allow notifications to receive real-time updates.',
+      [
+        {
+          text: 'Open Settings',
+          onPress: async () => {
+            permissionAlertVisible.current = false;
+            await Linking.openSettings();
+          },
+        },
+        {
+          text: 'Try Again',
+          onPress: () => {
+            permissionAlertVisible.current = false;
+            handleNotificationSetup();
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const handleNotificationSetup = async () => {
+    if (isProcessing.current || hasSavedToken.current) return;
 
     try {
-      // Step 1: Request permission
-      const { status: existingStatus} = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
+      isProcessing.current = true;
 
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        isRegistering.current = false;
+      if (!Device.isDevice) {
+        console.log('Skipping push notifications on non-physical device');
         return;
       }
 
-      // Step 2: Get push token
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-      
-      if (!projectId) {
-        isRegistering.current = false;
+      const pushResult = await registerForPushNotificationsAsync();
+      const fcmToken = typeof pushResult === 'string' ? pushResult : pushResult?.token;
+
+      if (!fcmToken) {
+        if (pushResult?.status === 'permission_denied') {
+          showNotificationRequiredAlert();
+        } else {
+          console.warn('FCM token not available:', pushResult);
+        }
         return;
       }
 
-      const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-      const expoPushToken = tokenData.data;
+      await authApi.savePushToken({ fcmToken, pushProvider: 'fcm' }, token);
+      hasSavedToken.current = true;
+      setShowSuccess(true);
 
-      if (!expoPushToken) {
-        isRegistering.current = false;
-        return;
-      }
-
-      // Step 3: Configure Android channel
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'Default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          sound: 'default',
-          enableVibrate: true,
-          showBadge: true,
-        });
-      }
-
-      // Step 4: Save to backend
-      const response = await authApi.savePushToken(expoPushToken, token);
-      
-      if (response.data.success) {
-        // Mark this user as registered
-        registeredUserId.current = user.id;
-        
-        // Show success popup
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2000);
-      }
-      
-      isRegistering.current = false;
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
     } catch (error) {
-      isRegistering.current = false;
+      console.error('Error in FCM notification setup:', error);
+    } finally {
+      isProcessing.current = false;
     }
   };
 
   return (
     <Modal
       visible={showSuccess}
-      transparent={true}
+      transparent
       animationType="fade"
       onRequestClose={() => setShowSuccess(false)}
     >
@@ -116,7 +113,7 @@ export default function NotificationPermissionHandler() {
             <Text style={styles.successIconText}>✓</Text>
           </View>
           <Text style={styles.successTitle}>Notification Activated!</Text>
-          <Text style={styles.successTitle}>सूचना सक्रिय!</Text>
+          <Text style={styles.successSubtitle}>सूचना सक्रिय!</Text>
         </View>
       </View>
     </Modal>
@@ -126,12 +123,11 @@ export default function NotificationPermissionHandler() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  
   successCard: {
     backgroundColor: 'white',
     borderRadius: 20,
@@ -141,29 +137,35 @@ const styles = StyleSheet.create({
     width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
     elevation: 8,
   },
   successIcon: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#0F766E',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
   },
   successIconText: {
-    fontSize: 45,
+    fontSize: 44,
     color: 'white',
     fontWeight: 'bold',
   },
   successTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#0F172A',
     marginBottom: 5,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F766E',
     textAlign: 'center',
   },
 });

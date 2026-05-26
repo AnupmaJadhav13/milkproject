@@ -1,184 +1,156 @@
 /**
- * Push Notification Service using Expo Push Notifications
- * 
- * This service handles sending push notifications to farmers' devices
- * using the Expo Push Notification API.
+ * Direct FCM push notification service.
+ *
+ * Required Render env:
+ * - FIREBASE_SERVICE_ACCOUNT_JSON: full Firebase service account JSON string
+ *   or base64 encoded JSON string.
  */
 
-const { Expo } = require('expo-server-sdk');
+const admin = require('firebase-admin');
 
-// Create a new Expo SDK client
-const expo = new Expo();
+let firebaseReady = false;
 
-/**
- * Send push notification to a single device
- * 
- * @param {string} pushToken - Expo push token (starts with ExponentPushToken[...])
- * @param {object} notification - Notification data
- * @param {string} notification.title - Notification title
- * @param {string} notification.body - Notification body/message
- * @param {object} notification.data - Additional data to send with notification
- * @returns {Promise<object>} Result of push notification send
- */
+function parseServiceAccount() {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return null;
+
+  try {
+    const json = raw.trim().startsWith('{')
+      ? raw
+      : Buffer.from(raw, 'base64').toString('utf8');
+    const serviceAccount = JSON.parse(json);
+
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
+    return serviceAccount;
+  } catch (error) {
+    console.error('[FCM] Invalid FIREBASE_SERVICE_ACCOUNT_JSON:', error.message);
+    return null;
+  }
+}
+
+function ensureFirebase() {
+  if (firebaseReady) return true;
+
+  if (admin.apps.length > 0) {
+    firebaseReady = true;
+    return true;
+  }
+
+  const serviceAccount = parseServiceAccount();
+  if (!serviceAccount) {
+    console.error('[FCM] Firebase service account env is missing');
+    return false;
+  }
+
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    firebaseReady = true;
+    console.log('[FCM] Firebase Admin initialized');
+    return true;
+  } catch (error) {
+    console.error('[FCM] Firebase Admin init failed:', error.message);
+    return false;
+  }
+}
+
+function stringifyData(data = {}) {
+  return Object.entries(data).reduce((acc, [key, value]) => {
+    if (value !== undefined && value !== null) {
+      acc[key] = typeof value === 'string' ? value : String(value);
+    }
+    return acc;
+  }, {});
+}
+
+function buildMessage(token, notification) {
+  return {
+    token,
+    notification: {
+      title: notification.title || 'Sarvasvaa Dairy',
+      body: notification.body || '',
+    },
+    data: stringifyData(notification.data),
+    android: {
+      priority: 'high',
+      notification: {
+        channelId: 'default',
+        sound: 'default',
+        priority: 'high',
+        visibility: 'public',
+      },
+    },
+  };
+}
+
 async function sendPushNotification(pushToken, notification) {
   try {
-    // Check that the push token is valid
-    if (!Expo.isExpoPushToken(pushToken)) {
-      console.error(`Push token ${pushToken} is not a valid Expo push token`);
-      return {
-        success: false,
-        error: 'Invalid push token'
-      };
+    if (!pushToken) {
+      return { success: false, error: 'Missing FCM token' };
     }
 
-    // Construct the message
-    const message = {
-      to: pushToken,
-      sound: 'default',
-      title: notification.title || 'New Notification',
-      body: notification.body || '',
-      data: notification.data || {},
-      priority: 'high',
-      channelId: 'default', // For Android
-    };
+    if (!ensureFirebase()) {
+      return { success: false, error: 'Firebase Admin is not configured' };
+    }
 
-    // Send the notification
-    const ticket = await expo.sendPushNotificationsAsync([message]);
-    
-    console.log('✅ Push notification sent:', ticket);
-    
+    const response = await admin.messaging().send(buildMessage(pushToken, notification));
+    console.log('[FCM] Push notification sent:', response);
+
     return {
       success: true,
-      ticket: ticket[0]
+      messageId: response,
     };
-
   } catch (error) {
-    console.error('❌ Error sending push notification:', error);
+    console.error('[FCM] Error sending push notification:', error.message);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
 
-/**
- * Send push notifications to multiple devices
- * 
- * @param {Array<object>} notifications - Array of notification objects
- * @param {string} notifications[].pushToken - Expo push token
- * @param {string} notifications[].title - Notification title
- * @param {string} notifications[].body - Notification body
- * @param {object} notifications[].data - Additional data
- * @returns {Promise<object>} Results of all push notifications
- */
 async function sendBulkPushNotifications(notifications) {
   try {
-    // Filter out invalid tokens and construct messages
-    const messages = [];
-    
-    for (const notif of notifications) {
-      if (!Expo.isExpoPushToken(notif.pushToken)) {
-        console.warn(`Skipping invalid push token: ${notif.pushToken}`);
-        continue;
-      }
-
-      messages.push({
-        to: notif.pushToken,
-        sound: 'default',
-        title: notif.title || 'New Notification',
-        body: notif.body || '',
-        data: notif.data || {},
-        priority: 'high',
-        channelId: 'default',
-      });
+    if (!ensureFirebase()) {
+      return { success: false, error: 'Firebase Admin is not configured' };
     }
+
+    const messages = notifications
+      .filter((notification) => notification.pushToken)
+      .map((notification) => buildMessage(notification.pushToken, notification));
 
     if (messages.length === 0) {
-      return {
-        success: false,
-        error: 'No valid push tokens provided'
-      };
+      return { success: false, error: 'No valid FCM tokens provided' };
     }
 
-    // Split messages into chunks of 100 (Expo's limit)
-    const chunks = expo.chunkPushNotifications(messages);
-    const tickets = [];
-
-    // Send each chunk
-    for (const chunk of chunks) {
-      try {
-        const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-        tickets.push(...ticketChunk);
-      } catch (error) {
-        console.error('Error sending chunk:', error);
-      }
-    }
-
-    console.log(`✅ Sent ${tickets.length} push notifications`);
+    const result = await admin.messaging().sendEach(messages);
+    console.log(`[FCM] Sent ${result.successCount}/${messages.length} push notifications`);
 
     return {
-      success: true,
-      totalSent: tickets.length,
-      tickets
+      success: result.successCount > 0,
+      totalSent: result.successCount,
+      totalFailed: result.failureCount,
+      responses: result.responses,
     };
-
   } catch (error) {
-    console.error('❌ Error sending bulk push notifications:', error);
+    console.error('[FCM] Error sending bulk push notifications:', error.message);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
 
-/**
- * Check receipt status of sent notifications
- * This is useful for tracking delivery and handling errors
- * 
- * @param {Array<string>} receiptIds - Array of receipt IDs from tickets
- * @returns {Promise<object>} Receipt information
- */
-async function checkPushNotificationReceipts(receiptIds) {
-  try {
-    const receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
-    const receipts = [];
-
-    for (const chunk of receiptIdChunks) {
-      try {
-        const receiptChunk = await expo.getPushNotificationReceiptsAsync(chunk);
-        receipts.push(receiptChunk);
-      } catch (error) {
-        console.error('Error fetching receipts:', error);
-      }
-    }
-
-    return {
-      success: true,
-      receipts
-    };
-
-  } catch (error) {
-    console.error('❌ Error checking receipts:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Validate if a push token is valid Expo push token
- * 
- * @param {string} pushToken - Token to validate
- * @returns {boolean} True if valid
- */
-function isValidExpoPushToken(pushToken) {
-  return Expo.isExpoPushToken(pushToken);
+function isValidFcmToken(pushToken) {
+  return typeof pushToken === 'string' && pushToken.trim().length > 20;
 }
 
 module.exports = {
   sendPushNotification,
   sendBulkPushNotifications,
-  checkPushNotificationReceipts,
-  isValidExpoPushToken
+  isValidFcmToken,
 };

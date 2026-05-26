@@ -13,8 +13,12 @@ const collectionHeadSchema = mongoose.Schema({
   status: { type: String, enum: ['Active', 'Inactive'], default: 'Active' },
   
   // ── Push Notification Fields ───────────────────────────────────────────────
-  /** Expo push notification token for collection head's device */
+  /** FCM device token for collection head's device */
+  fcmToken: { type: String, default: null },
+  /** Expo push notification token kept only for backward compatibility */
   expoPushToken: { type: String, default: null },
+  /** Push provider used by the saved token */
+  pushProvider: { type: String, enum: ['fcm', 'expo'], default: 'fcm' },
   /** Last time push token was updated */
   pushTokenUpdatedAt: { type: Date, default: null }
 }, { _id: false });

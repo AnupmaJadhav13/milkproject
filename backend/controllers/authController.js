@@ -147,7 +147,7 @@ const changePassword = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error('User not found');
     }
-    
+
     const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
       res.status(401);
@@ -162,7 +162,7 @@ const changePassword = asyncHandler(async (req, res) => {
       res.status(404);
       throw new Error('User not found');
     }
-    
+
     const isMatch = await user.matchPassword(currentPassword);
     if (!isMatch) {
       res.status(401);
@@ -323,16 +323,29 @@ const enableAllFarmersLogin = asyncHandler(async (req, res) => {
   });
 });
 
-// ── Save Push Notification Token (All Users) ─────────────────────────────────
+// ── Save Push Notification Token (Farmer & Collection Head) ──────────────────
 
 const savePushToken = asyncHandler(async (req, res) => {
-  const { expoPushToken } = req.body;
+  const { expoPushToken, fcmToken, pushProvider = 'fcm' } = req.body;
   const userId = req.user.id;
   const userRole = req.user.role;
 
-  if (!expoPushToken || !String(expoPushToken).startsWith('ExponentPushToken[')) {
+  // Only farmers and collection heads can save push tokens
+  if (userRole !== 'farmer' && userRole !== 'collection_head') {
+    res.status(403);
+    throw new Error('Only farmers and collection heads can save push tokens');
+  }
+
+  const fcmTokenValue = String(fcmToken || '').trim();
+  const expoTokenValue = String(expoPushToken || '').trim();
+  const hasFcmToken = fcmTokenValue.length > 20;
+  const hasExpoToken =
+    expoTokenValue.startsWith('ExponentPushToken[') ||
+    expoTokenValue.startsWith('ExpoPushToken[');
+
+  if (!hasFcmToken && !hasExpoToken) {
     res.status(400);
-    throw new Error('Invalid Expo push token format');
+    throw new Error('Valid FCM push token is required');
   }
 
   if (userRole === 'farmer') {
@@ -342,7 +355,14 @@ const savePushToken = asyncHandler(async (req, res) => {
       throw new Error('Farmer not found');
     }
 
-    farmer.expoPushToken = expoPushToken;
+    if (hasFcmToken) {
+      farmer.fcmToken = fcmTokenValue;
+      farmer.pushProvider = 'fcm';
+    }
+    if (hasExpoToken) {
+      farmer.expoPushToken = expoTokenValue;
+      if (!hasFcmToken) farmer.pushProvider = pushProvider === 'expo' ? 'expo' : 'fcm';
+    }
     farmer.pushTokenUpdatedAt = new Date();
     await farmer.save();
 
@@ -354,26 +374,18 @@ const savePushToken = asyncHandler(async (req, res) => {
       throw new Error('Collection center not found');
     }
 
-    center.collectionHead.expoPushToken = expoPushToken;
+    if (hasFcmToken) {
+      center.collectionHead.fcmToken = fcmTokenValue;
+      center.collectionHead.pushProvider = 'fcm';
+    }
+    if (hasExpoToken) {
+      center.collectionHead.expoPushToken = expoTokenValue;
+      if (!hasFcmToken) center.collectionHead.pushProvider = pushProvider === 'expo' ? 'expo' : 'fcm';
+    }
     center.collectionHead.pushTokenUpdatedAt = new Date();
     await center.save();
 
     console.log(`✅ Push token saved for collection head: ${center.collectionHead.fullName}`);
-  } else if (userRole === 'admin') {
-    const admin = await Admin.findById(userId);
-    if (!admin) {
-      res.status(404);
-      throw new Error('Admin not found');
-    }
-
-    admin.expoPushToken = expoPushToken;
-    admin.pushTokenUpdatedAt = new Date();
-    await admin.save();
-
-    console.log(`✅ Push token saved for admin: ${admin.name}`);
-  } else {
-    res.status(400);
-    throw new Error('Invalid user role');
   }
 
   res.json({

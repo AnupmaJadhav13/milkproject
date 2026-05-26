@@ -33,8 +33,12 @@ const farmerSchema = mongoose.Schema({
   loginEnabled: { type: Boolean, default: false },
   
   // ── Push Notification Fields ───────────────────────────────────────────────
-  /** Expo push notification token for this farmer's device */
+  /** FCM device token for direct phone push notifications */
+  fcmToken: { type: String, default: null },
+  /** Expo push notification token kept only for backward compatibility */
   expoPushToken: { type: String, default: null },
+  /** Push provider used by the saved token */
+  pushProvider: { type: String, enum: ['fcm', 'expo'], default: 'fcm' },
   /** Last time push token was updated */
   pushTokenUpdatedAt: { type: Date, default: null }
 }, { timestamps: true });

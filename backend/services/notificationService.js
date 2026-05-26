@@ -43,9 +43,9 @@ const createNotification = async (farmerId, type, title, message, metadata = {})
     
     // Send push notification if farmer has a push token
     try {
-      const farmer = await Farmer.findById(farmerId).select('expoPushToken').lean();
-      if (farmer && farmer.expoPushToken) {
-        await sendPushNotification(farmer.expoPushToken, {
+      const farmer = await Farmer.findById(farmerId).select('fcmToken').lean();
+      if (farmer && farmer.fcmToken) {
+        await sendPushNotification(farmer.fcmToken, {
           title,
           body: message,
           data: {
@@ -213,12 +213,12 @@ const sendCustomNotification = async (farmerIds, title, message) => {
   try {
     const farmers = await Farmer.find({
       _id: { $in: farmerIds },
-      expoPushToken: { $exists: true, $ne: null }
-    }).select('_id expoPushToken').lean();
+      fcmToken: { $exists: true, $ne: null }
+    }).select('_id fcmToken').lean();
     
     if (farmers.length > 0) {
       const pushNotifications = farmers.map(farmer => ({
-        pushToken: farmer.expoPushToken,
+        pushToken: farmer.fcmToken,
         title: title || 'संदेश',
         body: message,
         data: {

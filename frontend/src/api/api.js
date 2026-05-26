@@ -46,7 +46,12 @@ export const authApi = {
   login: (credentials) => api.post('/auth/login', credentials),
   updateProfile: (data, token) => api.put('/auth/profile', data, { headers: { Authorization: `Bearer ${token}` } }),
   changePassword: (data, token) => api.post('/auth/change-password', data, { headers: { Authorization: `Bearer ${token}` } }),
-  savePushToken: (expoPushToken, token) => api.post('/auth/push-token', { expoPushToken }, { headers: { Authorization: `Bearer ${token}` } })
+  savePushToken: (pushToken, token) => {
+    const payload = typeof pushToken === 'string'
+      ? { fcmToken: pushToken, pushProvider: 'fcm' }
+      : pushToken;
+    return api.post('/auth/push-token', payload, { headers: { Authorization: `Bearer ${token}` } });
+  }
 };
 
 export const centerApi = {
